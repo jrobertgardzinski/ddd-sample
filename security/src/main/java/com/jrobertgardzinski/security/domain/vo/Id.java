@@ -1,4 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo;
 
-public record Id(String value) {
+import jakarta.validation.constraints.NotNull;
+
+public record Id(@NotNull Long value) {
 }
