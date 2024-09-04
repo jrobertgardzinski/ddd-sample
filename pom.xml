@@ -9,7 +9,8 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>security</module>
+        <module>domain-test-starter</module>
+        <module>security-module</module>
     </modules>
 
     <properties>

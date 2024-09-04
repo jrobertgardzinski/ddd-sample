@@ -6,47 +6,31 @@
         <artifactId>ddd-sample</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-
-    <artifactId>security</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-    <name>security</name>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
+    <artifactId>domain-test-starter</artifactId>
     <dependencies>
-        <dependency>
-            <groupId>org.hibernate.validator</groupId>
-            <artifactId>hibernate-validator</artifactId>
-            <version>8.0.1.Final</version>
-        </dependency>
         <dependency>
             <groupId>org.glassfish.expressly</groupId>
             <artifactId>expressly</artifactId>
+            <scope>compile</scope>
             <version>5.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>compile</scope>
             <version>5.11.0</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
+            <scope>compile</scope>
             <version>5.11.0</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
+            <scope>compile</scope>
             <version>3.0</version>
-            <scope>test</scope>
         </dependency>
-
-
-
     </dependencies>
 </project>
