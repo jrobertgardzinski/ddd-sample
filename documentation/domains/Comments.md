@@ -1,6 +1,6 @@
 # Aggregate
 
-## Message
+## Content
 
 * id
 * author: User

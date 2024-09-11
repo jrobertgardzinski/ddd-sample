@@ -10,7 +10,9 @@
     <packaging>pom</packaging>
     <modules>
         <module>domain-test-starter</module>
-        <module>security-module</module>
+        <module>security</module>
+        <module>memes</module>
+        <module>comments</module>
     </modules>
 
     <properties>
