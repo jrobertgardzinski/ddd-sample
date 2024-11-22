@@ -1,6 +1,9 @@
 package com.jrobertgardzinski.security.domain.vo;
 
-import jakarta.validation.constraints.NotNull;
+import java.util.Objects;
 
-public record Id(@NotNull Long value) {
+public record Id(Long value) {
+    public Id {
+        Objects.requireNonNull(value);
+    }
 }
