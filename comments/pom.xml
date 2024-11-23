@@ -7,6 +7,9 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>comments</artifactId>
+    <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>comments</name>
+    <modules>
+        <module>comments-domain</module>
+    </modules>
 </project>
