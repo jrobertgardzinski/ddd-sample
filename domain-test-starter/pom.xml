@@ -9,12 +9,6 @@
     <artifactId>domain-test-starter</artifactId>
     <dependencies>
         <dependency>
-            <groupId>org.glassfish.expressly</groupId>
-            <artifactId>expressly</artifactId>
-            <scope>compile</scope>
-            <version>5.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>compile</scope>
@@ -31,6 +25,18 @@
             <artifactId>hamcrest</artifactId>
             <scope>compile</scope>
             <version>3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.14.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.14.2</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

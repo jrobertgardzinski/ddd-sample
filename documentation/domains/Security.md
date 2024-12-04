@@ -5,6 +5,7 @@
 * id
 * email
 * password
+* ticket
 
 # Commands and Events
 
