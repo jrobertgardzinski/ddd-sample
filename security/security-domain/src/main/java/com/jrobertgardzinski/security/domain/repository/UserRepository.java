@@ -1,11 +1,9 @@
 package com.jrobertgardzinski.security.domain.repository;
 
 import com.jrobertgardzinski.security.domain.entity.User;
-import com.jrobertgardzinski.security.domain.vo.Email;
-
-import java.util.Optional;
+import com.jrobertgardzinski.security.domain.entity.UserDetails;
+import com.jrobertgardzinski.security.domain.repository.exception.UserAlreadyExistsException;
 
 public interface UserRepository {
-    Optional<User> createUser(User user);
-    Optional<User> findUserByEmail(Email email);
+    User createUser(UserDetails userDetails) throws UserAlreadyExistsException;
 }

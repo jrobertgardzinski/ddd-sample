@@ -1,7 +1,12 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.entity.UserDetails;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.domain.repository.exception.UserAlreadyExistsException;
+import com.jrobertgardzinski.security.domain.vo.Id;
 import com.jrobertgardzinski.security.domain.vo.Password;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -20,7 +25,7 @@ class SecurityServiceTest {
     @Mock
     UserRepository userRepository;
     @Mock
-    User user;
+    UserDetails userDetails;
 
     SecurityService securityService;
 
@@ -32,52 +37,19 @@ class SecurityServiceTest {
     @Nested
     class Registration {
         @Test
-        void positive() {
-            when(userRepository.createUser(user))
-                    .thenReturn(Optional.of(user));
-            assertEquals(SecurityService.RegistrationEvent.PASSED,
-                    securityService.registerUser(user));
+        void positive() throws UserAlreadyExistsException {
+            when(userRepository.createUser(userDetails))
+                    .thenReturn(new User(new Id(1L), userDetails));
+            assertTrue(securityService.registerUser(userDetails).getClass()
+                    .isAssignableFrom(RegistrationPassedEvent.class));
         }
 
         @Test
-        void negative() {
-            when(userRepository.createUser(user))
-                    .thenReturn(Optional.empty());
-            assertEquals(SecurityService.RegistrationEvent.FAILED,
-                    securityService.registerUser(user));
-        }
-    }
-
-    @Nested
-    class Authentication {
-        @Nested
-        class PlainText {
-            @Mock
-            Password plainTextPassword;
-            @Mock
-            Password wrongPassword;
-
-            @BeforeEach
-            void init() {
-                when(userRepository.findUserByEmail(user.email()))
-                        .thenReturn(Optional.of(user));
-                when(user.password())
-                        .thenReturn(plainTextPassword);
-            }
-
-            @Test
-            void positive() {
-                assertEquals(
-                        SecurityService.AuthenticationEvent.PASSED,
-                        securityService.authenticateWithPlainPassword(user.email(), plainTextPassword));
-            }
-
-            @Test
-            void negative() {
-                assertEquals(
-                        SecurityService.AuthenticationEvent.FAILED,
-                        securityService.authenticateWithPlainPassword(user.email(), wrongPassword));
-            }
+        void negative() throws UserAlreadyExistsException {
+            when(userRepository.createUser(userDetails))
+                    .thenThrow(UserAlreadyExistsException.class);
+            assertTrue(securityService.registerUser(userDetails).getClass()
+                    .isAssignableFrom(UserAlreadyExistsEvent.class));
         }
     }
 }
