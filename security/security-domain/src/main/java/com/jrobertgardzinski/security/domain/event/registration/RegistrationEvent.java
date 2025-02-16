@@ -1,3 +1,3 @@
 package com.jrobertgardzinski.security.domain.event.registration;
 
-public interface RegistrationEvent {}
+public sealed interface RegistrationEvent permits RegistrationPassedEvent, UserAlreadyExistsEvent {}

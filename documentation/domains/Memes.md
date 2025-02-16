@@ -2,8 +2,8 @@
 
 ## Meme
 
-* id
-* author: User.id
+* userId
+* author: User.userId
 * image
 
 # Commands and Events

@@ -2,14 +2,14 @@
 
 ## Content
 
-* id
+* userId
 * author: User
-* subject: Meme.id
+* subject: Meme.userId
 * body
 
 ### User
 
-* id
+* userId
 * nickname
 
 # Commands and Events

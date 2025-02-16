@@ -2,7 +2,7 @@
 
 ## User
 
-* id
+* userId
 * email
 * password
 * ticket

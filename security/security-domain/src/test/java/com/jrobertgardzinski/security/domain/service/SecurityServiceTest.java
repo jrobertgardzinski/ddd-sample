@@ -1,11 +1,14 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.entity.User;
-import com.jrobertgardzinski.security.domain.entity.UserDetails;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
+import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
+import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
+import com.jrobertgardzinski.security.domain.repository.TokenRepository;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.vo.Id;
+import com.jrobertgardzinski.security.domain.vo.UserDetails;
+import com.jrobertgardzinski.security.domain.vo.UserId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,13 +26,19 @@ class SecurityServiceTest {
     @Mock
     UserRepository userRepository;
     @Mock
+    TokenRepository tokenRepository;
+    @Mock
+    FailedAuthenticationRepository failedAuthenticationRepository;
+    @Mock
+    AuthenticationBlockRepository authenticationBlockRepository;
+    @Mock
     UserDetails userDetails;
 
     SecurityService securityService;
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userRepository);
+        securityService = new SecurityService(userRepository, tokenRepository, failedAuthenticationRepository, authenticationBlockRepository);
     }
 
     @Nested
@@ -39,8 +48,8 @@ class SecurityServiceTest {
             when(
                     userRepository.createUser(userDetails))
             .thenReturn(
-                    Optional.of(new User(new Id(1L), userDetails)));
-            assertTrue(securityService.registerUser(userDetails).getClass()
+                    Optional.of(new User(new UserId(1L), userDetails)));
+            assertTrue(securityService.register(userDetails).getClass()
                     .isAssignableFrom(RegistrationPassedEvent.class));
         }
 
@@ -50,7 +59,7 @@ class SecurityServiceTest {
                     userRepository.createUser(userDetails))
             .thenReturn(
                     Optional.empty());
-            assertTrue(securityService.registerUser(userDetails).getClass()
+            assertTrue(securityService.register(userDetails).getClass()
                     .isAssignableFrom(UserAlreadyExistsEvent.class));
         }
     }
