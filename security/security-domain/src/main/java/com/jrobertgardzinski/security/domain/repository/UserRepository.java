@@ -2,8 +2,9 @@ package com.jrobertgardzinski.security.domain.repository;
 
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.entity.UserDetails;
-import com.jrobertgardzinski.security.domain.repository.exception.UserAlreadyExistsException;
+
+import java.util.Optional;
 
 public interface UserRepository {
-    User createUser(UserDetails userDetails) throws UserAlreadyExistsException;
+    Optional<User> createUser(UserDetails userDetails);
 }

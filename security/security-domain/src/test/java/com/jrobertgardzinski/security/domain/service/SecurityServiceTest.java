@@ -5,9 +5,7 @@ import com.jrobertgardzinski.security.domain.entity.UserDetails;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.repository.exception.UserAlreadyExistsException;
 import com.jrobertgardzinski.security.domain.vo.Id;
-import com.jrobertgardzinski.security.domain.vo.Password;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,7 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,17 +35,21 @@ class SecurityServiceTest {
     @Nested
     class Registration {
         @Test
-        void positive() throws UserAlreadyExistsException {
-            when(userRepository.createUser(userDetails))
-                    .thenReturn(new User(new Id(1L), userDetails));
+        void positive() {
+            when(
+                    userRepository.createUser(userDetails))
+            .thenReturn(
+                    Optional.of(new User(new Id(1L), userDetails)));
             assertTrue(securityService.registerUser(userDetails).getClass()
                     .isAssignableFrom(RegistrationPassedEvent.class));
         }
 
         @Test
-        void negative() throws UserAlreadyExistsException {
-            when(userRepository.createUser(userDetails))
-                    .thenThrow(UserAlreadyExistsException.class);
+        void negative() {
+            when(
+                    userRepository.createUser(userDetails))
+            .thenReturn(
+                    Optional.empty());
             assertTrue(securityService.registerUser(userDetails).getClass()
                     .isAssignableFrom(UserAlreadyExistsEvent.class));
         }

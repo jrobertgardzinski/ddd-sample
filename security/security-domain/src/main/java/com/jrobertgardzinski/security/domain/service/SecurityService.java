@@ -5,7 +5,6 @@ import com.jrobertgardzinski.security.domain.event.registration.RegistrationEven
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.repository.exception.UserAlreadyExistsException;
 
 public class SecurityService {
     private final UserRepository userRepository;
@@ -15,11 +14,11 @@ public class SecurityService {
     }
 
     public RegistrationEvent registerUser(UserDetails userDetails) {
-        try {
-            var user = userRepository.createUser(userDetails);
-            return new RegistrationPassedEvent(user);
-        } catch (UserAlreadyExistsException e) {
-            return new UserAlreadyExistsEvent();
-        }
+        var user = userRepository.createUser(userDetails);
+        return user.isPresent() ?
+            new RegistrationPassedEvent(user.get()) :
+            new UserAlreadyExistsEvent();
     }
+
+
 }
