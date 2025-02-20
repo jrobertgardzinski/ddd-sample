@@ -78,12 +78,24 @@ class SecurityServiceTest {
 
     @Nested
     class authenticate {
-        @Mock
         Email email;
-        @Mock
-        Password password;
-        @Mock
+        Password correctPassword;
+        Password wrongPassword;
         User user;
+
+        @BeforeEach
+        void init() {
+            email = new Email("jrobertgardzinski@gmail.com");
+            correctPassword = new Password("PasswordHardToGuessAt1stTime!");
+            wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
+            user = new User(
+                    new UserId(1),
+                    new UserDetails(
+                            email,
+                            correctPassword
+                    )
+            );
+        }
 
         @Nested
         class Positive {
@@ -99,10 +111,6 @@ class SecurityServiceTest {
                         .thenReturn(
                                 Optional.of(user));
                 when(
-                        user.enteredRight(password))
-                        .thenReturn(
-                                true);
-                when(
                         tokenRepository.createAuthorizationToken(user.id()))
                         .thenReturn(
                                 token);
@@ -111,7 +119,7 @@ class SecurityServiceTest {
                         .thenReturn(
                                 tokenDetails);
 
-                var result = securityService.authenticate(email, password);
+                var result = securityService.authenticate(email, correctPassword);
 
                 verify(failedAuthenticationRepository, times(1)).removeAllFor(user.id());
                 verify(authenticationBlockRepository, times(1)).removeAllFor(user.id());
@@ -146,7 +154,7 @@ class SecurityServiceTest {
                                 failedAuthentication);
 
 
-                var result = securityService.authenticate(email, password);
+                var result = securityService.authenticate(email, wrongPassword);
 
                 verify(failedAuthenticationRepository, times(1)).create(any());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationFailedEvent.class));
@@ -159,7 +167,7 @@ class SecurityServiceTest {
                         .thenReturn(
                                 Optional.empty());
 
-                var result = securityService.authenticate(email, password);
+                var result = securityService.authenticate(email, wrongPassword);
 
                 assertTrue(result.getClass().isAssignableFrom(UserNotFoundEvent.class));
             }
@@ -190,7 +198,7 @@ class SecurityServiceTest {
                             .thenReturn(
                                     authenticationBlockDetails);
 
-                    var result = securityService.authenticate(email, password);
+                    var result = securityService.authenticate(email, wrongPassword);
 
                     verify(failedAuthenticationRepository, times(1)).removeAllFor(user.id());
                     verify(authenticationBlockRepository, times(1)).create(any());
