@@ -4,8 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class EmailTest {
 
@@ -26,5 +25,9 @@ class EmailTest {
         assertDoesNotThrow(() -> new Email(value));
     }
 
-
+    @ParameterizedTest
+    @ValueSource(strings = {"u.ser@gmail.com", "us.er@gmail.com", "use.r@gmail.com", "u.s.e.r@gmail.com", "user+ddd@gmail.com", "u.s.e.r+ddd@gmail.com"})
+    void handlingGmail(String value) {
+        assertEquals(new Email("user@gmail.com"), new Email(value));
+    }
 }
