@@ -1,8 +1,8 @@
 package com.jrobertgardzinski.security.domain.repository;
 
-import com.jrobertgardzinski.security.domain.entity.Token;
-import com.jrobertgardzinski.security.domain.vo.UserId;
+import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
+import com.jrobertgardzinski.security.domain.vo.Email;
 
 public interface TokenRepository {
-    Token createAuthorizationToken(UserId userId);
+    AuthorizationData createAuthorizationTokenFor(Email email);
 }
