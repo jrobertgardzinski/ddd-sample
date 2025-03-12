@@ -10,10 +10,7 @@ import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepos
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
 import com.jrobertgardzinski.security.domain.repository.TokenRepository;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.vo.AuthenticationBlockDetails;
-import com.jrobertgardzinski.security.domain.vo.Email;
-import com.jrobertgardzinski.security.domain.vo.FailedAuthenticationDetails;
-import com.jrobertgardzinski.security.domain.vo.Password;
+import com.jrobertgardzinski.security.domain.vo.*;
 
 import java.util.Calendar;
 
@@ -49,7 +46,10 @@ public class SecurityService {
         if (user.enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             authenticationBlockRepository.removeAllFor(user.getEmail());
-            var token = tokenRepository.createFor(user.getEmail());
+            var token = tokenRepository.createFor(user.getEmail(),
+                    RefreshTokenExpiration.validInHours(48),
+                    AuthorizationTokenExpiration.validInHours(2)
+            );
             return new AuthenticationPassedEvent(
                     new AuthorizedUserAggregate(user.getEmail(), token.getRefreshToken(), token.getAuthorizationToken()));
         }

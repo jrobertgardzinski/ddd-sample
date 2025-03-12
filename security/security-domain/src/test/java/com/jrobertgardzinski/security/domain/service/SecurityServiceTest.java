@@ -100,14 +100,14 @@ class SecurityServiceTest {
                         .thenReturn(
                                 user);
                 when(
-                        tokenRepository.createFor(user.getEmail()))
+                        tokenRepository.createFor(eq(user.getEmail()), any(), any()))
                         .thenReturn(
                                 authorizationData);
                 var result = securityService.authenticate(email, correctPassword);
 
                 verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
                 verify(authenticationBlockRepository, times(1)).removeAllFor(user.getEmail());
-                verify(tokenRepository, times(1)).createFor(user.getEmail());
+                verify(tokenRepository, times(1)).createFor(eq(user.getEmail()), any(), any());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
             }
         }

@@ -1,9 +1,10 @@
 package com.jrobertgardzinski.security.domain.repository;
 
 import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
+import com.jrobertgardzinski.security.domain.vo.AuthorizationTokenExpiration;
 import com.jrobertgardzinski.security.domain.vo.Email;
+import com.jrobertgardzinski.security.domain.vo.RefreshTokenExpiration;
 
 public interface TokenRepository {
-    // todo add expiration dates
-    AuthorizationData createFor(Email email);
+    AuthorizationData createFor(Email email, RefreshTokenExpiration refreshTokenExpiration, AuthorizationTokenExpiration authorizationTokenExpiration);
 }
