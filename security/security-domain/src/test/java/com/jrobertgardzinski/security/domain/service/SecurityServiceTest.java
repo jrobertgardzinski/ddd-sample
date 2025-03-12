@@ -28,7 +28,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SecurityServiceTest {
     @Mock
-    UserLombokRepository userLombokRepository;
+    UserRepository userRepository;
     @Mock
     TokenRepository tokenRepository;
     @Mock
@@ -40,7 +40,7 @@ class SecurityServiceTest {
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userLombokRepository, tokenRepository, failedAuthenticationRepository, authenticationBlockRepository);
+        securityService = new SecurityService(userRepository, tokenRepository, failedAuthenticationRepository, authenticationBlockRepository);
     }
 
     @Nested
@@ -53,7 +53,7 @@ class SecurityServiceTest {
         @Test
         void positive() {
             when(
-                    userLombokRepository.doesExist(email))
+                    userRepository.doesExist(email))
             .thenReturn(
                     false);
 
@@ -64,7 +64,7 @@ class SecurityServiceTest {
         @Test
         void negative() {
             when(
-                    userLombokRepository.doesExist(email))
+                    userRepository.doesExist(email))
                     .thenReturn(
                             true);
 
@@ -78,14 +78,14 @@ class SecurityServiceTest {
         Email email;
         Password correctPassword;
         Password wrongPassword;
-        UserLombok userLombok;
+        User user;
 
         @BeforeEach
         void init() {
             email = new Email("jrobertgardzinski@gmail.com");
             correctPassword = new Password("PasswordHardToGuessAt1stTime!");
             wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
-            userLombok = new UserLombok(email, correctPassword);
+            user = new User(email, correctPassword);
         }
 
         @Nested
@@ -96,18 +96,18 @@ class SecurityServiceTest {
             @Test
             void positive() {
                 when(
-                        userLombokRepository.findBy(email))
+                        userRepository.findBy(email))
                         .thenReturn(
-                                userLombok);
+                                user);
                 when(
-                        tokenRepository.createAuthorizationTokenFor(userLombok.getEmail()))
+                        tokenRepository.createAuthorizationTokenFor(user.getEmail()))
                         .thenReturn(
                                 authorizationData);
                 var result = securityService.authenticate(email, correctPassword);
 
-                verify(failedAuthenticationRepository, times(1)).removeAllFor(userLombok.getEmail());
-                verify(authenticationBlockRepository, times(1)).removeAllFor(userLombok.getEmail());
-                verify(tokenRepository, times(1)).createAuthorizationTokenFor(userLombok.getEmail());
+                verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
+                verify(authenticationBlockRepository, times(1)).removeAllFor(user.getEmail());
+                verify(tokenRepository, times(1)).createAuthorizationTokenFor(user.getEmail());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
             }
         }
@@ -125,15 +125,15 @@ class SecurityServiceTest {
             @MethodSource("source")
             void negative(int attempt) {
                 when(
-                        userLombokRepository.findBy(email))
+                        userRepository.findBy(email))
                         .thenReturn(
-                                userLombok);
+                                user);
                 when(
-                        userLombokRepository.findBy(email))
+                        userRepository.findBy(email))
                         .thenReturn(
-                                userLombok);
+                                user);
                 when(
-                        failedAuthenticationRepository.countFailuresBy(userLombok.getEmail()))
+                        failedAuthenticationRepository.countFailuresBy(user.getEmail()))
                         .thenReturn(
                                 new FailuresCount(attempt));
                 when(
@@ -151,7 +151,7 @@ class SecurityServiceTest {
             @Test
             void userNotFound() {
                 when(
-                        userLombokRepository.findBy(email))
+                        userRepository.findBy(email))
                         .thenReturn(
                                 null);
 
@@ -170,15 +170,15 @@ class SecurityServiceTest {
                 @Test
                 void activateBlockade() {
                     when(
-                            userLombokRepository.findBy(email))
+                            userRepository.findBy(email))
                             .thenReturn(
-                                    userLombok);
+                                    user);
                     when(
-                            userLombokRepository.findBy(email))
+                            userRepository.findBy(email))
                             .thenReturn(
-                                    userLombok);
+                                    user);
                     when(
-                            failedAuthenticationRepository.countFailuresBy(userLombok.getEmail()))
+                            failedAuthenticationRepository.countFailuresBy(user.getEmail()))
                             .thenReturn(
                                     new FailuresCount(FailuresCount.LIMIT));
                     when(
@@ -192,7 +192,7 @@ class SecurityServiceTest {
 
                     var result = securityService.authenticate(email, wrongPassword);
 
-                    verify(failedAuthenticationRepository, times(1)).removeAllFor(userLombok.getEmail());
+                    verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
                     verify(authenticationBlockRepository, times(1)).create(any());
                     assertTrue(result.getClass().isAssignableFrom(AuthenticationFailuresLimitReachedEvent.class));
                 }

@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 
 
 @RequiredArgsConstructor
-public class UserLombok {
+public class User {
     @Getter
     private final Email email;
 
