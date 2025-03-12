@@ -4,5 +4,6 @@ import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
 import com.jrobertgardzinski.security.domain.vo.Email;
 
 public interface TokenRepository {
-    AuthorizationData createAuthorizationTokenFor(Email email);
+    // todo add expiration dates
+    AuthorizationData createFor(Email email);
 }

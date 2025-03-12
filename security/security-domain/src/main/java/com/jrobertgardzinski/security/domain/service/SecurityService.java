@@ -49,16 +49,16 @@ public class SecurityService {
         if (user.enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             authenticationBlockRepository.removeAllFor(user.getEmail());
-            var token = tokenRepository.createAuthorizationTokenFor(user.getEmail());
+            var token = tokenRepository.createFor(user.getEmail());
             return new AuthenticationPassedEvent(
-                    new AuthorizedUserAggregate(user.getEmail(), token.refreshToken(), token.authorizationToken()));
+                    new AuthorizedUserAggregate(user.getEmail(), token.getRefreshToken(), token.getAuthorizationToken()));
         }
         var failuresCount = failedAuthenticationRepository.countFailuresBy(user.getEmail());
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             var authenticationBlock = authenticationBlockRepository.create(
                     new AuthenticationBlockDetails(user.getEmail(), Calendar.getInstance()));
-            return new AuthenticationFailuresLimitReachedEvent(authenticationBlock.details());
+            return new AuthenticationFailuresLimitReachedEvent(authenticationBlock.getDetails());
         }
         else {
             failedAuthenticationRepository.create(
