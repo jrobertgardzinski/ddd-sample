@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.domain.event.authentication;
 
-import com.jrobertgardzinski.security.domain.vo.AuthenticationBlockDetails;
+import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 
-public record AuthenticationFailuresLimitReachedEvent(AuthenticationBlockDetails authenticationBlockDetails) implements AuthenticationEvent {
+public record AuthenticationFailuresLimitReachedEvent(AuthenticationBlock authenticationBlock) implements AuthenticationEvent {
 }

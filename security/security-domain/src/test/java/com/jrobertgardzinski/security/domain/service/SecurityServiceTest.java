@@ -164,8 +164,6 @@ class SecurityServiceTest {
             class CausingBlockade {
                 @Mock
                 AuthenticationBlock authenticationBlock;
-                @Mock
-                AuthenticationBlockDetails authenticationBlockDetails;
 
                 @Test
                 void activateBlockade() {
@@ -185,10 +183,6 @@ class SecurityServiceTest {
                             authenticationBlockRepository.create(any()))
                             .thenReturn(
                                     authenticationBlock);
-                    when(
-                            authenticationBlock.getDetails())
-                            .thenReturn(
-                                    authenticationBlockDetails);
 
                     var result = securityService.authenticate(email, wrongPassword);
 

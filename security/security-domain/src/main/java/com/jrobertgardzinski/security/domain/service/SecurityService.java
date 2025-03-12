@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
+import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.authentication.*;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
@@ -57,8 +58,8 @@ public class SecurityService {
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             var authenticationBlock = authenticationBlockRepository.create(
-                    new AuthenticationBlockDetails(user.getEmail(), Calendar.getInstance()));
-            return new AuthenticationFailuresLimitReachedEvent(authenticationBlock.getDetails());
+                    new AuthenticationBlock(user.getEmail(), Calendar.getInstance()));
+            return new AuthenticationFailuresLimitReachedEvent(authenticationBlock);
         }
         else {
             failedAuthenticationRepository.create(
@@ -67,4 +68,6 @@ public class SecurityService {
             return new AuthenticationFailedEvent();
         }
     }
+
+    // todo add refresh authorization data method
 }
