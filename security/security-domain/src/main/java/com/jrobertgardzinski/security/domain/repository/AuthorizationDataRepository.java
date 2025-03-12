@@ -5,6 +5,6 @@ import com.jrobertgardzinski.security.domain.vo.AuthorizationTokenExpiration;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.RefreshTokenExpiration;
 
-public interface TokenRepository {
+public interface AuthorizationDataRepository {
     AuthorizationData createFor(Email email, RefreshTokenExpiration refreshTokenExpiration, AuthorizationTokenExpiration authorizationTokenExpiration);
 }

@@ -8,7 +8,7 @@ import com.jrobertgardzinski.security.domain.event.registration.RegistrationPass
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
-import com.jrobertgardzinski.security.domain.repository.TokenRepository;
+import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.*;
 
@@ -16,13 +16,13 @@ import java.util.Calendar;
 
 public class SecurityService {
     private final UserRepository userRepository;
-    private final TokenRepository tokenRepository;
+    private final AuthorizationDataRepository authorizationDataRepository;
     private final FailedAuthenticationRepository failedAuthenticationRepository;
     private final AuthenticationBlockRepository authenticationBlockRepository;
 
-    public SecurityService(UserRepository userRepository, TokenRepository tokenRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository) {
+    public SecurityService(UserRepository userRepository, AuthorizationDataRepository authorizationDataRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository) {
         this.userRepository = userRepository;
-        this.tokenRepository = tokenRepository;
+        this.authorizationDataRepository = authorizationDataRepository;
         this.failedAuthenticationRepository = failedAuthenticationRepository;
         this.authenticationBlockRepository = authenticationBlockRepository;
     }
@@ -46,7 +46,7 @@ public class SecurityService {
         if (user.enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             authenticationBlockRepository.removeAllFor(user.getEmail());
-            var token = tokenRepository.createFor(user.getEmail(),
+            var token = authorizationDataRepository.createFor(user.getEmail(),
                     RefreshTokenExpiration.validInHours(48),
                     AuthorizationTokenExpiration.validInHours(2)
             );

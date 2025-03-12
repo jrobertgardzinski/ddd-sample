@@ -30,7 +30,7 @@ class SecurityServiceTest {
     @Mock
     UserRepository userRepository;
     @Mock
-    TokenRepository tokenRepository;
+    AuthorizationDataRepository authorizationDataRepository;
     @Mock
     FailedAuthenticationRepository failedAuthenticationRepository;
     @Mock
@@ -40,7 +40,7 @@ class SecurityServiceTest {
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userRepository, tokenRepository, failedAuthenticationRepository, authenticationBlockRepository);
+        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository);
     }
 
     @Nested
@@ -100,14 +100,14 @@ class SecurityServiceTest {
                         .thenReturn(
                                 user);
                 when(
-                        tokenRepository.createFor(eq(user.getEmail()), any(), any()))
+                        authorizationDataRepository.createFor(eq(user.getEmail()), any(), any()))
                         .thenReturn(
                                 authorizationData);
                 var result = securityService.authenticate(email, correctPassword);
 
                 verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
                 verify(authenticationBlockRepository, times(1)).removeAllFor(user.getEmail());
-                verify(tokenRepository, times(1)).createFor(eq(user.getEmail()), any(), any());
+                verify(authorizationDataRepository, times(1)).createFor(eq(user.getEmail()), any(), any());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
             }
         }
