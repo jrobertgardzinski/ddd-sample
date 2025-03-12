@@ -1,69 +1,68 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
-import com.jrobertgardzinski.security.domain.entity.UserCredentials;
-import com.jrobertgardzinski.security.domain.entity.UserDetails;
+import com.jrobertgardzinski.security.domain.entity.UserLombok;
 import com.jrobertgardzinski.security.domain.event.authentication.*;
-import com.jrobertgardzinski.security.domain.repository.*;
-import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
+import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
+import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
+import com.jrobertgardzinski.security.domain.repository.TokenRepository;
+import com.jrobertgardzinski.security.domain.repository.UserLombokRepository;
+import com.jrobertgardzinski.security.domain.vo.AuthenticationBlockDetails;
+import com.jrobertgardzinski.security.domain.vo.Email;
+import com.jrobertgardzinski.security.domain.vo.FailedAuthenticationDetails;
+import com.jrobertgardzinski.security.domain.vo.Password;
 
 import java.util.Calendar;
 
 public class SecurityService {
-    private final UserDetailsRepository userDetailsRepository;
-    private final UserCredentialsRepository userCredentialsRepository;
+    private final UserLombokRepository userLombokRepository;
     private final TokenRepository tokenRepository;
     private final FailedAuthenticationRepository failedAuthenticationRepository;
     private final AuthenticationBlockRepository authenticationBlockRepository;
 
-    private final int AUTHENTICATION_FAILURES_LIMIT = 3;
-
-    public SecurityService(UserDetailsRepository userDetailsRepository, UserCredentialsRepository userCredentialsRepository, TokenRepository tokenRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository) {
-        this.userDetailsRepository = userDetailsRepository;
-        this.userCredentialsRepository = userCredentialsRepository;
+    public SecurityService(UserLombokRepository userLombokRepository, TokenRepository tokenRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository) {
+        this.userLombokRepository = userLombokRepository;
         this.tokenRepository = tokenRepository;
         this.failedAuthenticationRepository = failedAuthenticationRepository;
         this.authenticationBlockRepository = authenticationBlockRepository;
     }
 
     public RegistrationEvent register(Email email, Password password) {
-        if (userDetailsRepository.doesExist(email)) {
+        if (userLombokRepository.doesExist(email)) {
             return new UserAlreadyExistsEvent();
         }
 
-        UserDetails userDetails = userDetailsRepository.create(new UserDetails(email));
-        UserCredentials userCredentials = userCredentialsRepository.create(new UserCredentials(email, password));
+        UserLombok userLombok = userLombokRepository.create(new UserLombok(email, password));
 
-        return new RegistrationPassedEvent(userDetails);
+        return new RegistrationPassedEvent(userLombok);
 
     }
 
     public AuthenticationEvent authenticate(Email email, Password password) {
-        UserCredentials userCredentials = userCredentialsRepository.findBy(email);
-        if (userCredentials == null) {
+        UserLombok userLombok = userLombokRepository.findBy(email);
+        if (userLombok == null) {
             return new UserNotFoundEvent();
         }
-        UserDetails userDetails = userDetailsRepository.findBy(email);
-        if (userCredentials.enteredRight(password)) {
-            failedAuthenticationRepository.removeAllFor(userDetails.email());
-            authenticationBlockRepository.removeAllFor(userDetails.email());
-            var token = tokenRepository.createAuthorizationTokenFor(userDetails.email());
+        if (userLombok.enteredRight(password)) {
+            failedAuthenticationRepository.removeAllFor(userLombok.getEmail());
+            authenticationBlockRepository.removeAllFor(userLombok.getEmail());
+            var token = tokenRepository.createAuthorizationTokenFor(userLombok.getEmail());
             return new AuthenticationPassedEvent(
-                    new AuthorizedUserAggregate(userDetails));
+                    new AuthorizedUserAggregate(userLombok.getEmail(), token.refreshToken(), token.authorizationToken()));
         }
-        var failuresCount = failedAuthenticationRepository.countFailuresBy(userDetails.email());
+        var failuresCount = failedAuthenticationRepository.countFailuresBy(userLombok.getEmail());
         if (failuresCount.hasReachedTheLimit()) {
-            failedAuthenticationRepository.removeAllFor(userDetails.email());
+            failedAuthenticationRepository.removeAllFor(userLombok.getEmail());
             var authenticationBlock = authenticationBlockRepository.create(
-                    new AuthenticationBlockDetails(userDetails.email(), Calendar.getInstance()));
+                    new AuthenticationBlockDetails(userLombok.getEmail(), Calendar.getInstance()));
             return new AuthenticationFailuresLimitReachedEvent(authenticationBlock.details());
         }
         else {
             failedAuthenticationRepository.create(
-                    new FailedAuthenticationDetails(userDetails.email(), Calendar.getInstance())
+                    new FailedAuthenticationDetails(userLombok.getEmail(), Calendar.getInstance())
             );
             return new AuthenticationFailedEvent();
         }

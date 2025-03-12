@@ -1,7 +1,11 @@
 package com.jrobertgardzinski.security.domain.aggregate;
 
-import com.jrobertgardzinski.security.domain.entity.UserDetails;
+import com.jrobertgardzinski.security.domain.vo.AuthorizationToken;
+import com.jrobertgardzinski.security.domain.vo.Email;
+import com.jrobertgardzinski.security.domain.vo.RefreshToken;
 
 public record AuthorizedUserAggregate(
-        UserDetails userDetails
+        Email email,
+        RefreshToken refreshToken,
+        AuthorizationToken authorizationToken
 ) {}

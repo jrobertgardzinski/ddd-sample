@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.domain.event.registration;
 
-import com.jrobertgardzinski.security.domain.entity.UserDetails;
 
-public record RegistrationPassedEvent(UserDetails userDetails) implements RegistrationEvent {
+import com.jrobertgardzinski.security.domain.entity.UserLombok;
+
+public record RegistrationPassedEvent(UserLombok userLombok) implements RegistrationEvent {
 }

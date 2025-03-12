@@ -28,9 +28,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SecurityServiceTest {
     @Mock
-    UserCredentialsRepository userCredentialsRepository;
-    @Mock
-    UserDetailsRepository userDetailsRepository;
+    UserLombokRepository userLombokRepository;
     @Mock
     TokenRepository tokenRepository;
     @Mock
@@ -42,7 +40,7 @@ class SecurityServiceTest {
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userDetailsRepository, userCredentialsRepository, tokenRepository, failedAuthenticationRepository, authenticationBlockRepository);
+        securityService = new SecurityService(userLombokRepository, tokenRepository, failedAuthenticationRepository, authenticationBlockRepository);
     }
 
     @Nested
@@ -51,26 +49,13 @@ class SecurityServiceTest {
         Password password;
         @Mock
         Email email;
-        @Mock
-        UserDetails userDetails;
-        @Mock
-        UserCredentials userCredentials;
-
 
         @Test
         void positive() {
             when(
-                    userDetailsRepository.doesExist(email))
+                    userLombokRepository.doesExist(email))
             .thenReturn(
                     false);
-            when(
-                    userDetailsRepository.create(new UserDetails(email)))
-            .thenReturn(
-                    userDetails);
-            when(
-                    userCredentialsRepository.create(new UserCredentials(email, password)))
-            .thenReturn(
-                    userCredentials);
 
             assertTrue(securityService.register(email, password).getClass()
                     .isAssignableFrom(RegistrationPassedEvent.class));
@@ -79,7 +64,7 @@ class SecurityServiceTest {
         @Test
         void negative() {
             when(
-                    userDetailsRepository.doesExist(email))
+                    userLombokRepository.doesExist(email))
                     .thenReturn(
                             true);
 
@@ -93,52 +78,36 @@ class SecurityServiceTest {
         Email email;
         Password correctPassword;
         Password wrongPassword;
-        UserCredentials userCredentials;
-        UserDetails userDetails;
+        UserLombok userLombok;
 
         @BeforeEach
         void init() {
             email = new Email("jrobertgardzinski@gmail.com");
             correctPassword = new Password("PasswordHardToGuessAt1stTime!");
             wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
-            userCredentials = new UserCredentials(
-                    email,
-                    correctPassword
-            );
-            userDetails = new UserDetails(email);
+            userLombok = new UserLombok(email, correctPassword);
         }
 
         @Nested
         class Positive {
             @Mock
             AuthorizationData authorizationData;
-            @Mock
-            TokenDetails tokenDetails;
 
             @Test
             void positive() {
                 when(
-                        userCredentialsRepository.findBy(email))
+                        userLombokRepository.findBy(email))
                         .thenReturn(
-                                userCredentials);
+                                userLombok);
                 when(
-                        userDetailsRepository.findBy(email))
-                        .thenReturn(
-                                userDetails);
-                when(
-                        tokenRepository.createAuthorizationTokenFor(userCredentials.email()))
+                        tokenRepository.createAuthorizationTokenFor(userLombok.getEmail()))
                         .thenReturn(
                                 authorizationData);
-                /*when(
-                        authorizationData.)
-                        .thenReturn(
-                                tokenDetails);*/
-
                 var result = securityService.authenticate(email, correctPassword);
 
-                verify(failedAuthenticationRepository, times(1)).removeAllFor(userCredentials.email());
-                verify(authenticationBlockRepository, times(1)).removeAllFor(userCredentials.email());
-                verify(tokenRepository, times(1)).createAuthorizationTokenFor(userCredentials.email());
+                verify(failedAuthenticationRepository, times(1)).removeAllFor(userLombok.getEmail());
+                verify(authenticationBlockRepository, times(1)).removeAllFor(userLombok.getEmail());
+                verify(tokenRepository, times(1)).createAuthorizationTokenFor(userLombok.getEmail());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
             }
         }
@@ -156,15 +125,15 @@ class SecurityServiceTest {
             @MethodSource("source")
             void negative(int attempt) {
                 when(
-                        userCredentialsRepository.findBy(email))
+                        userLombokRepository.findBy(email))
                         .thenReturn(
-                                userCredentials);
+                                userLombok);
                 when(
-                        userDetailsRepository.findBy(email))
+                        userLombokRepository.findBy(email))
                         .thenReturn(
-                                userDetails);
+                                userLombok);
                 when(
-                        failedAuthenticationRepository.countFailuresBy(userCredentials.email()))
+                        failedAuthenticationRepository.countFailuresBy(userLombok.getEmail()))
                         .thenReturn(
                                 new FailuresCount(attempt));
                 when(
@@ -182,7 +151,7 @@ class SecurityServiceTest {
             @Test
             void userNotFound() {
                 when(
-                        userCredentialsRepository.findBy(email))
+                        userLombokRepository.findBy(email))
                         .thenReturn(
                                 null);
 
@@ -201,15 +170,15 @@ class SecurityServiceTest {
                 @Test
                 void activateBlockade() {
                     when(
-                            userCredentialsRepository.findBy(email))
+                            userLombokRepository.findBy(email))
                             .thenReturn(
-                                    userCredentials);
+                                    userLombok);
                     when(
-                            userDetailsRepository.findBy(email))
+                            userLombokRepository.findBy(email))
                             .thenReturn(
-                                    userDetails);
+                                    userLombok);
                     when(
-                            failedAuthenticationRepository.countFailuresBy(userCredentials.email()))
+                            failedAuthenticationRepository.countFailuresBy(userLombok.getEmail()))
                             .thenReturn(
                                     new FailuresCount(FailuresCount.LIMIT));
                     when(
@@ -223,7 +192,7 @@ class SecurityServiceTest {
 
                     var result = securityService.authenticate(email, wrongPassword);
 
-                    verify(failedAuthenticationRepository, times(1)).removeAllFor(userCredentials.email());
+                    verify(failedAuthenticationRepository, times(1)).removeAllFor(userLombok.getEmail());
                     verify(authenticationBlockRepository, times(1)).create(any());
                     assertTrue(result.getClass().isAssignableFrom(AuthenticationFailuresLimitReachedEvent.class));
                 }
