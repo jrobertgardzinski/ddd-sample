@@ -5,6 +5,9 @@ import com.jrobertgardzinski.security.domain.event.authentication.Authentication
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailuresLimitReachedEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.UserNotFoundEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.NoAuthorizationDataFoundEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.*;
@@ -22,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -100,14 +104,14 @@ class SecurityServiceTest {
                         .thenReturn(
                                 user);
                 when(
-                        authorizationDataRepository.createFor(eq(user.getEmail()), any(), any()))
+                        authorizationDataRepository.create(any()))
                         .thenReturn(
                                 authorizationData);
                 var result = securityService.authenticate(email, correctPassword);
 
                 verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
                 verify(authenticationBlockRepository, times(1)).removeAllFor(user.getEmail());
-                verify(authorizationDataRepository, times(1)).createFor(eq(user.getEmail()), any(), any());
+                verify(authorizationDataRepository, times(1)).create(any());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
             }
         }
@@ -194,5 +198,66 @@ class SecurityServiceTest {
 
         }
 
+    }
+
+    @Nested
+    class refreshToken {
+        @Mock
+        Email email;
+        @Mock
+        RefreshToken refreshToken;
+
+        @Test
+        void NoAuthorizationDataFoundEvent() {
+            when(
+                    authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken))
+                    .thenReturn(
+                            null);
+
+            var result = securityService.refreshToken(email, refreshToken);
+
+            assertEquals(new NoAuthorizationDataFoundEvent(email), result);
+        }
+
+        @Test
+        void RefreshTokenExpiredEvent() {
+            RefreshTokenExpiration refreshTokenExpiration = mock(RefreshTokenExpiration.class);
+
+            when(
+                    authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken))
+                    .thenReturn(
+                            refreshTokenExpiration);
+            when(
+                    refreshTokenExpiration.hasExpired())
+                    .thenReturn(
+                            true);
+
+            var result = securityService.refreshToken(email, refreshToken);
+
+            assertEquals(new RefreshTokenExpiredEvent(email), result);
+        }
+
+        @Test
+        void RefreshTokenPassedEvent() {
+            RefreshTokenExpiration refreshTokenExpiration = mock(RefreshTokenExpiration.class);
+            AuthorizationData authorizationData = mock(AuthorizationData.class);
+
+            when(
+                    authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken))
+                    .thenReturn(
+                            refreshTokenExpiration);
+            when(
+                    refreshTokenExpiration.hasExpired())
+                    .thenReturn(
+                            false);
+            when(
+                    authorizationDataRepository.create(any()))
+                    .thenReturn(
+                            authorizationData);
+
+            var result = securityService.refreshToken(email, refreshToken);
+
+            assertEquals(new RefreshTokenPassedEvent(authorizationData), result);
+        }
     }
 }

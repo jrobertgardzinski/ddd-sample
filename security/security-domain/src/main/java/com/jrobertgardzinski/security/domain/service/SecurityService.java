@@ -2,8 +2,13 @@ package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
+import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.authentication.*;
+import com.jrobertgardzinski.security.domain.event.refresh.NoAuthorizationDataFoundEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
@@ -47,12 +52,17 @@ public class SecurityService {
         if (user.enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             authenticationBlockRepository.removeAllFor(user.getEmail());
-            var token = authorizationDataRepository.createFor(user.getEmail(),
-                    RefreshTokenExpiration.validInHours(48),
-                    AuthorizationTokenExpiration.validInHours(2)
+            var authorizationData = authorizationDataRepository.create(
+                    new AuthorizationData(
+                            user.getEmail(),
+                            new RefreshToken(Token.random()),
+                            new AuthorizationToken(Token.random()),
+                            new RefreshTokenExpiration(TokenExpiration.validInHours(48)),
+                            new AuthorizationTokenExpiration(TokenExpiration.validInHours(48))
+                    )
             );
             return new AuthenticationPassedEvent(
-                    new AuthorizedUserAggregate(user.getEmail(), token.getRefreshToken(), token.getAuthorizationToken()));
+                    new AuthorizedUserAggregate(user.getEmail(), authorizationData.getRefreshToken(), authorizationData.getAuthorizationToken()));
         }
         var failuresCount = failedAuthenticationRepository.countFailuresBy(user.getEmail());
         if (failuresCount.hasReachedTheLimit()) {
@@ -69,5 +79,16 @@ public class SecurityService {
         }
     }
 
-    // todo add refresh authorization data method
+    public RefreshTokenEvent refreshToken(Email email, RefreshToken refreshToken) {
+        RefreshTokenExpiration refreshTokenExpiration = authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken);
+        if (refreshTokenExpiration == null) {
+            return new NoAuthorizationDataFoundEvent(email);
+        }
+        authorizationDataRepository.deleteBy(email);
+        if (refreshTokenExpiration.hasExpired()) {
+            return new RefreshTokenExpiredEvent(email);
+        }
+        AuthorizationData authorizationData = authorizationDataRepository.create(AuthorizationData.createFor(email));
+        return new RefreshTokenPassedEvent(authorizationData);
+    }
 }

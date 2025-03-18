@@ -1,4 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo;
 
-public record RefreshToken(String value) {
+import java.util.Calendar;
+
+public record RefreshToken(Token value) {
 }
