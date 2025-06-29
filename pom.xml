@@ -9,11 +9,9 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>domain-test-starter</module>
         <module>security</module>
         <module>memes</module>
         <module>comments</module>
-        <module>domain-prod-starter</module>
     </modules>
 
     <properties>

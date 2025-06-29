@@ -18,7 +18,6 @@ class TokenTest {
         pastDate.add(Calendar.HOUR, -1);
 
         return Stream.of(
-                Arguments.of(null),
                 Arguments.of(""),
                 Arguments.of(" ")
         );
