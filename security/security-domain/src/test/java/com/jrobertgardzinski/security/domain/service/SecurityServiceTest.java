@@ -176,10 +176,6 @@ class SecurityServiceTest {
                             .thenReturn(
                                     user);
                     when(
-                            userRepository.findBy(email))
-                            .thenReturn(
-                                    user);
-                    when(
                             failedAuthenticationRepository.countFailuresBy(user.getEmail()))
                             .thenReturn(
                                     new FailuresCount(FailuresCount.LIMIT));

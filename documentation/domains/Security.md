@@ -18,6 +18,7 @@
    1. User authenticated successfully
    2. Failed to authenticate
    3. Failed to authenticate n-times (block authentication)
+   4. Authentication blocked
 
 *-room to improve: Authenticate from known machine and Authenticate from a new machine
 

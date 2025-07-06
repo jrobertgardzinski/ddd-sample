@@ -12,4 +12,13 @@
     <modules>
         <module>memes-domain</module>
     </modules>
+
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/jakarta.data/jakarta.data-api -->
+        <dependency>
+            <groupId>jakarta.data</groupId>
+            <artifactId>jakarta.data-api</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+    </dependencies>
 </project>
