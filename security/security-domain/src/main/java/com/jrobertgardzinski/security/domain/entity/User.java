@@ -11,10 +11,6 @@ public class User {
     @Getter
     private final Email email;
 
-    // write-only
+    @Getter
     private final Password password;
-
-    public boolean enteredRight(Password password) {
-        return this.password.equals(password);
-    }
 }

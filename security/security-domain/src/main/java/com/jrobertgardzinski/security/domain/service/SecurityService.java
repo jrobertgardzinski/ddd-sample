@@ -34,22 +34,22 @@ public class SecurityService {
     }
 
     public RegistrationEvent register(Email email, Password password) {
-        if (userRepository.doesExist(email)) {
+        if (userRepository.existsByEmail(email)) {
             return new UserAlreadyExistsEvent();
         }
 
-        User user = userRepository.create(new User(email, password));
+        User user = userRepository.save(new User(email, password));
 
         return new RegistrationPassedEvent(user);
 
     }
 
     public AuthenticationEvent authenticate(Email email, Password password) {
-        User user = userRepository.findBy(email);
+        User user = userRepository.findByEmail(email);
         if (user == null) {
             return new UserNotFoundEvent();
         }
-        if (user.enteredRight(password)) {
+        if (user.getPassword().enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(user.getEmail());
             authenticationBlockRepository.removeAllFor(user.getEmail());
             var authorizationData = authorizationDataRepository.create(

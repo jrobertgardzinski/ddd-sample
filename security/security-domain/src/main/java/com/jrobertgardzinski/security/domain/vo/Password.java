@@ -37,4 +37,8 @@ public record Password(
                         throw new IllegalArgumentException(errors.toString());
                 }
         }
+
+        public boolean enteredRight(Password password) {
+                return this.value.equals(password.value());
+        }
 }

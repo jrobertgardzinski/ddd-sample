@@ -57,7 +57,7 @@ class SecurityServiceTest {
         @Test
         void positive() {
             when(
-                    userRepository.doesExist(email))
+                    userRepository.existsByEmail(email))
             .thenReturn(
                     false);
 
@@ -68,7 +68,7 @@ class SecurityServiceTest {
         @Test
         void negative() {
             when(
-                    userRepository.doesExist(email))
+                    userRepository.existsByEmail(email))
                     .thenReturn(
                             true);
 
@@ -100,7 +100,7 @@ class SecurityServiceTest {
             @Test
             void positive() {
                 when(
-                        userRepository.findBy(email))
+                        userRepository.findByEmail(email))
                         .thenReturn(
                                 user);
                 when(
@@ -129,11 +129,11 @@ class SecurityServiceTest {
             @MethodSource("source")
             void negative(int attempt) {
                 when(
-                        userRepository.findBy(email))
+                        userRepository.findByEmail(email))
                         .thenReturn(
                                 user);
                 when(
-                        userRepository.findBy(email))
+                        userRepository.findByEmail(email))
                         .thenReturn(
                                 user);
                 when(
@@ -155,7 +155,7 @@ class SecurityServiceTest {
             @Test
             void userNotFound() {
                 when(
-                        userRepository.findBy(email))
+                        userRepository.findByEmail(email))
                         .thenReturn(
                                 null);
 
@@ -172,7 +172,7 @@ class SecurityServiceTest {
                 @Test
                 void activateBlockade() {
                     when(
-                            userRepository.findBy(email))
+                            userRepository.findByEmail(email))
                             .thenReturn(
                                     user);
                     when(
