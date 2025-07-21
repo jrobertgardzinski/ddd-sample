@@ -25,8 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,31 +48,44 @@ class SecurityServiceTest {
 
     @Nested
     class register {
-        @Mock
         Password password;
-        @Mock
         Email email;
+
+        @BeforeEach
+        void init() {
+            password = new Password("StrongPassword1!");
+            email = new Email("jan.nowak@wp.pl");
+        }
 
         @Test
         void positive() {
             when(
-                    userRepository.existsByEmail(email))
+                    userRepository.existsBy(email))
             .thenReturn(
                     false);
+            User user = new User(email, password);
+            UserEntity userEntity = new UserEntity(user);
+            when(
+                    userRepository.save(user))
+            .thenReturn(
+                    userEntity);
 
-            assertTrue(securityService.register(email, password).getClass()
-                    .isAssignableFrom(RegistrationPassedEvent.class));
+            assertEquals(userEntity,
+                    securityService.register(email, password));
         }
 
         @Test
         void negative() {
             when(
-                    userRepository.existsByEmail(email))
+                    userRepository.existsBy(email))
                     .thenReturn(
                             true);
 
-            assertTrue(securityService.register(email, password).getClass()
-                    .isAssignableFrom(UserAlreadyExistsEvent.class));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> securityService.register(email, password),
+                    "User with the e-mail: " + email.value() + " exists!"
+            );
         }
     }
 
@@ -100,7 +112,7 @@ class SecurityServiceTest {
             @Test
             void positive() {
                 when(
-                        userRepository.findByEmail(email))
+                        userRepository.findBy(email))
                         .thenReturn(
                                 user);
                 when(
@@ -109,8 +121,8 @@ class SecurityServiceTest {
                                 authorizationData);
                 var result = securityService.authenticate(email, correctPassword);
 
-                verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
-                verify(authenticationBlockRepository, times(1)).removeAllFor(user.getEmail());
+                verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email());
+                verify(authenticationBlockRepository, times(1)).removeAllFor(user.email());
                 verify(authorizationDataRepository, times(1)).create(any());
                 assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
             }
@@ -129,15 +141,15 @@ class SecurityServiceTest {
             @MethodSource("source")
             void negative(int attempt) {
                 when(
-                        userRepository.findByEmail(email))
+                        userRepository.findBy(email))
                         .thenReturn(
                                 user);
                 when(
-                        userRepository.findByEmail(email))
+                        userRepository.findBy(email))
                         .thenReturn(
                                 user);
                 when(
-                        failedAuthenticationRepository.countFailuresBy(user.getEmail()))
+                        failedAuthenticationRepository.countFailuresBy(user.email()))
                         .thenReturn(
                                 new FailuresCount(attempt));
                 when(
@@ -155,7 +167,7 @@ class SecurityServiceTest {
             @Test
             void userNotFound() {
                 when(
-                        userRepository.findByEmail(email))
+                        userRepository.findBy(email))
                         .thenReturn(
                                 null);
 
@@ -172,11 +184,11 @@ class SecurityServiceTest {
                 @Test
                 void activateBlockade() {
                     when(
-                            userRepository.findByEmail(email))
+                            userRepository.findBy(email))
                             .thenReturn(
                                     user);
                     when(
-                            failedAuthenticationRepository.countFailuresBy(user.getEmail()))
+                            failedAuthenticationRepository.countFailuresBy(user.email()))
                             .thenReturn(
                                     new FailuresCount(FailuresCount.LIMIT));
                     when(
@@ -186,7 +198,7 @@ class SecurityServiceTest {
 
                     var result = securityService.authenticate(email, wrongPassword);
 
-                    verify(failedAuthenticationRepository, times(1)).removeAllFor(user.getEmail());
+                    verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email());
                     verify(authenticationBlockRepository, times(1)).create(any());
                     assertTrue(result.getClass().isAssignableFrom(AuthenticationFailuresLimitReachedEvent.class));
                 }
