@@ -5,7 +5,6 @@ import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
 import com.jrobertgardzinski.security.domain.entity.UserEntity;
 import com.jrobertgardzinski.security.domain.vo.User;
-import com.jrobertgardzinski.security.domain.event.authentication.*;
 import com.jrobertgardzinski.security.domain.event.refresh.NoAuthorizationDataFoundEvent;
 import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
 import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
@@ -17,6 +16,8 @@ import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.*;
 
 import java.util.Calendar;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public class SecurityService {
     private final UserRepository userRepository;
@@ -39,10 +40,21 @@ public class SecurityService {
         return userRepository.save(user);
     }
 
-    public AuthenticationEvent authenticate(Email email, Password password) {
+    private Supplier<IllegalArgumentException> supplyAuthenticationFailureException(IpAddress ipAddress) {
+        failedAuthenticationRepository.create(
+                new FailedAuthenticationDetails(ipAddress, Calendar.getInstance())
+        );
+        return () -> new IllegalArgumentException("Authentication failed!");
+    }
+
+    public AuthorizedUserAggregate authenticate(IpAddress ipAddress, Email email, Password password) {
+        Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
+        if (authenticationBlock.isPresent() && authenticationBlock.get().isStillActive()) {
+            throw new IllegalArgumentException("The authentication block is still active for machines from your IP address. Please, try again later: " + authenticationBlock.get().getExpiryDate());
+        }
         User user = userRepository.findBy(email);
         if (user == null) {
-            return new UserNotFoundEvent();
+            throw supplyAuthenticationFailureException(ipAddress).get();
         }
         if (user.password().enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(user.email());
@@ -56,34 +68,29 @@ public class SecurityService {
                             new AuthorizationTokenExpiration(TokenExpiration.validInHours(48))
                     )
             );
-            return new AuthenticationPassedEvent(
-                    new AuthorizedUserAggregate(user.email(), authorizationData.getRefreshToken(), authorizationData.getAuthorizationToken()));
+            return new AuthorizedUserAggregate(user.email(), authorizationData.getRefreshToken(), authorizationData.getAuthorizationToken());
         }
         var failuresCount = failedAuthenticationRepository.countFailuresBy(user.email());
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(user.email());
-            var authenticationBlock = authenticationBlockRepository.create(
-                    new AuthenticationBlock(user.email(), Calendar.getInstance()));
-            return new AuthenticationFailuresLimitReachedEvent(authenticationBlock);
+            var newAuthenticationBlock = authenticationBlockRepository.create(
+                    new AuthenticationBlock(ipAddress, Calendar.getInstance()));
+            throw new IllegalArgumentException("Too many authentication failures! Try again later: " + newAuthenticationBlock.getExpiryDate());
         }
         else {
-            failedAuthenticationRepository.create(
-                    new FailedAuthenticationDetails(user.email(), Calendar.getInstance())
-            );
-            return new AuthenticationFailedEvent();
+            throw supplyAuthenticationFailureException(ipAddress).get();
         }
     }
 
-    public RefreshTokenEvent refreshToken(Email email, RefreshToken refreshToken) {
+    public AuthorizationData refreshToken(Email email, RefreshToken refreshToken) {
         RefreshTokenExpiration refreshTokenExpiration = authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken);
         if (refreshTokenExpiration == null) {
-            return new NoAuthorizationDataFoundEvent(email);
+            throw new IllegalArgumentException("No refresh token found for " + email);
         }
         authorizationDataRepository.deleteBy(email);
         if (refreshTokenExpiration.hasExpired()) {
-            return new RefreshTokenExpiredEvent(email);
+            throw new IllegalArgumentException("Refresh token for " + email + " has expired");
         }
-        AuthorizationData authorizationData = authorizationDataRepository.create(AuthorizationData.createFor(email));
-        return new RefreshTokenPassedEvent(authorizationData);
+        return authorizationDataRepository.create(AuthorizationData.createFor(email));
     }
 }

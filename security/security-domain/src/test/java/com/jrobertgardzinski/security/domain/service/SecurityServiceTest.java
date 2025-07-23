@@ -91,6 +91,7 @@ class SecurityServiceTest {
 
     @Nested
     class authenticate {
+        IpAddress ipAddress;
         Email email;
         Password correctPassword;
         Password wrongPassword;
@@ -98,6 +99,7 @@ class SecurityServiceTest {
 
         @BeforeEach
         void init() {
+            ipAddress = new IpAddress("123.123.123.123");
             email = new Email("jrobertgardzinski@gmail.com");
             correctPassword = new Password("PasswordHardToGuessAt1stTime!");
             wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
@@ -119,12 +121,13 @@ class SecurityServiceTest {
                         authorizationDataRepository.create(any()))
                         .thenReturn(
                                 authorizationData);
-                var result = securityService.authenticate(email, correctPassword);
 
-                verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email());
-                verify(authenticationBlockRepository, times(1)).removeAllFor(user.email());
-                verify(authorizationDataRepository, times(1)).create(any());
-                assertTrue(result.getClass().isAssignableFrom(AuthenticationPassedEvent.class));
+                assertAll(
+                        () -> assertDoesNotThrow(() -> securityService.authenticate(ipAddress, email, correctPassword)),
+                        () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email()),
+                        () -> verify(authenticationBlockRepository, times(1)).removeAllFor(user.email()),
+                        () -> verify(authorizationDataRepository, times(1)).create(any())
+                );
             }
         }
 
@@ -157,11 +160,10 @@ class SecurityServiceTest {
                         .thenReturn(
                                 failedAuthentication);
 
-
-                var result = securityService.authenticate(email, wrongPassword);
-
-                verify(failedAuthenticationRepository, times(1)).create(any());
-                assertTrue(result.getClass().isAssignableFrom(AuthenticationFailedEvent.class));
+                assertAll(
+                        () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, wrongPassword)),
+                        () -> verify(failedAuthenticationRepository, times(1)).create(any())
+                );
             }
 
             @Test
@@ -171,9 +173,7 @@ class SecurityServiceTest {
                         .thenReturn(
                                 null);
 
-                var result = securityService.authenticate(email, wrongPassword);
-
-                assertTrue(result.getClass().isAssignableFrom(UserNotFoundEvent.class));
+                assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, correctPassword));
             }
 
             @Nested
@@ -196,11 +196,11 @@ class SecurityServiceTest {
                             .thenReturn(
                                     authenticationBlock);
 
-                    var result = securityService.authenticate(email, wrongPassword);
-
-                    verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email());
-                    verify(authenticationBlockRepository, times(1)).create(any());
-                    assertTrue(result.getClass().isAssignableFrom(AuthenticationFailuresLimitReachedEvent.class));
+                    assertAll(
+                            () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, wrongPassword)),
+                            () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email()),
+                            () -> verify(authenticationBlockRepository, times(1)).create(any())
+                    );
                 }
             }
 
@@ -222,9 +222,7 @@ class SecurityServiceTest {
                     .thenReturn(
                             null);
 
-            var result = securityService.refreshToken(email, refreshToken);
-
-            assertEquals(new NoAuthorizationDataFoundEvent(email), result);
+            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(email, refreshToken));
         }
 
         @Test
@@ -240,9 +238,7 @@ class SecurityServiceTest {
                     .thenReturn(
                             true);
 
-            var result = securityService.refreshToken(email, refreshToken);
-
-            assertEquals(new RefreshTokenExpiredEvent(email), result);
+            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(email, refreshToken));
         }
 
         @Test
@@ -265,7 +261,7 @@ class SecurityServiceTest {
 
             var result = securityService.refreshToken(email, refreshToken);
 
-            assertEquals(new RefreshTokenPassedEvent(authorizationData), result);
+            assertEquals(authorizationData, result);
         }
     }
 }
