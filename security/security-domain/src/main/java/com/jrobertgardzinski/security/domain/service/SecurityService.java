@@ -3,15 +3,10 @@ package com.jrobertgardzinski.security.domain.service;
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
-import com.jrobertgardzinski.security.domain.entity.UserEntity;
-import com.jrobertgardzinski.security.domain.vo.User;
-import com.jrobertgardzinski.security.domain.event.refresh.NoAuthorizationDataFoundEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
+import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
-import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
+import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.*;
 
@@ -32,11 +27,11 @@ public class SecurityService {
         this.authenticationBlockRepository = authenticationBlockRepository;
     }
 
-    public UserEntity register(Email email, Password password) {
+    public User register(User user) {
+        Email email = user.emailSupplier().get();
         if (userRepository.existsBy(email)) {
-            throw new IllegalArgumentException("User with the e-mail: " + email.value() + " exists!");
+            throw new IllegalArgumentException("User with the e-mail: " + email + " exists!");
         }
-        User user = new User(email, password);
         return userRepository.save(user);
     }
 
@@ -56,23 +51,25 @@ public class SecurityService {
         if (user == null) {
             throw supplyAuthenticationFailureException(ipAddress).get();
         }
-        if (user.password().enteredRight(password)) {
-            failedAuthenticationRepository.removeAllFor(user.email());
-            authenticationBlockRepository.removeAllFor(user.email());
+        if (user.passwordSupplier().get().enteredRight(password)) {
+            failedAuthenticationRepository.removeAllFor(ipAddress);
+            authenticationBlockRepository.removeAllFor(ipAddress);
+            authorizationDataRepository.findBy(email)
+                    .ifPresent(e -> authorizationDataRepository.deleteBy(e.email()));
             var authorizationData = authorizationDataRepository.create(
                     new AuthorizationData(
-                            user.email(),
+                            email,
                             new RefreshToken(Token.random()),
                             new AuthorizationToken(Token.random()),
                             new RefreshTokenExpiration(TokenExpiration.validInHours(48)),
                             new AuthorizationTokenExpiration(TokenExpiration.validInHours(48))
                     )
             );
-            return new AuthorizedUserAggregate(user.email(), authorizationData.getRefreshToken(), authorizationData.getAuthorizationToken());
+            return new AuthorizedUserAggregate(email, authorizationData.refreshToken(), authorizationData.authorizationToken());
         }
-        var failuresCount = failedAuthenticationRepository.countFailuresBy(user.email());
+        var failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress);
         if (failuresCount.hasReachedTheLimit()) {
-            failedAuthenticationRepository.removeAllFor(user.email());
+            failedAuthenticationRepository.removeAllFor(ipAddress);
             var newAuthenticationBlock = authenticationBlockRepository.create(
                     new AuthenticationBlock(ipAddress, Calendar.getInstance()));
             throw new IllegalArgumentException("Too many authentication failures! Try again later: " + newAuthenticationBlock.getExpiryDate());

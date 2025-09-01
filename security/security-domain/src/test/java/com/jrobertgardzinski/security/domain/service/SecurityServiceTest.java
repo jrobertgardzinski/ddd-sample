@@ -1,17 +1,9 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.entity.*;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailuresLimitReachedEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.UserNotFoundEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.NoAuthorizationDataFoundEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
-import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
-import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.*;
 import com.jrobertgardzinski.security.domain.vo.*;
+import com.jrobertgardzinski.security.port.entity.UserEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -63,15 +55,14 @@ class SecurityServiceTest {
                     userRepository.existsBy(email))
             .thenReturn(
                     false);
-            User user = new User(email, password);
-            UserEntity userEntity = new UserEntity(user);
+            User user = new User(() -> email, () -> password);
             when(
                     userRepository.save(user))
             .thenReturn(
-                    userEntity);
+                    user);
 
-            assertEquals(userEntity,
-                    securityService.register(email, password));
+            assertEquals(user,
+                    securityService.register(user));
         }
 
         @Test
@@ -83,7 +74,7 @@ class SecurityServiceTest {
 
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> securityService.register(email, password),
+                    () -> securityService.register(new User(() -> email, () -> password)),
                     "User with the e-mail: " + email.value() + " exists!"
             );
         }
@@ -103,7 +94,7 @@ class SecurityServiceTest {
             email = new Email("jrobertgardzinski@gmail.com");
             correctPassword = new Password("PasswordHardToGuessAt1stTime!");
             wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
-            user = new User(email, correctPassword);
+            user = new User(() -> email, () -> correctPassword);
         }
 
         @Nested
@@ -124,8 +115,8 @@ class SecurityServiceTest {
 
                 assertAll(
                         () -> assertDoesNotThrow(() -> securityService.authenticate(ipAddress, email, correctPassword)),
-                        () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email()),
-                        () -> verify(authenticationBlockRepository, times(1)).removeAllFor(user.email()),
+                        () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
+                        () -> verify(authenticationBlockRepository, times(1)).removeAllFor(ipAddress),
                         () -> verify(authorizationDataRepository, times(1)).create(any())
                 );
             }
@@ -152,7 +143,7 @@ class SecurityServiceTest {
                         .thenReturn(
                                 user);
                 when(
-                        failedAuthenticationRepository.countFailuresBy(user.email()))
+                        failedAuthenticationRepository.countFailuresBy(ipAddress))
                         .thenReturn(
                                 new FailuresCount(attempt));
                 when(
@@ -188,7 +179,7 @@ class SecurityServiceTest {
                             .thenReturn(
                                     user);
                     when(
-                            failedAuthenticationRepository.countFailuresBy(user.email()))
+                            failedAuthenticationRepository.countFailuresBy(ipAddress))
                             .thenReturn(
                                     new FailuresCount(FailuresCount.LIMIT));
                     when(
@@ -198,7 +189,7 @@ class SecurityServiceTest {
 
                     assertAll(
                             () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, wrongPassword)),
-                            () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(user.email()),
+                            () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
                             () -> verify(authenticationBlockRepository, times(1)).create(any())
                     );
                 }

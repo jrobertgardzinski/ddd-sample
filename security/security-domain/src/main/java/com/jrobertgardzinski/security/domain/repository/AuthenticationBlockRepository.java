@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface AuthenticationBlockRepository {
     AuthenticationBlock create(AuthenticationBlock authenticationBlock);
-    void removeAllFor(Email email);
+    void removeAllFor(IpAddress ipAddress);
     Optional<AuthenticationBlock> findBy(IpAddress ipAddress);
 }

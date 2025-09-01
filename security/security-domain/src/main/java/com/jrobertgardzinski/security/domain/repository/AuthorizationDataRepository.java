@@ -5,6 +5,8 @@ import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.RefreshToken;
 import com.jrobertgardzinski.security.domain.vo.RefreshTokenExpiration;
 
+import java.util.Optional;
+
 public interface AuthorizationDataRepository {
     AuthorizationData create(AuthorizationData authorizationData);
 
@@ -12,4 +14,5 @@ public interface AuthorizationDataRepository {
 
     RefreshTokenExpiration findRefreshTokenExpirationBy(Email email, RefreshToken refreshToken);
 
+    Optional<AuthorizationData> findBy(Email email);
 }
