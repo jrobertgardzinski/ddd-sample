@@ -3,7 +3,6 @@ package com.jrobertgardzinski.security.domain.service;
 import com.jrobertgardzinski.security.domain.entity.*;
 import com.jrobertgardzinski.security.domain.repository.*;
 import com.jrobertgardzinski.security.domain.vo.*;
-import com.jrobertgardzinski.security.port.entity.UserEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

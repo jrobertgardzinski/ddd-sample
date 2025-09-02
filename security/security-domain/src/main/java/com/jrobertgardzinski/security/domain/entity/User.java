@@ -2,7 +2,6 @@ package com.jrobertgardzinski.security.domain.entity;
 
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.Password;
-import com.jrobertgardzinski.security.port.entity.UserEntity;
 
 import java.util.LinkedList;
 import java.util.List;
