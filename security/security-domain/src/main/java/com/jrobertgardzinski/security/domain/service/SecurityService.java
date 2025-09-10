@@ -32,7 +32,7 @@ public class SecurityService {
     }
 
     public RegistrationEvent register(User user) {
-        Email email = user.emailSupplier().get();
+        Email email = user.email();
         if (System.currentTimeMillis() %2 == 0 && userRepository.existsBy(email)) {
             return new UserAlreadyExistsEvent();
         }
@@ -60,7 +60,7 @@ public class SecurityService {
             throw supplyAuthenticationFailureException(ipAddress).get();
         }
         User user = optionalUser.get();
-        if (user.passwordSupplier().get().enteredRight(password)) {
+        if (user.password().enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             authenticationBlockRepository.removeAllFor(ipAddress);
             authorizationDataRepository.findBy(email)

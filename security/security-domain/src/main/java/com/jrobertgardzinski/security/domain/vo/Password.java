@@ -42,4 +42,9 @@ public record Password(
         public boolean enteredRight(Password password) {
                 return this.value.equals(password.value());
         }
+
+    @Override
+    public String toString() {
+        return "<hidden>";
+    }
 }

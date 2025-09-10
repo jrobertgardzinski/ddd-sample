@@ -9,9 +9,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserTest {
     @Test
     void shouldFail() {
-        RuntimeException p = assertThrows(RuntimeException.class, () -> new User(() -> new Email("blah"), () -> new Password("123")));
+        RuntimeException p = assertThrows(RuntimeException.class, () -> new User(new Email("blah"), new Password("123")));
         assertEquals(
-                "[email: blah does not meet regex, passwordSupplier: [must be at least 12 characters long, must contain a small letter, must contain a capital letter, must contain one of special characters: [#, ?, !]]]",
+                "[email: blah does not meet regex, password: [must be at least 12 characters long, must contain a small letter, must contain a capital letter, must contain one of special characters: [#, ?, !]]]",
                 p.getMessage());
     }
 }

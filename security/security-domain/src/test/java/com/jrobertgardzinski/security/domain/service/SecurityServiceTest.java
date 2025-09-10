@@ -55,7 +55,7 @@ class SecurityServiceTest {
                     userRepository.existsBy(email))
             .thenReturn(
                     false);
-            User user = new User(() -> email, () -> password);
+            User user = new User(email, password);
             when(
                     userRepository.save(user))
             .thenReturn(
@@ -74,7 +74,7 @@ class SecurityServiceTest {
 
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> securityService.register(new User(() -> email, () -> password)),
+                    () -> securityService.register(new User(email, password)),
                     "User with the e-mail: " + email.value() + " exists!"
             );
         }
@@ -94,7 +94,7 @@ class SecurityServiceTest {
             email = new Email("jrobertgardzinski@gmail.com");
             correctPassword = new Password("PasswordHardToGuessAt1stTime!");
             wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
-            user = new User(() -> email, () -> correctPassword);
+            user = new User(email, correctPassword);
         }
 
         @Nested
