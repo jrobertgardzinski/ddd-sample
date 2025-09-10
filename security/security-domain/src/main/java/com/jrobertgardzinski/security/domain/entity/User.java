@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
 
-// todo test for incorrect email and passwordSupplier
+// todo give up on suppliers and throw an exception in the compact constructor. Use factory method instead
 public record User (
         Supplier<Email> emailSupplier,
         Supplier<Password> passwordSupplier
@@ -31,5 +31,12 @@ public record User (
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(errors.toString());
         }
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "email=" + emailSupplier.get() +
+                '}';
     }
 }

@@ -38,6 +38,7 @@ public record Password(
                 }
         }
 
+        // todo encode!!!
         public boolean enteredRight(Password password) {
                 return this.value.equals(password.value());
         }

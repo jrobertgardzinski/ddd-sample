@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -49,7 +50,7 @@ class SecurityServiceTest {
         }
 
         @Test
-        void positive() {
+        void positive() throws Exception {
             when(
                     userRepository.existsBy(email))
             .thenReturn(
@@ -106,7 +107,7 @@ class SecurityServiceTest {
                 when(
                         userRepository.findBy(email))
                         .thenReturn(
-                                user);
+                                Optional.of(user));
                 when(
                         authorizationDataRepository.create(any()))
                         .thenReturn(
@@ -136,11 +137,11 @@ class SecurityServiceTest {
                 when(
                         userRepository.findBy(email))
                         .thenReturn(
-                                user);
+                                Optional.of(user));
                 when(
                         userRepository.findBy(email))
                         .thenReturn(
-                                user);
+                                Optional.of(user));
                 when(
                         failedAuthenticationRepository.countFailuresBy(ipAddress))
                         .thenReturn(
@@ -176,7 +177,7 @@ class SecurityServiceTest {
                     when(
                             userRepository.findBy(email))
                             .thenReturn(
-                                    user);
+                                    Optional.of(user));
                     when(
                             failedAuthenticationRepository.countFailuresBy(ipAddress))
                             .thenReturn(

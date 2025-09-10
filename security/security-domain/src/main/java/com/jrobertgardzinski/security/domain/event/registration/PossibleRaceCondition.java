@@ -3,13 +3,11 @@ package com.jrobertgardzinski.security.domain.event.registration;
 import com.jrobertgardzinski.security.domain.entity.User;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-public record UserAlreadyExistsEvent() implements RegistrationFailureEvent {
+public record PossibleRaceCondition() implements RegistrationFailureEvent {
     @Override
     public Function<User, RuntimeException> exceptionSupplier() {
-        return user -> new IllegalArgumentException(
-                String.format("%s already exists!", user)
-        );
+        return user -> new IllegalStateException(
+                String.format("Race condition met registering a %s", user));
     }
 }

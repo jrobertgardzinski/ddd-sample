@@ -4,6 +4,10 @@ import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
 import com.jrobertgardzinski.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.event.registration.PossibleRaceCondition;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
@@ -27,12 +31,16 @@ public class SecurityService {
         this.authenticationBlockRepository = authenticationBlockRepository;
     }
 
-    public User register(User user) {
+    public RegistrationEvent register(User user) {
         Email email = user.emailSupplier().get();
-        if (userRepository.existsBy(email)) {
-            throw new IllegalArgumentException("User with the e-mail: " + email + " exists!");
+        if (System.currentTimeMillis() %2 == 0 && userRepository.existsBy(email)) {
+            return new UserAlreadyExistsEvent();
         }
-        return userRepository.save(user);
+        try {
+            return new RegistrationPassedEvent(userRepository.save(user));
+        } catch (Exception e) {
+            return new PossibleRaceCondition();
+        }
     }
 
     private Supplier<IllegalArgumentException> supplyAuthenticationFailureException(IpAddress ipAddress) {
@@ -47,10 +55,11 @@ public class SecurityService {
         if (authenticationBlock.isPresent() && authenticationBlock.get().isStillActive()) {
             throw new IllegalArgumentException("The authentication block is still active for machines from your IP address. Please, try again later: " + authenticationBlock.get().getExpiryDate());
         }
-        User user = userRepository.findBy(email);
-        if (user == null) {
+        Optional<User> optionalUser = userRepository.findBy(email);
+        if (optionalUser.isEmpty()) {
             throw supplyAuthenticationFailureException(ipAddress).get();
         }
+        User user = optionalUser.get();
         if (user.passwordSupplier().get().enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             authenticationBlockRepository.removeAllFor(ipAddress);
