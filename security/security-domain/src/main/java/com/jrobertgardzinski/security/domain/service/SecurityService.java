@@ -14,6 +14,7 @@ import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepo
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.*;
 
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -45,7 +46,7 @@ public class SecurityService {
 
     private Supplier<IllegalArgumentException> supplyAuthenticationFailureException(IpAddress ipAddress) {
         failedAuthenticationRepository.create(
-                new FailedAuthenticationDetails(ipAddress, Calendar.getInstance())
+                new FailedAuthenticationDetails(ipAddress, LocalDateTime.now())
         );
         return () -> new IllegalArgumentException("Authentication failed!");
     }

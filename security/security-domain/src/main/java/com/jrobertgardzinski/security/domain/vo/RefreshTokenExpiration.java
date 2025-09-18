@@ -1,11 +1,12 @@
 package com.jrobertgardzinski.security.domain.vo;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 
 public record RefreshTokenExpiration(TokenExpiration value) {
     public boolean hasExpired() {
-        Calendar now = Calendar.getInstance();
-        return now.getTimeInMillis() > value.value().getTimeInMillis() + Duration.ofSeconds(10).toMillis();
+        LocalDateTime now = LocalDateTime.now();
+        return now.isAfter(value.value());
     }
 }

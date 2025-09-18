@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo;
 
-import java.util.Calendar;
+import java.time.LocalDateTime;
 
-public record FailedAuthenticationDetails(IpAddress ipAddress, Calendar time) {
+public record FailedAuthenticationDetails(IpAddress ipAddress, LocalDateTime time) {
 }
