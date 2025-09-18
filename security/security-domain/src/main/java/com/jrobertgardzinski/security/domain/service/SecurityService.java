@@ -50,16 +50,19 @@ public class SecurityService {
         return () -> new IllegalArgumentException("Authentication failed!");
     }
 
-    public AuthorizedUserAggregate authenticate(IpAddress ipAddress, Email email, Password password) {
+    public AuthorizedUserAggregate authenticate(AuthenticationRequest authenticationRequest) {
+        IpAddress ipAddress = authenticationRequest.ipAddress();
         Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
         if (authenticationBlock.isPresent() && authenticationBlock.get().isStillActive()) {
             throw new IllegalArgumentException("The authentication block is still active for machines from your IP address. Please, try again later: " + authenticationBlock.get().getExpiryDate());
         }
+        Email email = authenticationRequest.email();
         Optional<User> optionalUser = userRepository.findBy(email);
         if (optionalUser.isEmpty()) {
             throw supplyAuthenticationFailureException(ipAddress).get();
         }
         User user = optionalUser.get();
+        Password password = authenticationRequest.password();
         if (user.password().enteredRight(password)) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             authenticationBlockRepository.removeAllFor(ipAddress);
@@ -88,7 +91,9 @@ public class SecurityService {
         }
     }
 
-    public AuthorizationData refreshToken(Email email, RefreshToken refreshToken) {
+    public AuthorizationData refreshToken(TokenRefreshRequest tokenRefreshRequest) {
+        Email email = tokenRefreshRequest.email();
+        RefreshToken refreshToken = tokenRefreshRequest.refreshToken();
         RefreshTokenExpiration refreshTokenExpiration = authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken);
         if (refreshTokenExpiration == null) {
             throw new IllegalArgumentException("No refresh token found for " + email);

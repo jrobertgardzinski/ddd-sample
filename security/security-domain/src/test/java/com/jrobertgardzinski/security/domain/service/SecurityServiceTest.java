@@ -114,7 +114,8 @@ class SecurityServiceTest {
                                 authorizationData);
 
                 assertAll(
-                        () -> assertDoesNotThrow(() -> securityService.authenticate(ipAddress, email, correctPassword)),
+                        () -> assertDoesNotThrow(() -> securityService.authenticate(
+                                new AuthenticationRequest(ipAddress, email, correctPassword))),
                         () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
                         () -> verify(authenticationBlockRepository, times(1)).removeAllFor(ipAddress),
                         () -> verify(authorizationDataRepository, times(1)).create(any())
@@ -152,7 +153,8 @@ class SecurityServiceTest {
                                 failedAuthentication);
 
                 assertAll(
-                        () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, wrongPassword)),
+                        () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
+                                new AuthenticationRequest(ipAddress, email, wrongPassword))),
                         () -> verify(failedAuthenticationRepository, times(1)).create(any())
                 );
             }
@@ -164,7 +166,8 @@ class SecurityServiceTest {
                         .thenReturn(
                                 null);
 
-                assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, correctPassword));
+                assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
+                        new AuthenticationRequest(ipAddress, email, correctPassword)));
             }
 
             @Nested
@@ -188,7 +191,8 @@ class SecurityServiceTest {
                                     authenticationBlock);
 
                     assertAll(
-                            () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(ipAddress, email, wrongPassword)),
+                            () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
+                                    new AuthenticationRequest(ipAddress, email, wrongPassword))),
                             () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
                             () -> verify(authenticationBlockRepository, times(1)).create(any())
                     );
@@ -213,7 +217,8 @@ class SecurityServiceTest {
                     .thenReturn(
                             null);
 
-            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(email, refreshToken));
+            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(
+                    new TokenRefreshRequest(email, refreshToken)));
         }
 
         @Test
@@ -229,7 +234,8 @@ class SecurityServiceTest {
                     .thenReturn(
                             true);
 
-            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(email, refreshToken));
+            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(
+                    new TokenRefreshRequest(email, refreshToken)));
         }
 
         @Test
@@ -250,7 +256,8 @@ class SecurityServiceTest {
                     .thenReturn(
                             authorizationData);
 
-            var result = securityService.refreshToken(email, refreshToken);
+            var result = securityService.refreshToken(
+                    new TokenRefreshRequest(email, refreshToken));
 
             assertEquals(authorizationData, result);
         }
