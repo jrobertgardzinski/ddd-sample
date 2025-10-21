@@ -34,6 +34,7 @@ public class SecurityService {
 
     public RegistrationEvent register(User user) {
         Email email = user.email();
+        // todo I made it for testing purpose. Delete it!
         if (System.currentTimeMillis() %2 == 0 && userRepository.existsBy(email)) {
             return new UserAlreadyExistsEvent();
         }
@@ -51,6 +52,7 @@ public class SecurityService {
         return () -> new IllegalArgumentException("Authentication failed!");
     }
 
+    // todo reduce the method
     public AuthorizedUserAggregate authenticate(AuthenticationRequest authenticationRequest) {
         IpAddress ipAddress = authenticationRequest.ipAddress();
         Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
