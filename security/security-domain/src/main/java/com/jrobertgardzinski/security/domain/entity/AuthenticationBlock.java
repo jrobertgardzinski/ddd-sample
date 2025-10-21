@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Calendar;
 
+// todo why class instead of record?
 @RequiredArgsConstructor
 public class AuthenticationBlock {
     @Getter
