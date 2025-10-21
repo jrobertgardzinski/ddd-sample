@@ -30,11 +30,11 @@ public class AuthorizationDataEntity {
 
     public static AuthorizationDataEntity fromDomain(AuthorizationData authorizationData) {
         return new AuthorizationDataEntity(
-                authorizationData.email().value(),
-                authorizationData.refreshToken().value().value(),
-                authorizationData.accessToken().value().value(),
-                authorizationData.refreshTokenExpiration().value().value(),
-                authorizationData.authorizationTokenExpiration().value().value()
+                authorizationData.plainEmail(),
+                authorizationData.plainRefreshToken(),
+                authorizationData.plainAccessToken(),
+                authorizationData.plainRefreshTokenExpiration(),
+                authorizationData.plainAuthorizationTokenExpiration()
         );
     }
 
