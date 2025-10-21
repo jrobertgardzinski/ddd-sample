@@ -38,7 +38,7 @@ public record Password(
                 }
         }
 
-        // todo encode!!!
+        // todo encode!!! https://www.authgear.com/post/password-hashing-salting-function-and-algorithm-explained
         public boolean enteredRight(Password password) {
                 return this.value.equals(password.value());
         }
