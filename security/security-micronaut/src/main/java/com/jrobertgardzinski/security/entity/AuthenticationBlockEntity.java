@@ -25,8 +25,8 @@ public class AuthenticationBlockEntity {
 
     public static AuthenticationBlockEntity fromDomain(AuthenticationBlock authenticationBlock) {
         return new AuthenticationBlockEntity(
-                authenticationBlock.getIpAddress().value(),
-                authenticationBlock.getExpiryDate()
+                authenticationBlock.ipAddress().value(),
+                authenticationBlock.expiryDate()
         );
     }
 
