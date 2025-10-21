@@ -6,7 +6,6 @@ import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
-import java.util.Calendar;
 
 @Serdeable
 @Entity
@@ -33,7 +32,7 @@ public class AuthorizationDataEntity {
         return new AuthorizationDataEntity(
                 authorizationData.email().value(),
                 authorizationData.refreshToken().value().value(),
-                authorizationData.authorizationToken().value().value(),
+                authorizationData.accessToken().value().value(),
                 authorizationData.refreshTokenExpiration().value().value(),
                 authorizationData.authorizationTokenExpiration().value().value()
         );
@@ -43,7 +42,7 @@ public class AuthorizationDataEntity {
         return new AuthorizationData(
                 new Email(email),
                 new RefreshToken(new Token(refreshToken)),
-                new AuthorizationToken(new Token(authorizationToken)),
+                new AccessToken(new Token(authorizationToken)),
                 new RefreshTokenExpiration(new TokenExpiration(refreshTokenExpiration)),
                 new AuthorizationTokenExpiration(new TokenExpiration(authorizationTokenExpiration))
         );

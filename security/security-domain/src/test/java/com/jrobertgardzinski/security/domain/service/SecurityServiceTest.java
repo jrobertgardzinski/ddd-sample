@@ -1,6 +1,9 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.entity.*;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationFailedEvent;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.*;
 import com.jrobertgardzinski.security.domain.vo.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,13 +58,15 @@ class SecurityServiceTest {
                     userRepository.existsBy(email))
             .thenReturn(
                     false);
+
             User user = new User(email, password);
+
             when(
                     userRepository.save(user))
             .thenReturn(
                     user);
 
-            assertEquals(user,
+            assertEquals(new RegistrationPassedEvent(user),
                     securityService.register(user));
         }
 
@@ -72,11 +77,8 @@ class SecurityServiceTest {
                     .thenReturn(
                             true);
 
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> securityService.register(new User(email, password)),
-                    "User with the e-mail: " + email.value() + " exists!"
-            );
+            assertEquals(new UserAlreadyExistsEvent(),
+                    securityService.register(new User(email, any())));
         }
     }
 
@@ -164,7 +166,7 @@ class SecurityServiceTest {
                 when(
                         userRepository.findBy(email))
                         .thenReturn(
-                                null);
+                                Optional.empty());
 
                 assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
                         new AuthenticationRequest(ipAddress, email, correctPassword)));

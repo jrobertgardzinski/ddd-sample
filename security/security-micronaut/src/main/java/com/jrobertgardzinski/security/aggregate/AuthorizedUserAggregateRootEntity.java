@@ -13,7 +13,7 @@ public record AuthorizedUserAggregateRootEntity(
         return new AuthorizedUserAggregateRootEntity(
                 authorizedUserAggregate.email().value(),
                 authorizedUserAggregate.refreshToken().value().value(),
-                authorizedUserAggregate.authorizationToken().value().value()
+                authorizedUserAggregate.accessToken().value().value()
         );
     }
 }

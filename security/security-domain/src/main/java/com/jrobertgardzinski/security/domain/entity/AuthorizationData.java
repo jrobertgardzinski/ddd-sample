@@ -5,7 +5,7 @@ import com.jrobertgardzinski.security.domain.vo.*;
 public record AuthorizationData(
     Email email,
     RefreshToken refreshToken,
-    AuthorizationToken authorizationToken,
+    AccessToken accessToken,
     RefreshTokenExpiration refreshTokenExpiration,
     AuthorizationTokenExpiration authorizationTokenExpiration) {
 
@@ -13,7 +13,7 @@ public record AuthorizationData(
         return new AuthorizationData(
                 email,
                 new RefreshToken(Token.random()),
-                new AuthorizationToken(Token.random()),
+                new AccessToken(Token.random()),
                 new RefreshTokenExpiration(TokenExpiration.validInHours(48)),
                 new AuthorizationTokenExpiration(TokenExpiration.validInHours(48))
         );

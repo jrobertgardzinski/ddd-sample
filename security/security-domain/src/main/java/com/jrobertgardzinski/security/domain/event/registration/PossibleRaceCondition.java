@@ -4,7 +4,7 @@ import com.jrobertgardzinski.security.domain.entity.User;
 
 import java.util.function.Function;
 
-public record PossibleRaceCondition() implements RegistrationFailureEvent {
+public record PossibleRaceCondition() implements RegistrationFailedEvent {
     @Override
     public Function<User, RuntimeException> exceptionSupplier() {
         return user -> new IllegalStateException(
