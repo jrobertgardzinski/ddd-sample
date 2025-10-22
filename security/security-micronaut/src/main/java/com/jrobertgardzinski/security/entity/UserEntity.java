@@ -2,7 +2,7 @@ package com.jrobertgardzinski.security.entity;
 
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.vo.Email;
-import com.jrobertgardzinski.security.domain.vo.Password;
+import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -23,11 +23,11 @@ public class UserEntity {
     }
 
     public static UserEntity fromDomain(User user) {
-        return new UserEntity(user.email().value(), user.password().value());
+        return new UserEntity(user.email().value(), user.passwordHash().value());
     }
 
     public User asDomain() {
-        return new User(new Email(email), new Password(password));
+        return new User(new Email(email), new PlainTextPassword(password));
     }
 
     public String getEmail() {

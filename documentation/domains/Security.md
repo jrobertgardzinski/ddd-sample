@@ -4,7 +4,7 @@
 
 * userId
 * email
-* password
+* plainTextPassword
 * ticket
 
 # Commands and Events
@@ -24,8 +24,8 @@
 
 ### Requiring persistence and EmailService
 
-1. **Ask for the password reset link and send it via e-mail**
+1. **Ask for the plainTextPassword reset link and send it via e-mail**
    1. Reset link sent
-      1. **Reset the password from the password reset link**
+      1. **Reset the plainTextPassword from the plainTextPassword reset link**
          1. Password reset successfully
          2. Reset link expired

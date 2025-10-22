@@ -1,7 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo;
 
-public record AuthenticationRequest (
-        IpAddress ipAddress,
+public record UserRegistration(
         Email email,
         PlainTextPassword plainTextPassword
 ) {

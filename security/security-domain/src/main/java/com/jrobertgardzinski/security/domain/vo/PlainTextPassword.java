@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-public record Password(
+public record PlainTextPassword(
         String value
 ) {
         static final String EX_1_PASSWORD_LENGTH = "must be at least 12 characters long";
@@ -13,7 +13,7 @@ public record Password(
         static final String EX_4_DIGIT = "must contain a digit";
         static final String EX_5_SPECIAL_CHARACTERS = "must contain one of special characters: [#, ?, !]";
 
-        public Password {
+        public PlainTextPassword {
                 Objects.requireNonNull(value);
 
                 List<String> errors = new LinkedList<>();
@@ -36,11 +36,6 @@ public record Password(
                 if (!errors.isEmpty()) {
                         throw new IllegalArgumentException(errors.toString());
                 }
-        }
-
-        // todo encode!!! https://www.authgear.com/post/password-hashing-salting-function-and-algorithm-explained
-        public boolean enteredRight(Password password) {
-                return this.value.equals(password.value());
         }
 
     @Override

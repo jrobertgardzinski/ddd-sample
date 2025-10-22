@@ -1,7 +1,6 @@
 package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.entity.*;
-import com.jrobertgardzinski.security.domain.event.registration.RegistrationFailedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.repository.*;
@@ -33,22 +32,25 @@ class SecurityServiceTest {
     FailedAuthenticationRepository failedAuthenticationRepository;
     @Mock
     AuthenticationBlockRepository authenticationBlockRepository;
+    @Mock
+    PasswordHasher passwordHasher;
 
     SecurityService securityService;
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository);
+        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, passwordHasher);
     }
 
     @Nested
     class register {
-        Password password;
+        @Mock PasswordHash passwordHash;
+        PlainTextPassword plainTextPassword;
         Email email;
 
         @BeforeEach
         void init() {
-            password = new Password("StrongPassword1!");
+            plainTextPassword = new PlainTextPassword("StrongPassword1!");
             email = new Email("jan.nowak@wp.pl");
         }
 
@@ -59,15 +61,10 @@ class SecurityServiceTest {
             .thenReturn(
                     false);
 
-            User user = new User(email, password);
+            UserRegistration userRegistration = new UserRegistration(email, plainTextPassword);
 
-            when(
-                    userRepository.save(user))
-            .thenReturn(
-                    user);
-
-            assertEquals(new RegistrationPassedEvent(user),
-                    securityService.register(user));
+            assertEquals(new RegistrationPassedEvent(userRegistration),
+                    securityService.register(userRegistration));
         }
 
         @Test
@@ -78,7 +75,7 @@ class SecurityServiceTest {
                             true);
 
             assertEquals(new UserAlreadyExistsEvent(),
-                    securityService.register(new User(email, any())));
+                    securityService.register(new UserRegistration(email, any())));
         }
     }
 
@@ -86,17 +83,17 @@ class SecurityServiceTest {
     class authenticate {
         IpAddress ipAddress;
         Email email;
-        Password correctPassword;
-        Password wrongPassword;
+        PlainTextPassword correctPlainTextPassword;
+        PlainTextPassword wrongPlainTextPassword;
         User user;
 
         @BeforeEach
         void init() {
             ipAddress = new IpAddress("123.123.123.123");
             email = new Email("jrobertgardzinski@gmail.com");
-            correctPassword = new Password("PasswordHardToGuessAt1stTime!");
-            wrongPassword = new Password("AndEvenHarderAfter2ndTime!");
-            user = new User(email, correctPassword);
+            correctPlainTextPassword = new PlainTextPassword("PasswordHardToGuessAt1stTime!");
+            wrongPlainTextPassword = new PlainTextPassword("AndEvenHarderAfter2ndTime!");
+            user = new User(email, passwordHasher.hash(email, correctPlainTextPassword));
         }
 
         @Nested
@@ -106,6 +103,8 @@ class SecurityServiceTest {
 
             @Test
             void positive() {
+                AuthenticationRequest input = new AuthenticationRequest(ipAddress, email, correctPlainTextPassword);
+
                 when(
                         userRepository.findBy(email))
                         .thenReturn(
@@ -114,10 +113,14 @@ class SecurityServiceTest {
                         authorizationDataRepository.create(any()))
                         .thenReturn(
                                 authorizationData);
+                when(
+                        passwordHasher.verify(user, correctPlainTextPassword))
+                        .thenReturn(
+                                true);
 
                 assertAll(
                         () -> assertDoesNotThrow(() -> securityService.authenticate(
-                                new AuthenticationRequest(ipAddress, email, correctPassword))),
+                                input)),
                         () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
                         () -> verify(authenticationBlockRepository, times(1)).removeAllFor(ipAddress),
                         () -> verify(authorizationDataRepository, times(1)).create(any())
@@ -156,7 +159,7 @@ class SecurityServiceTest {
 
                 assertAll(
                         () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
-                                new AuthenticationRequest(ipAddress, email, wrongPassword))),
+                                new AuthenticationRequest(ipAddress, email, wrongPlainTextPassword))),
                         () -> verify(failedAuthenticationRepository, times(1)).create(any())
                 );
             }
@@ -169,7 +172,7 @@ class SecurityServiceTest {
                                 Optional.empty());
 
                 assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
-                        new AuthenticationRequest(ipAddress, email, correctPassword)));
+                        new AuthenticationRequest(ipAddress, email, correctPlainTextPassword)));
             }
 
             @Nested
@@ -194,7 +197,7 @@ class SecurityServiceTest {
 
                     assertAll(
                             () -> assertThrows(IllegalArgumentException.class, () -> securityService.authenticate(
-                                    new AuthenticationRequest(ipAddress, email, wrongPassword))),
+                                    new AuthenticationRequest(ipAddress, email, wrongPlainTextPassword))),
                             () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
                             () -> verify(authenticationBlockRepository, times(1)).create(any())
                     );

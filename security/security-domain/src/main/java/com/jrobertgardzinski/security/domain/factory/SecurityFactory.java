@@ -11,7 +11,7 @@ public class SecurityFactory {
 
     public User createUser(
             String email,
-            String password) {
+            String passwordHash) {
 
         List<String> errors = new LinkedList<>();
 
@@ -23,19 +23,19 @@ public class SecurityFactory {
             errors.add("email: " + e.getMessage());
         }
 
-        Supplier<Password> passwordSupplier = () -> new Password(password);
+        Supplier<PasswordHash> passwordHashSupplier = () -> new PasswordHash(passwordHash);
         try {
-            passwordSupplier.get();
+            passwordHashSupplier.get();
         }
         catch (RuntimeException e) {
-            errors.add("password: " + e.getMessage());
+            errors.add("passwordHash: " + e.getMessage());
         }
 
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(errors.toString());
         }
         else {
-            return new User(emailSupplier.get(), passwordSupplier.get());
+            return new User(emailSupplier.get(), passwordHashSupplier.get());
         }
     }
 
@@ -59,12 +59,12 @@ public class SecurityFactory {
             errors.add("email: " + e.getMessage());
         }
 
-        Supplier<Password> passwordSupplier = () -> new Password(password);
+        Supplier<PlainTextPassword> passwordSupplier = () -> new PlainTextPassword(password);
         try {
             passwordSupplier.get();
         }
         catch (RuntimeException e) {
-            errors.add("password: " + e.getMessage());
+            errors.add("passwordHash: " + e.getMessage());
         }
 
         if (!errors.isEmpty()) {
