@@ -7,6 +7,7 @@ import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
 
+// todo rename to PasswordHashAlgorithm
 public class PasswordHasher {
     private final PasswordSaltRepository passwordSaltRepository;
     private final HashAlgorithmPort hashAlgorithmPort;
