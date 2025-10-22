@@ -24,14 +24,14 @@ public class SecurityService {
     private final AuthorizationDataRepository authorizationDataRepository;
     private final FailedAuthenticationRepository failedAuthenticationRepository;
     private final AuthenticationBlockRepository authenticationBlockRepository;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHashAlgorithm passwordHashAlgorithm;
 
-    public SecurityService(UserRepository userRepository, AuthorizationDataRepository authorizationDataRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository, PasswordHasher passwordHasher) {
+    public SecurityService(UserRepository userRepository, AuthorizationDataRepository authorizationDataRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository, PasswordHashAlgorithm passwordHashAlgorithm) {
         this.userRepository = userRepository;
         this.authorizationDataRepository = authorizationDataRepository;
         this.failedAuthenticationRepository = failedAuthenticationRepository;
         this.authenticationBlockRepository = authenticationBlockRepository;
-        this.passwordHasher = passwordHasher;
+        this.passwordHashAlgorithm = passwordHashAlgorithm;
     }
 
     public RegistrationEvent register(UserRegistration userRegistration) {
@@ -41,7 +41,7 @@ public class SecurityService {
         }
         try {
             PlainTextPassword plainTextPassword = userRegistration.plainTextPassword();
-            PasswordHash passwordHash = passwordHasher.hash(email, plainTextPassword);
+            PasswordHash passwordHash = passwordHashAlgorithm.hash(email, plainTextPassword);
             User user = new User(
                     userRegistration.email(),
                     passwordHash
@@ -73,7 +73,7 @@ public class SecurityService {
         }
         User user = optionalUser.get();
         PlainTextPassword plainTextPassword = authenticationRequest.plainTextPassword();
-        if (passwordHasher.verify(user, plainTextPassword)) {
+        if (passwordHashAlgorithm.verify(user, plainTextPassword)) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             authenticationBlockRepository.removeAllFor(ipAddress);
             authorizationDataRepository.findBy(email)

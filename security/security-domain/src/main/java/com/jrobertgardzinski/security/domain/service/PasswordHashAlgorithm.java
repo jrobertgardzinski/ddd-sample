@@ -7,12 +7,11 @@ import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
 
-// todo rename to PasswordHashAlgorithm
-public class PasswordHasher {
+public class PasswordHashAlgorithm {
     private final PasswordSaltRepository passwordSaltRepository;
     private final HashAlgorithmPort hashAlgorithmPort;
 
-    public PasswordHasher(PasswordSaltRepository passwordSaltRepository, HashAlgorithmPort hashAlgorithmPort) {
+    public PasswordHashAlgorithm(PasswordSaltRepository passwordSaltRepository, HashAlgorithmPort hashAlgorithmPort) {
         this.passwordSaltRepository = passwordSaltRepository;
         this.hashAlgorithmPort = hashAlgorithmPort;
     }

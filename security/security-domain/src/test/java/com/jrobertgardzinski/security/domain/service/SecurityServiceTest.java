@@ -33,13 +33,13 @@ class SecurityServiceTest {
     @Mock
     AuthenticationBlockRepository authenticationBlockRepository;
     @Mock
-    PasswordHasher passwordHasher;
+    PasswordHashAlgorithm passwordHashAlgorithm;
 
     SecurityService securityService;
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, passwordHasher);
+        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, passwordHashAlgorithm);
     }
 
     @Nested
@@ -93,7 +93,7 @@ class SecurityServiceTest {
             email = new Email("jrobertgardzinski@gmail.com");
             correctPlainTextPassword = new PlainTextPassword("PasswordHardToGuessAt1stTime!");
             wrongPlainTextPassword = new PlainTextPassword("AndEvenHarderAfter2ndTime!");
-            user = new User(email, passwordHasher.hash(email, correctPlainTextPassword));
+            user = new User(email, passwordHashAlgorithm.hash(email, correctPlainTextPassword));
         }
 
         @Nested
@@ -114,7 +114,7 @@ class SecurityServiceTest {
                         .thenReturn(
                                 authorizationData);
                 when(
-                        passwordHasher.verify(user, correctPlainTextPassword))
+                        passwordHashAlgorithm.verify(user, correctPlainTextPassword))
                         .thenReturn(
                                 true);
 
