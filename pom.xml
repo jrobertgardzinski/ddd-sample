@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>security</module>
+        <module>security/security-password-hash-algorithm</module>
     </modules>
 
     <properties>

@@ -5,4 +5,5 @@ import com.jrobertgardzinski.security.domain.vo.Email;
 
 public interface PasswordSaltRepository {
     PasswordSalt findByEmail(Email email);
+    PasswordSalt save(PasswordSalt passwordSalt);
 }

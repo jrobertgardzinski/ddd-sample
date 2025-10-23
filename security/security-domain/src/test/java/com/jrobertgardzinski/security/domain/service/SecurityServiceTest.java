@@ -96,9 +96,9 @@ class SecurityServiceTest {
             ipAddress = new IpAddress("123.123.123.123");
             email = new Email("jrobertgardzinski@gmail.com");
             correctPlainTextPassword = new PlainTextPassword("PasswordHardToGuessAt1stTime!");
-            correctPasswordSalt = new PasswordSalt(email, new Salt("fdjsiofjsdojoiwejriowjofnwifow"));
+            correctPasswordSalt = new PasswordSalt(email, Salt.generate());
             wrongPlainTextPassword = new PlainTextPassword("AndEvenHarderAfter2ndTime!");
-            correctPasswordSalt = new PasswordSalt(email, new Salt("123siofjsdojoiwejriowjofnwi321"));
+            wrongPasswordSalt = new PasswordSalt(email, Salt.generate());
             user = new User(email, passwordHashAlgorithm.hash(correctPlainTextPassword, correctPasswordSalt));
         }
 

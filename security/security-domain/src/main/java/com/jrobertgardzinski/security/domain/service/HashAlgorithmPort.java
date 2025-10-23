@@ -1,5 +1,6 @@
 package com.jrobertgardzinski.security.domain.service;
 
+import com.jrobertgardzinski.security.domain.entity.PasswordSalt;
 import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
 import com.jrobertgardzinski.security.domain.vo.Salt;

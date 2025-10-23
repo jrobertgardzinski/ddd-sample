@@ -9,9 +9,9 @@ import java.util.function.Supplier;
 
 public class SecurityFactory {
 
-    public User createUser(
+    public UserRegistration createUserRegistration(
             String email,
-            String passwordHash) {
+            String PlainTextPassword) {
 
         List<String> errors = new LinkedList<>();
 
@@ -23,23 +23,23 @@ public class SecurityFactory {
             errors.add("email: " + e.getMessage());
         }
 
-        Supplier<PasswordHash> passwordHashSupplier = () -> new PasswordHash(passwordHash);
+        Supplier<PlainTextPassword> PlainTextPasswordSupplier = () -> new PlainTextPassword(PlainTextPassword);
         try {
-            passwordHashSupplier.get();
+            PlainTextPasswordSupplier.get();
         }
         catch (RuntimeException e) {
-            errors.add("passwordHash: " + e.getMessage());
+            errors.add("PlainTextPassword: " + e.getMessage());
         }
 
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(errors.toString());
         }
         else {
-            return new User(emailSupplier.get(), passwordHashSupplier.get());
+            return new UserRegistration(emailSupplier.get(), PlainTextPasswordSupplier.get());
         }
     }
 
-    public AuthenticationRequest createAuthenticationRequest(String ipAddress, String email, String password) {
+    public AuthenticationRequest createAuthenticationRequest(String ipAddress, String email, String PlainTextPassword) {
 
         List<String> errors = new LinkedList<>();
 
@@ -59,12 +59,12 @@ public class SecurityFactory {
             errors.add("email: " + e.getMessage());
         }
 
-        Supplier<PlainTextPassword> passwordSupplier = () -> new PlainTextPassword(password);
+        Supplier<PlainTextPassword> PlainTextPasswordSupplier = () -> new PlainTextPassword(PlainTextPassword);
         try {
-            passwordSupplier.get();
+            PlainTextPasswordSupplier.get();
         }
         catch (RuntimeException e) {
-            errors.add("passwordHash: " + e.getMessage());
+            errors.add("PlainTextPassword: " + e.getMessage());
         }
 
         if (!errors.isEmpty()) {
@@ -74,7 +74,7 @@ public class SecurityFactory {
             return new AuthenticationRequest(
                     ipAddressSupplier.get(),
                     emailSupplier.get(),
-                    passwordSupplier.get()
+                    PlainTextPasswordSupplier.get()
             );
         }
     }

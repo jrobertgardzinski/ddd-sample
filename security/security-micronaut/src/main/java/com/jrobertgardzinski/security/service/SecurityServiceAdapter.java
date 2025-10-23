@@ -22,6 +22,9 @@ import java.util.Calendar;
         }
 )
 @SerdeImport(Calendar.class)
+@SerdeImport(UserRegistration.class)
+@SerdeImport(Email.class)
+@SerdeImport(PlainTextPassword.class)
 @Singleton
 public class SecurityServiceAdapter {
     private final SecurityService securityService;
@@ -29,20 +32,23 @@ public class SecurityServiceAdapter {
     public SecurityServiceAdapter(UserJpaRepository userJpaRepository,
                                   AuthorizationDataJpaRepository authorizationDataJpaRepository,
                                   FailedAuthenticationJpaRepository failedAuthenticationJpaRepository,
-                                  AuthenticationBlockJpaRepository authorizationDataRepositoryAdapter) {
+                                  AuthenticationBlockJpaRepository authorizationDataRepositoryAdapter,
+                                  PasswordSaltRepositoryJpa passwordSaltRepositoryJpa
+                                  ) {
         this.securityService = new SecurityService(
                 new UserRepositoryAdapter(userJpaRepository),
                 new AuthorizationDataRepositoryAdapter(authorizationDataJpaRepository),
                 new FailedAuthenticationRepositoryAdapter(failedAuthenticationJpaRepository),
                 new AuthenticationBlockRepositoryAdapter(authorizationDataRepositoryAdapter),
-                new PasswordHashAlgorithmAdapter()
+                new PasswordSaltRepositoryAdapter(passwordSaltRepositoryJpa),
+                new PasswordHashAlgorithm(new HashAlgorithmAdapter())
         );
     }
 
-    public UserEntity register(User user) {
-        return switch (securityService.register(user)) {
-            case RegistrationPassedEvent e -> UserEntity.fromDomain(e.user());
-            case RegistrationFailedEvent e -> throw e.exceptionSupplier().apply(user);
+    public UserRegistration register(UserRegistration userRegistration) {
+        return switch (securityService.register(userRegistration)) {
+            case RegistrationPassedEvent e -> e.userRegistration();
+            case RegistrationFailedEvent e -> throw e.exceptionSupplier().apply(userRegistration);
         };
     }
 

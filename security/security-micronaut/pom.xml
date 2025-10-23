@@ -113,6 +113,11 @@
       <artifactId>security-domain</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
+    <dependency>
+      <groupId>com.jrobertgardzinski</groupId>
+      <artifactId>security-password-hash-algorithm</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

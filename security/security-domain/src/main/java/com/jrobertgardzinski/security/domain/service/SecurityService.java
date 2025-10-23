@@ -41,13 +41,15 @@ public class SecurityService {
         }
         try {
             PlainTextPassword plainTextPassword = userRegistration.plainTextPassword();
-            PasswordSalt passwordSalt = passwordSaltRepository.findByEmail(email);
+            Salt salt = Salt.generate();
+            PasswordSalt passwordSalt = new PasswordSalt(email, salt);
             PasswordHash passwordHash = passwordHashAlgorithm.hash(plainTextPassword, passwordSalt);
             User user = new User(
                     userRegistration.email(),
                     passwordHash
             );
             userRepository.save(user);
+            passwordSaltRepository.save(passwordSalt);
             return new RegistrationPassedEvent(userRegistration);
         } catch (Exception e) {
             return new PossibleRaceCondition();

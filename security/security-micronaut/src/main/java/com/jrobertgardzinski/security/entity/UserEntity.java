@@ -2,6 +2,7 @@ package com.jrobertgardzinski.security.entity;
 
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.vo.Email;
+import com.jrobertgardzinski.security.domain.vo.PasswordHash;
 import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.Entity;
@@ -12,14 +13,14 @@ import jakarta.persistence.Id;
 public class UserEntity {
     @Id
     private String email;
-    private String password;
+    private int passwordHash;
 
     public UserEntity() {
     }
 
-    public UserEntity(String email, String password) {
+    public UserEntity(String email, int passwordHash) {
         this.email = email;
-        this.password = password;
+        this.passwordHash = passwordHash;
     }
 
     public static UserEntity fromDomain(User user) {
@@ -27,7 +28,7 @@ public class UserEntity {
     }
 
     public User asDomain() {
-        return new User(new Email(email), new PlainTextPassword(password));
+        return new User(new Email(email), new PasswordHash(passwordHash));
     }
 
     public String getEmail() {

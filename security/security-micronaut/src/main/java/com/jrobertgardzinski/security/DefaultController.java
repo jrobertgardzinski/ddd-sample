@@ -24,9 +24,9 @@ public class DefaultController {
     }
 
     @Post(uri="register")
-    public UserEntity register(String email, String password) {
+    public UserRegistration register(String email, String password) {
         return service.register(
-                factory.createUser(
+                factory.createUserRegistration(
                         email,
                         password));
     }
