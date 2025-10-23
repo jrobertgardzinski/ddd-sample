@@ -28,8 +28,8 @@ public class HashAlgorithmAdapter implements HashAlgorithmPort {
         generate.init(builder.build());
         byte[] result = new byte[hashLength];
         String password = plainTextPassword.value();
-        int hash = generate.generateBytes(password.getBytes(StandardCharsets.UTF_8), result, 0, result.length);
+        generate.generateBytes(password.getBytes(StandardCharsets.UTF_8), result, 0, result.length);
 
-        return new PasswordHash(hash);
+        return new PasswordHash(result);
     }
 }
