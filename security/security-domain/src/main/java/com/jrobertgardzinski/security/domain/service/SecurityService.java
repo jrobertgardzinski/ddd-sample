@@ -3,15 +3,13 @@ package com.jrobertgardzinski.security.domain.service;
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
+import com.jrobertgardzinski.security.domain.entity.PasswordSalt;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.registration.PossibleRaceCondition;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
-import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
-import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
-import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
-import com.jrobertgardzinski.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.domain.repository.*;
 import com.jrobertgardzinski.security.domain.vo.*;
 
 import java.time.LocalDateTime;
@@ -24,13 +22,15 @@ public class SecurityService {
     private final AuthorizationDataRepository authorizationDataRepository;
     private final FailedAuthenticationRepository failedAuthenticationRepository;
     private final AuthenticationBlockRepository authenticationBlockRepository;
+    private final PasswordSaltRepository passwordSaltRepository;
     private final PasswordHashAlgorithm passwordHashAlgorithm;
 
-    public SecurityService(UserRepository userRepository, AuthorizationDataRepository authorizationDataRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository, PasswordHashAlgorithm passwordHashAlgorithm) {
+    public SecurityService(UserRepository userRepository, AuthorizationDataRepository authorizationDataRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository, PasswordSaltRepository passwordSaltRepository, PasswordHashAlgorithm passwordHashAlgorithm) {
         this.userRepository = userRepository;
         this.authorizationDataRepository = authorizationDataRepository;
         this.failedAuthenticationRepository = failedAuthenticationRepository;
         this.authenticationBlockRepository = authenticationBlockRepository;
+        this.passwordSaltRepository = passwordSaltRepository;
         this.passwordHashAlgorithm = passwordHashAlgorithm;
     }
 
@@ -41,7 +41,8 @@ public class SecurityService {
         }
         try {
             PlainTextPassword plainTextPassword = userRegistration.plainTextPassword();
-            PasswordHash passwordHash = passwordHashAlgorithm.hash(email, plainTextPassword);
+            PasswordSalt passwordSalt = passwordSaltRepository.findByEmail(email);
+            PasswordHash passwordHash = passwordHashAlgorithm.hash(plainTextPassword, passwordSalt);
             User user = new User(
                     userRegistration.email(),
                     passwordHash
@@ -73,7 +74,8 @@ public class SecurityService {
         }
         User user = optionalUser.get();
         PlainTextPassword plainTextPassword = authenticationRequest.plainTextPassword();
-        if (passwordHashAlgorithm.verify(user, plainTextPassword)) {
+        PasswordSalt passwordSalt = passwordSaltRepository.findByEmail(email);
+        if (passwordHashAlgorithm.verify(plainTextPassword, passwordSalt, user)) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             authenticationBlockRepository.removeAllFor(ipAddress);
             authorizationDataRepository.findBy(email)

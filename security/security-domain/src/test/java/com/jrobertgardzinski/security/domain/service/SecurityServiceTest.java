@@ -33,13 +33,15 @@ class SecurityServiceTest {
     @Mock
     AuthenticationBlockRepository authenticationBlockRepository;
     @Mock
+    PasswordSaltRepository passwordSaltRepository;
+    @Mock
     PasswordHashAlgorithm passwordHashAlgorithm;
 
     SecurityService securityService;
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, passwordHashAlgorithm);
+        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, passwordSaltRepository, passwordHashAlgorithm);
     }
 
     @Nested
@@ -84,7 +86,9 @@ class SecurityServiceTest {
         IpAddress ipAddress;
         Email email;
         PlainTextPassword correctPlainTextPassword;
+        PasswordSalt correctPasswordSalt;
         PlainTextPassword wrongPlainTextPassword;
+        PasswordSalt wrongPasswordSalt;
         User user;
 
         @BeforeEach
@@ -92,8 +96,10 @@ class SecurityServiceTest {
             ipAddress = new IpAddress("123.123.123.123");
             email = new Email("jrobertgardzinski@gmail.com");
             correctPlainTextPassword = new PlainTextPassword("PasswordHardToGuessAt1stTime!");
+            correctPasswordSalt = new PasswordSalt(email, new Salt("fdjsiofjsdojoiwejriowjofnwifow"));
             wrongPlainTextPassword = new PlainTextPassword("AndEvenHarderAfter2ndTime!");
-            user = new User(email, passwordHashAlgorithm.hash(email, correctPlainTextPassword));
+            correctPasswordSalt = new PasswordSalt(email, new Salt("123siofjsdojoiwejriowjofnwi321"));
+            user = new User(email, passwordHashAlgorithm.hash(correctPlainTextPassword, correctPasswordSalt));
         }
 
         @Nested
@@ -110,11 +116,15 @@ class SecurityServiceTest {
                         .thenReturn(
                                 Optional.of(user));
                 when(
+                        passwordSaltRepository.findByEmail(email))
+                        .thenReturn(
+                                correctPasswordSalt);
+                when(
                         authorizationDataRepository.create(any()))
                         .thenReturn(
                                 authorizationData);
                 when(
-                        passwordHashAlgorithm.verify(user, correctPlainTextPassword))
+                        passwordHashAlgorithm.verify(correctPlainTextPassword, correctPasswordSalt, user))
                         .thenReturn(
                                 true);
 

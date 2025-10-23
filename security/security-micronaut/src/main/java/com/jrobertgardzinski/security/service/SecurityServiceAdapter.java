@@ -3,6 +3,7 @@ package com.jrobertgardzinski.security.service;
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.registration.*;
+import com.jrobertgardzinski.security.domain.service.PasswordHashAlgorithm;
 import com.jrobertgardzinski.security.domain.service.SecurityService;
 import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
@@ -33,7 +34,8 @@ public class SecurityServiceAdapter {
                 new UserRepositoryAdapter(userJpaRepository),
                 new AuthorizationDataRepositoryAdapter(authorizationDataJpaRepository),
                 new FailedAuthenticationRepositoryAdapter(failedAuthenticationJpaRepository),
-                new AuthenticationBlockRepositoryAdapter(authorizationDataRepositoryAdapter)
+                new AuthenticationBlockRepositoryAdapter(authorizationDataRepositoryAdapter),
+                new PasswordHashAlgorithmAdapter()
         );
     }
 
