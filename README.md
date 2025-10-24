@@ -1,11 +1,6 @@
 # ddd-sample
 A sample project for learning DDD and other trends in practise.
 
-# Conventions
-Commands are bold, events are normal.
-
-No client libraries allowed!
-
 ## New java microservice recipe
 Level 1
 1. [entity] Design entities. 
