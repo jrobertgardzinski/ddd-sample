@@ -2,12 +2,15 @@ package com.jrobertgardzinski.security;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationFailedEvent;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
 import com.jrobertgardzinski.security.entity.UserEntity;
 import com.jrobertgardzinski.security.factory.SecurityFactoryAdapter;
 import com.jrobertgardzinski.security.service.SecurityServiceAdapter;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.server.util.HttpClientAddressResolver;
@@ -25,11 +28,14 @@ public class DefaultController {
     }
 
     @Post(uri="register")
-    public RegistrationEvent register(String email, String password) {
-        return service.register(
+    public Email register(String email, String password) {
+        return switch (service.register(
                 factory.createUserRegistration(
                         email,
-                        password));
+                        password))) {
+            case RegistrationPassedEvent e -> e.email();
+            case RegistrationFailedEvent e -> throw e.exceptionSupplier().apply(new Email(email));
+        };
     }
 
     @Post(uri="authenticate")

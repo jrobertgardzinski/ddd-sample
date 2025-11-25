@@ -50,7 +50,7 @@ public class SecurityService {
             );
             userRepository.save(user);
             passwordSaltRepository.save(passwordSalt);
-            return new RegistrationPassedEvent(userRegistration);
+            return new RegistrationPassedEvent(email);
         } catch (Exception e) {
             return new PossibleRaceCondition();
         }
@@ -97,7 +97,7 @@ public class SecurityService {
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             AuthenticationBlock newAuthenticationBlock = authenticationBlockRepository.create(
-                    new AuthenticationBlock(ipAddress, Calendar.getInstance()));
+                    new AuthenticationBlock(ipAddress, LocalDateTime.now()));
             throw new IllegalArgumentException("Too many authentication failures! Try again later: " + newAuthenticationBlock.expiryDate());
         }
         else {

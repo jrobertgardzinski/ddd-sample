@@ -1,17 +1,16 @@
 package com.jrobertgardzinski.security.service;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
-import com.jrobertgardzinski.security.domain.event.registration.*;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.service.PasswordHashAlgorithm;
 import com.jrobertgardzinski.security.domain.service.SecurityService;
-import com.jrobertgardzinski.security.domain.vo.*;
+import com.jrobertgardzinski.security.domain.vo.AuthenticationRequest;
+import com.jrobertgardzinski.security.domain.vo.SessionRefreshRequest;
+import com.jrobertgardzinski.security.domain.vo.UserRegistration;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
 import com.jrobertgardzinski.security.repository.*;
 import io.micronaut.core.annotation.Introspected;
-import io.micronaut.serde.annotation.SerdeImport;
 import jakarta.inject.Singleton;
-
-import java.util.Calendar;
 
 @Introspected(
         classNames = {
@@ -19,8 +18,6 @@ import java.util.Calendar;
                 "com.jrobertgardzinski.security.domain.vo.Password"
         }
 )
-@SerdeImport(Calendar.class)
-//@SerdeImport(RegistrationEvent.class)
 @Singleton
 public class SecurityServiceAdapter {
     private final SecurityService securityService;

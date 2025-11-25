@@ -4,13 +4,14 @@ import com.jrobertgardzinski.security.domain.vo.IpAddress;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.Calendar;
 
 public record AuthenticationBlock (
         IpAddress ipAddress,
-        Calendar expiryDate
+        LocalDateTime expiryDate
 ) {
     public boolean isStillActive() {
-        return expiryDate.compareTo(Calendar.getInstance()) < 0;
+        return expiryDate.isBefore(LocalDateTime.now());
     }
 }

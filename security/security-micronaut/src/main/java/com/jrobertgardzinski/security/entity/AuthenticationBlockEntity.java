@@ -6,6 +6,7 @@ import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
+import java.time.LocalDateTime;
 import java.util.Calendar;
 
 @Serdeable
@@ -13,12 +14,12 @@ import java.util.Calendar;
 public class AuthenticationBlockEntity {
     @Id
     private String ipAddress;
-    private Calendar expiryDate;
+    private LocalDateTime expiryDate;
 
     public AuthenticationBlockEntity() {
     }
 
-    public AuthenticationBlockEntity(String ipAddress, Calendar expiryDate) {
+    public AuthenticationBlockEntity(String ipAddress, LocalDateTime expiryDate) {
         this.ipAddress = ipAddress;
         this.expiryDate = expiryDate;
     }
@@ -44,11 +45,11 @@ public class AuthenticationBlockEntity {
         this.ipAddress = ipAddress;
     }
 
-    public Calendar getExpiryDate() {
+    public LocalDateTime getExpiryDate() {
         return expiryDate;
     }
 
-    public void setExpiryDate(Calendar expiryDate) {
+    public void setExpiryDate(LocalDateTime expiryDate) {
         this.expiryDate = expiryDate;
     }
 }

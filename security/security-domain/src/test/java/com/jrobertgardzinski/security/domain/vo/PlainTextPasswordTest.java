@@ -9,7 +9,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static com.jrobertgardzinski.security.domain.vo.PlainTextPassword.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-// todo It's a test for PlainPassword, not the PasswordHash!
 class PlainTextPasswordTest {
     @Test
     void notNull() {
