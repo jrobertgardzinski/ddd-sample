@@ -1,6 +1,5 @@
 package com.jrobertgardzinski.security.domain.factory;
 
-import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.vo.*;
 
 import java.util.LinkedList;
@@ -79,7 +78,7 @@ public class SecurityFactory {
         }
     }
 
-    public TokenRefreshRequest createTokenRefreshRequest(String email, String refreshToken) {
+    public SessionRefreshRequest createTokenRefreshRequest(String email, String refreshToken) {
 
         List<String> errors = new LinkedList<>();
 
@@ -103,7 +102,7 @@ public class SecurityFactory {
             throw new IllegalArgumentException(errors.toString());
         }
         else {
-            return new TokenRefreshRequest(
+            return new SessionRefreshRequest(
                     emailSupplier.get(),
                     refreshTokenSupplier.get()
             );

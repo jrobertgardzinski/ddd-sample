@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.repository;
 
-import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.RefreshToken;
@@ -18,8 +18,8 @@ public class AuthorizationDataRepositoryAdapter implements AuthorizationDataRepo
     }
 
     @Override
-    public AuthorizationData create(AuthorizationData authorizationData) {
-        return repository.save(AuthorizationDataEntity.fromDomain(authorizationData)).asDomain();
+    public SessionTokens create(SessionTokens sessionTokens) {
+        return repository.save(AuthorizationDataEntity.fromDomain(sessionTokens)).asDomain();
     }
 
     @Override
@@ -36,7 +36,7 @@ public class AuthorizationDataRepositoryAdapter implements AuthorizationDataRepo
     }
 
     @Override
-    public Optional<AuthorizationData> findBy(Email email) {
+    public Optional<SessionTokens> findBy(Email email) {
         return repository.findById(email.value()).map(AuthorizationDataEntity::asDomain);
     }
 }

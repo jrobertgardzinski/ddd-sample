@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.entity;
 
-import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.vo.*;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.*;
@@ -28,18 +28,18 @@ public class AuthorizationDataEntity {
         this.authorizationTokenExpiration = authorizationTokenExpiration;
     }
 
-    public static AuthorizationDataEntity fromDomain(AuthorizationData authorizationData) {
+    public static AuthorizationDataEntity fromDomain(SessionTokens sessionTokens) {
         return new AuthorizationDataEntity(
-                authorizationData.plainEmail(),
-                authorizationData.plainRefreshToken(),
-                authorizationData.plainAccessToken(),
-                authorizationData.plainRefreshTokenExpiration(),
-                authorizationData.plainAuthorizationTokenExpiration()
+                sessionTokens.plainEmail(),
+                sessionTokens.plainRefreshToken(),
+                sessionTokens.plainAccessToken(),
+                sessionTokens.plainRefreshTokenExpiration(),
+                sessionTokens.plainAuthorizationTokenExpiration()
         );
     }
 
-    public AuthorizationData asDomain() {
-        return new AuthorizationData(
+    public SessionTokens asDomain() {
+        return new SessionTokens(
                 new Email(email),
                 new RefreshToken(new Token(refreshToken)),
                 new AccessToken(new Token(authorizationToken)),

@@ -105,7 +105,7 @@ class SecurityServiceTest {
         @Nested
         class Positive {
             @Mock
-            AuthorizationData authorizationData;
+            SessionTokens sessionTokens;
 
             @Test
             void positive() {
@@ -122,7 +122,7 @@ class SecurityServiceTest {
                 when(
                         authorizationDataRepository.create(any()))
                         .thenReturn(
-                                authorizationData);
+                                sessionTokens);
                 when(
                         passwordHashAlgorithm.verify(correctPlainTextPassword, correctPasswordSalt, user))
                         .thenReturn(
@@ -232,8 +232,8 @@ class SecurityServiceTest {
                     .thenReturn(
                             null);
 
-            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(
-                    new TokenRefreshRequest(email, refreshToken)));
+            assertThrows(IllegalArgumentException.class, () -> securityService.refreshSession(
+                    new SessionRefreshRequest(email, refreshToken)));
         }
 
         @Test
@@ -249,14 +249,14 @@ class SecurityServiceTest {
                     .thenReturn(
                             true);
 
-            assertThrows(IllegalArgumentException.class, () -> securityService.refreshToken(
-                    new TokenRefreshRequest(email, refreshToken)));
+            assertThrows(IllegalArgumentException.class, () -> securityService.refreshSession(
+                    new SessionRefreshRequest(email, refreshToken)));
         }
 
         @Test
         void RefreshTokenPassedEvent() {
             RefreshTokenExpiration refreshTokenExpiration = mock(RefreshTokenExpiration.class);
-            AuthorizationData authorizationData = mock(AuthorizationData.class);
+            SessionTokens sessionTokens = mock(SessionTokens.class);
 
             when(
                     authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken))
@@ -269,12 +269,12 @@ class SecurityServiceTest {
             when(
                     authorizationDataRepository.create(any()))
                     .thenReturn(
-                            authorizationData);
+                            sessionTokens);
 
-            var result = securityService.refreshToken(
-                    new TokenRefreshRequest(email, refreshToken));
+            SessionTokens result = securityService.refreshSession(
+                    new SessionRefreshRequest(email, refreshToken));
 
-            assertEquals(authorizationData, result);
+            assertEquals(sessionTokens, result);
         }
     }
 }

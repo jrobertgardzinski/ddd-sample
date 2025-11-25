@@ -1,13 +1,11 @@
 package com.jrobertgardzinski.security.service;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
-import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.registration.*;
 import com.jrobertgardzinski.security.domain.service.PasswordHashAlgorithm;
 import com.jrobertgardzinski.security.domain.service.SecurityService;
 import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
-import com.jrobertgardzinski.security.entity.UserEntity;
 import com.jrobertgardzinski.security.repository.*;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.serde.annotation.SerdeImport;
@@ -22,9 +20,7 @@ import java.util.Calendar;
         }
 )
 @SerdeImport(Calendar.class)
-@SerdeImport(UserRegistration.class)
-@SerdeImport(Email.class)
-@SerdeImport(PlainTextPassword.class)
+//@SerdeImport(RegistrationEvent.class)
 @Singleton
 public class SecurityServiceAdapter {
     private final SecurityService securityService;
@@ -45,18 +41,15 @@ public class SecurityServiceAdapter {
         );
     }
 
-    public UserRegistration register(UserRegistration userRegistration) {
-        return switch (securityService.register(userRegistration)) {
-            case RegistrationPassedEvent e -> e.userRegistration();
-            case RegistrationFailedEvent e -> throw e.exceptionSupplier().apply(userRegistration);
-        };
+    public RegistrationEvent register(UserRegistration userRegistration) {
+        return securityService.register(userRegistration);
     }
 
     public AuthorizedUserAggregateRootEntity authenticate(AuthenticationRequest authenticationRequest) {
         return AuthorizedUserAggregateRootEntity.from(securityService.authenticate(authenticationRequest));
     }
 
-    public AuthorizationDataEntity refreshToken(TokenRefreshRequest tokenRefreshRequest) {
-        return AuthorizationDataEntity.fromDomain(securityService.refreshToken(tokenRefreshRequest));
+    public AuthorizationDataEntity refreshToken(SessionRefreshRequest sessionRefreshRequest) {
+        return AuthorizationDataEntity.fromDomain(securityService.refreshSession(sessionRefreshRequest));
     }
 }

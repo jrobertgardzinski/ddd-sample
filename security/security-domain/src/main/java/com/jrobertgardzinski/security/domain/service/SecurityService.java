@@ -2,7 +2,7 @@ package com.jrobertgardzinski.security.domain.service;
 
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
-import com.jrobertgardzinski.security.domain.entity.AuthorizationData;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.entity.PasswordSalt;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.registration.PossibleRaceCondition;
@@ -82,8 +82,8 @@ public class SecurityService {
             authenticationBlockRepository.removeAllFor(ipAddress);
             authorizationDataRepository.findBy(email)
                     .ifPresent(e -> authorizationDataRepository.deleteBy(e.email()));
-            var authorizationData = authorizationDataRepository.create(
-                    new AuthorizationData(
+            SessionTokens sessionTokens = authorizationDataRepository.create(
+                    new SessionTokens(
                             email,
                             new RefreshToken(Token.random()),
                             new AccessToken(Token.random()),
@@ -91,12 +91,12 @@ public class SecurityService {
                             new AuthorizationTokenExpiration(TokenExpiration.validInHours(48))
                     )
             );
-            return new AuthorizedUserAggregate(email, authorizationData.refreshToken(), authorizationData.accessToken());
+            return new AuthorizedUserAggregate(email, sessionTokens.refreshToken(), sessionTokens.accessToken());
         }
-        var failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress);
+        FailuresCount failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress);
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
-            var newAuthenticationBlock = authenticationBlockRepository.create(
+            AuthenticationBlock newAuthenticationBlock = authenticationBlockRepository.create(
                     new AuthenticationBlock(ipAddress, Calendar.getInstance()));
             throw new IllegalArgumentException("Too many authentication failures! Try again later: " + newAuthenticationBlock.expiryDate());
         }
@@ -105,9 +105,9 @@ public class SecurityService {
         }
     }
 
-    public AuthorizationData refreshToken(TokenRefreshRequest tokenRefreshRequest) {
-        Email email = tokenRefreshRequest.email();
-        RefreshToken refreshToken = tokenRefreshRequest.refreshToken();
+    public SessionTokens refreshSession(SessionRefreshRequest sessionRefreshRequest) {
+        Email email = sessionRefreshRequest.email();
+        RefreshToken refreshToken = sessionRefreshRequest.refreshToken();
         RefreshTokenExpiration refreshTokenExpiration = authorizationDataRepository.findRefreshTokenExpirationBy(email, refreshToken);
         if (refreshTokenExpiration == null) {
             throw new IllegalArgumentException("No refresh token found for " + email);
@@ -116,6 +116,6 @@ public class SecurityService {
         if (refreshTokenExpiration.hasExpired()) {
             throw new IllegalArgumentException("Refresh token for " + email + " has expired");
         }
-        return authorizationDataRepository.create(AuthorizationData.createFor(email));
+        return authorizationDataRepository.create(SessionTokens.createFor(email));
     }
 }

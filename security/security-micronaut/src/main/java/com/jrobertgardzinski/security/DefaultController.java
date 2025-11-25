@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
+import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
 import com.jrobertgardzinski.security.entity.UserEntity;
@@ -24,7 +25,7 @@ public class DefaultController {
     }
 
     @Post(uri="register")
-    public UserRegistration register(String email, String password) {
+    public RegistrationEvent register(String email, String password) {
         return service.register(
                 factory.createUserRegistration(
                         email,

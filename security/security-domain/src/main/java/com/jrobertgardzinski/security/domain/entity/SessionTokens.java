@@ -4,15 +4,15 @@ import com.jrobertgardzinski.security.domain.vo.*;
 
 import java.time.LocalDateTime;
 
-public record AuthorizationData(
+public record SessionTokens(
     Email email,
     RefreshToken refreshToken,
     AccessToken accessToken,
     RefreshTokenExpiration refreshTokenExpiration,
     AuthorizationTokenExpiration authorizationTokenExpiration) {
 
-    public static AuthorizationData createFor(Email email) {
-        return new AuthorizationData(
+    public static SessionTokens createFor(Email email) {
+        return new SessionTokens(
                 email,
                 new RefreshToken(Token.random()),
                 new AccessToken(Token.random()),
