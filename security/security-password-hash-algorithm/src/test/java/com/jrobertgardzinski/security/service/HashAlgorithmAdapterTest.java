@@ -8,6 +8,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+// todo move test to port
+/*
+I need the test to look like:
+HashAlgorithmPort port = new HashAlgorithmAdapter();
+just in case I'll need a different implementation in the future
+ */
 class HashAlgorithmAdapterTest {
 
     HashAlgorithmAdapter adapter = new HashAlgorithmAdapter();

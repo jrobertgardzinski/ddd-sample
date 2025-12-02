@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+// todo split into separate feature classes
 public class SecurityService {
     private final UserRepository userRepository;
     private final AuthorizationDataRepository authorizationDataRepository;
@@ -57,6 +58,7 @@ public class SecurityService {
         return () -> new IllegalArgumentException("Authentication failed!");
     }
 
+    // todo bring back events (like register)
     public AuthorizedUserAggregate authenticate(AuthenticationRequest authenticationRequest) {
         IpAddress ipAddress = authenticationRequest.ipAddress();
         Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
@@ -98,6 +100,7 @@ public class SecurityService {
         }
     }
 
+    // todo bring back events (like register)
     public SessionTokens refreshSession(SessionRefreshRequest sessionRefreshRequest) {
         Email email = sessionRefreshRequest.email();
         RefreshToken refreshToken = sessionRefreshRequest.refreshToken();
