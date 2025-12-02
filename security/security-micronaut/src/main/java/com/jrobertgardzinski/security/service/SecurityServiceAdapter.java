@@ -2,7 +2,6 @@ package com.jrobertgardzinski.security.service;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
-import com.jrobertgardzinski.security.domain.service.PasswordHashAlgorithm;
 import com.jrobertgardzinski.security.domain.service.SecurityService;
 import com.jrobertgardzinski.security.domain.vo.AuthenticationRequest;
 import com.jrobertgardzinski.security.domain.vo.SessionRefreshRequest;
@@ -25,16 +24,14 @@ public class SecurityServiceAdapter {
     public SecurityServiceAdapter(UserJpaRepository userJpaRepository,
                                   AuthorizationDataJpaRepository authorizationDataJpaRepository,
                                   FailedAuthenticationJpaRepository failedAuthenticationJpaRepository,
-                                  AuthenticationBlockJpaRepository authorizationDataRepositoryAdapter,
-                                  PasswordSaltRepositoryJpa passwordSaltRepositoryJpa
+                                  AuthenticationBlockJpaRepository authorizationDataRepositoryAdapter
                                   ) {
         this.securityService = new SecurityService(
                 new UserRepositoryAdapter(userJpaRepository),
                 new AuthorizationDataRepositoryAdapter(authorizationDataJpaRepository),
                 new FailedAuthenticationRepositoryAdapter(failedAuthenticationJpaRepository),
                 new AuthenticationBlockRepositoryAdapter(authorizationDataRepositoryAdapter),
-                new PasswordSaltRepositoryAdapter(passwordSaltRepositoryJpa),
-                new PasswordHashAlgorithm(new HashAlgorithmAdapter())
+                new HashAlgorithmAdapter()
         );
     }
 

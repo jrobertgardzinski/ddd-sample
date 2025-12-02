@@ -13,12 +13,12 @@ import jakarta.persistence.Id;
 public class UserEntity {
     @Id
     private String email;
-    private byte[] passwordHash;
+    private String passwordHash;
 
     public UserEntity() {
     }
 
-    public UserEntity(String email, byte[] passwordHash) {
+    public UserEntity(String email, String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
     }

@@ -1,4 +1,4 @@
 package com.jrobertgardzinski.security.domain.vo;
 
-public record PasswordHash(byte[] value) {
+public record PasswordHash(String value) {
 }

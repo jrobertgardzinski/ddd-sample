@@ -33,15 +33,13 @@ class SecurityServiceTest {
     @Mock
     AuthenticationBlockRepository authenticationBlockRepository;
     @Mock
-    PasswordSaltRepository passwordSaltRepository;
-    @Mock
-    PasswordHashAlgorithm passwordHashAlgorithm;
+    HashAlgorithmPort hashAlgorithmPort;
 
     SecurityService securityService;
 
     @BeforeEach
     void init() {
-        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, passwordSaltRepository, passwordHashAlgorithm);
+        securityService = new SecurityService(userRepository, authorizationDataRepository, failedAuthenticationRepository, authenticationBlockRepository, hashAlgorithmPort);
     }
 
     @Nested
@@ -65,7 +63,7 @@ class SecurityServiceTest {
 
             UserRegistration userRegistration = new UserRegistration(email, plainTextPassword);
 
-            assertEquals(new RegistrationPassedEvent(userRegistration),
+            assertEquals(new RegistrationPassedEvent(userRegistration.email()),
                     securityService.register(userRegistration));
         }
 
@@ -86,9 +84,9 @@ class SecurityServiceTest {
         IpAddress ipAddress;
         Email email;
         PlainTextPassword correctPlainTextPassword;
-        PasswordSalt correctPasswordSalt;
+        Salt correctPasswordSalt;
         PlainTextPassword wrongPlainTextPassword;
-        PasswordSalt wrongPasswordSalt;
+        Salt wrongPasswordSalt;
         User user;
 
         @BeforeEach
@@ -96,10 +94,10 @@ class SecurityServiceTest {
             ipAddress = new IpAddress("123.123.123.123");
             email = new Email("jrobertgardzinski@gmail.com");
             correctPlainTextPassword = new PlainTextPassword("PasswordHardToGuessAt1stTime!");
-            correctPasswordSalt = new PasswordSalt(email, Salt.generate());
+            correctPasswordSalt = Salt.generate();
             wrongPlainTextPassword = new PlainTextPassword("AndEvenHarderAfter2ndTime!");
-            wrongPasswordSalt = new PasswordSalt(email, Salt.generate());
-            user = new User(email, passwordHashAlgorithm.hash(correctPlainTextPassword, correctPasswordSalt));
+            wrongPasswordSalt = Salt.generate();
+            user = new User(email, hashAlgorithmPort.hash(correctPlainTextPassword, correctPasswordSalt));
         }
 
         @Nested
@@ -116,17 +114,9 @@ class SecurityServiceTest {
                         .thenReturn(
                                 Optional.of(user));
                 when(
-                        passwordSaltRepository.findByEmail(email))
-                        .thenReturn(
-                                correctPasswordSalt);
-                when(
                         authorizationDataRepository.create(any()))
                         .thenReturn(
                                 sessionTokens);
-                when(
-                        passwordHashAlgorithm.verify(correctPlainTextPassword, correctPasswordSalt, user))
-                        .thenReturn(
-                                true);
 
                 assertAll(
                         () -> assertDoesNotThrow(() -> securityService.authenticate(
