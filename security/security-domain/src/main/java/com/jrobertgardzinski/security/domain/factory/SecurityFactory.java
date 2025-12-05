@@ -27,7 +27,7 @@ public class SecurityFactory {
             PlainTextPasswordSupplier.get();
         }
         catch (RuntimeException e) {
-            errors.add("PlainTextPassword: " + e.getMessage());
+            errors.add("password: " + e.getMessage());
         }
 
         if (!errors.isEmpty()) {

@@ -4,6 +4,8 @@ import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.FailedAuthentication;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
@@ -13,20 +15,23 @@ import com.jrobertgardzinski.security.domain.vo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class AuthenticationTest {
     @Mock
     UserRepository userRepository;
@@ -78,20 +83,32 @@ class AuthenticationTest {
             AuthenticationRequest input = new AuthenticationRequest(ipAddress, email, correctPlainTextPassword);
 
             when(
+                    authenticationBlockRepository.findBy(ipAddress)
+                    )
+                    .thenReturn(
+                            Optional.empty());
+            when(
+                    failedAuthenticationRepository.countFailuresBy(ipAddress))
+                    .thenReturn(
+                            new FailuresCount(0));
+            when(
                     userRepository.findBy(email))
                     .thenReturn(
                             Optional.of(user));
+            when(
+                    hashAlgorithmPort.verify(Optional.of(user).get().passwordHash(), correctPlainTextPassword))
+                    .thenReturn(
+                            true);
             when(
                     authorizationDataRepository.create(any()))
                     .thenReturn(
                             sessionTokens);
 
-            assertAll(
-                    () -> assertDoesNotThrow(() -> authentication.apply(
-                            input)),
-                    () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
-                    () -> verify(authenticationBlockRepository, times(1)).removeAllFor(ipAddress),
-                    () -> verify(authorizationDataRepository, times(1)).create(any())
+            assertTrue(
+                    authentication
+                            .apply(
+                                    new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
+                            .getClass().isAssignableFrom(AuthenticationPassedEvent.class)
             );
         }
     }
@@ -102,45 +119,33 @@ class AuthenticationTest {
         FailedAuthentication failedAuthentication;
 
         public static Stream<Arguments> source() {
-            return IntStream.range(0, FailuresCount.LIMIT).boxed().map(Arguments::of);
+            return Stream.of(false, true)
+                    .flatMap(flag -> IntStream.range(0, FailuresCount.LIMIT)
+                            .mapToObj(i -> Arguments.of(i, flag)));
         }
 
         @ParameterizedTest
         @MethodSource("source")
-        void negative(int attempt) {
+        void negative(int attempt, boolean isUserPresent) {
             when(
-                    userRepository.findBy(email))
+                    authenticationBlockRepository.findBy(ipAddress))
                     .thenReturn(
-                            Optional.of(user));
-            when(
-                    userRepository.findBy(email))
-                    .thenReturn(
-                            Optional.of(user));
+                            Optional.empty());
             when(
                     failedAuthenticationRepository.countFailuresBy(ipAddress))
                     .thenReturn(
                             new FailuresCount(attempt));
             when(
-                    failedAuthenticationRepository.create(any()))
-                    .thenReturn(
-                            failedAuthentication);
-
-            assertAll(
-                    () -> assertThrows(IllegalArgumentException.class, () -> authentication.apply(
-                            new AuthenticationRequest(ipAddress, email, wrongPlainTextPassword))),
-                    () -> verify(failedAuthenticationRepository, times(1)).create(any())
-            );
-        }
-
-        @Test
-        void userNotFound() {
-            when(
                     userRepository.findBy(email))
                     .thenReturn(
-                            Optional.empty());
+                            isUserPresent ? Optional.of(user) : Optional.empty());
 
-            assertThrows(IllegalArgumentException.class, () -> authentication.apply(
-                    new AuthenticationRequest(ipAddress, email, correctPlainTextPassword)));
+            assertEquals(
+                    new AuthenticationFailedEvent("Authentication failed!"),
+                    authentication
+                            .apply(
+                                    new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
+            );
         }
 
         @Nested
@@ -151,9 +156,9 @@ class AuthenticationTest {
             @Test
             void activateBlockade() {
                 when(
-                        userRepository.findBy(email))
+                        authenticationBlockRepository.findBy(ipAddress))
                         .thenReturn(
-                                Optional.of(user));
+                                Optional.empty());
                 when(
                         failedAuthenticationRepository.countFailuresBy(ipAddress))
                         .thenReturn(
@@ -163,11 +168,11 @@ class AuthenticationTest {
                         .thenReturn(
                                 authenticationBlock);
 
-                assertAll(
-                        () -> assertThrows(IllegalArgumentException.class, () -> authentication.apply(
-                                new AuthenticationRequest(ipAddress, email, wrongPlainTextPassword))),
-                        () -> verify(failedAuthenticationRepository, times(1)).removeAllFor(ipAddress),
-                        () -> verify(authenticationBlockRepository, times(1)).create(any())
+                assertEquals(
+                        new AuthenticationFailedEvent("Too many authentication failures! Try again later: " + authenticationBlock.expiryDate()),
+                        authentication
+                                .apply(
+                                        new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
                 );
             }
         }
