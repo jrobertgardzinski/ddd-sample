@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+// todo make it a pipeline https://chatgpt.com/share/69336aec-eedc-8005-9095-ea6fd0a14551
 public class Authentication implements Function<AuthenticationRequest, AuthenticationEvent> {
     private final UserRepository userRepository;
     private final AuthorizationDataRepository authorizationDataRepository;
