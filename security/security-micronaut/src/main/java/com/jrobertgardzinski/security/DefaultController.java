@@ -2,6 +2,8 @@ package com.jrobertgardzinski.security;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.*;
 import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
@@ -29,34 +31,49 @@ public class DefaultController {
     }
 
     @Post(uri="register")
-    public HttpResponse<Void> register(String email, String password) {
-        return switch (service.register(
-                factory.createUserRegistration(
-                        email,
-                        password))) {
-            case RegistrationPassedEvent e -> HttpResponse.ok();
-            // case RegistrationFailedEvent e -> throw e.exceptionSupplier().apply(new Email(email));
-            case UserAlreadyExistsEvent e -> HttpResponse.status(
-                    HttpStatus.CONFLICT,
-                    e.exceptionSupplier().apply(new Email(email)).getMessage());
-            case PossibleRaceCondition e -> HttpResponse.status(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    e.exceptionSupplier().apply(new Email(email)).getMessage());
+    public HttpResponse<Void> register(
+            String email,
+            String password) {
+
+        UserRegistration arg = factory.createUserRegistration(
+                email,
+                password);
+
+        return switch (service.register(arg)) {
+            case RegistrationPassedEvent e -> HttpResponse
+                    .ok();
+            case UserAlreadyExistsEvent e -> HttpResponse
+                    .status(
+                            HttpStatus.CONFLICT,
+                            e.exceptionSupplier().apply(new Email(email)).getMessage());
+            case PossibleRaceCondition e -> HttpResponse
+                    .status(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            e.exceptionSupplier().apply(new Email(email)).getMessage());
         };
     }
 
     @Post(uri="authenticate")
-    public HttpResponse<AuthorizedUserAggregateRootEntity> authenticate(HttpRequest<?> httpRequest, String email, String password) {
+    public HttpResponse<AuthorizedUserAggregateRootEntity> authenticate(
+            HttpRequest<?> httpRequest,
+            String email,
+            String password) {
+
         AuthenticationRequest arg = factory.createAuthenticationRequest(
                 addressResolver.resolve(httpRequest),
                 email,
                 password);
-        Try<AuthorizedUserAggregate> result = service.authenticate(arg);
-        HttpResponse<AuthorizedUserAggregateRootEntity> p = result.fold(
-                throwable -> HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, throwable.getMessage()),
-                authorizedUserAggregate -> HttpResponse.ok(authorizedUserAggregate)
-        );
-        return (HttpResponse<AuthorizedUserAggregateRootEntity>) p;
+
+        return switch (service.authenticate(arg)) {
+            case AuthenticationPassedEvent e -> HttpResponse
+                    .ok(
+                            AuthorizedUserAggregateRootEntity.fromDomain(
+                                    e.authorizedUserAggregate()));
+            case AuthenticationFailedEvent e -> HttpResponse
+                    .status(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            e.message());
+        };
     }
 
     @Post(uri="refresh")

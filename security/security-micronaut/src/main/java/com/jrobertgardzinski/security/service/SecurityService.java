@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.service;
 
-import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.feature.Authentication;
 import com.jrobertgardzinski.security.domain.feature.Registration;
@@ -11,7 +11,6 @@ import com.jrobertgardzinski.security.domain.vo.SessionRefreshRequest;
 import com.jrobertgardzinski.security.domain.vo.UserRegistration;
 import com.jrobertgardzinski.security.repository.*;
 import io.micronaut.core.annotation.Introspected;
-import io.vavr.control.Try;
 import jakarta.inject.Singleton;
 
 @Introspected(
@@ -48,7 +47,7 @@ public class SecurityService {
         return registration.apply(userRegistration);
     }
 
-    public Try<AuthorizedUserAggregate> authenticate(AuthenticationRequest authenticationRequest) {
+    public AuthenticationEvent authenticate(AuthenticationRequest authenticationRequest) {
         return authentication.apply(authenticationRequest);
     }
 
