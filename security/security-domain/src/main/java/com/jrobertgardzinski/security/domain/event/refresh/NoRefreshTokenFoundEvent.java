@@ -2,9 +2,9 @@ package com.jrobertgardzinski.security.domain.event.refresh;
 
 import com.jrobertgardzinski.security.domain.vo.Email;
 
-public record RefreshTokenExpiredEvent(Email email) implements RefreshTokenEvent {
+public record NoRefreshTokenFoundEvent(Email email) implements RefreshTokenEvent {
     @Override
     public String toString() {
-        return String.format("Refresh Token for %s has expired", email);
+        return "No refresh token found for " + email.value();
     }
 }

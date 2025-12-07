@@ -1,4 +1,4 @@
 package com.jrobertgardzinski.security.domain.event.refresh;
 
-public interface RefreshTokenEvent {
+public sealed interface RefreshTokenEvent permits NoRefreshTokenFoundEvent, RefreshTokenExpiredEvent, RefreshTokenPassedEvent {
 }

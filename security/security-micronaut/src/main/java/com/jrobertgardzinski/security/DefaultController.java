@@ -2,17 +2,20 @@ package com.jrobertgardzinski.security;
 
 import com.jrobertgardzinski.security.aggregate.AuthorizedUserAggregateRootEntity;
 import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedForTheNthTimeEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedOnActiveBlockadeEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.NoRefreshTokenFoundEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.*;
 import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.entity.AuthorizationDataEntity;
 import com.jrobertgardzinski.security.factory.SecurityFactoryAdapter;
 import com.jrobertgardzinski.security.service.SecurityService;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MutableHttpResponse;
+import io.micronaut.http.*;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.server.util.HttpClientAddressResolver;
@@ -71,15 +74,30 @@ public class DefaultController {
                                     e.authorizedUserAggregate()));
             case AuthenticationFailedEvent e -> HttpResponse
                     .status(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            e.message());
+                            HttpStatus.UNAUTHORIZED,
+                            e.toString());
+            case AuthenticationFailedForTheNthTimeEvent e -> HttpResponse
+                    .status(
+                            HttpStatus.TOO_MANY_REQUESTS,
+                            e.toString());
+            case AuthenticationFailedOnActiveBlockadeEvent e -> HttpResponse
+                    .<AuthorizedUserAggregateRootEntity>status(HttpStatus.FORBIDDEN, e.toString())
+                    .header(HttpHeaders.RETRY_AFTER, Integer.toString(e.retryAfterHeader()));
         };
     }
 
     @Post(uri="refresh")
-    public AuthorizationDataEntity refreshToken(String email, String refreshToken) {
-        return service.refreshToken(
-                factory.createTokenRefreshRequest(
-                        email, refreshToken));
+    public HttpResponse<SessionTokens> refreshToken(String email, String refreshToken) {
+
+        SessionRefreshRequest arg = factory.createTokenRefreshRequest(email, refreshToken);
+
+        return switch (service.refreshToken(arg)) {
+            case RefreshTokenPassedEvent e -> HttpResponse
+                    .ok(e.sessionTokens());
+            case NoRefreshTokenFoundEvent e -> HttpResponse
+                    .status(HttpStatus.NOT_FOUND, e.toString());
+            case RefreshTokenExpiredEvent e -> HttpResponse
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR, e.toString());
+        };
     }
 }

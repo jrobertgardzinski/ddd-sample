@@ -4,7 +4,9 @@ import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.FailedAuthentication;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedForTheNthTimeEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
@@ -20,6 +22,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
@@ -29,6 +32,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -141,7 +145,7 @@ class AuthenticationTest {
                             isUserPresent ? Optional.of(user) : Optional.empty());
 
             assertEquals(
-                    new AuthenticationFailedEvent("Authentication failed!"),
+                    new AuthenticationFailedEvent(),
                     authentication
                             .apply(
                                     new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
@@ -168,12 +172,11 @@ class AuthenticationTest {
                         .thenReturn(
                                 authenticationBlock);
 
-                assertEquals(
-                        new AuthenticationFailedEvent("Too many authentication failures! Try again later: " + authenticationBlock.expiryDate()),
-                        authentication
-                                .apply(
-                                        new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
-                );
+                AuthenticationEvent result = authentication
+                        .apply(
+                                new AuthenticationRequest(ipAddress, email, correctPlainTextPassword));
+                assertTrue(
+                        result instanceof AuthenticationFailedForTheNthTimeEvent);
             }
         }
 

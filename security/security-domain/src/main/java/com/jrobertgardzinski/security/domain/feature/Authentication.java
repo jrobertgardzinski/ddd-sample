@@ -4,9 +4,7 @@ import com.jrobertgardzinski.security.domain.aggregate.AuthorizedUserAggregate;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.entity.User;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.*;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
@@ -17,8 +15,10 @@ import io.vavr.control.Try;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.random.RandomGenerator;
 
 // todo make it a pipeline https://chatgpt.com/share/69336aec-eedc-8005-9095-ea6fd0a14551
 public class Authentication implements Function<AuthenticationRequest, AuthenticationEvent> {
@@ -49,14 +49,17 @@ public class Authentication implements Function<AuthenticationRequest, Authentic
         IpAddress ipAddress = authenticationRequest.ipAddress();
         Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
         if (authenticationBlock.isPresent() && authenticationBlock.get().isStillActive()) {
-            return new AuthenticationFailedEvent("The authentication block is still active for machines from your IP address. Please, try again later: " + authenticationBlock.get().expiryDate());
+            return new AuthenticationFailedOnActiveBlockadeEvent(authenticationBlock.get().expiryDate());
         }
         FailuresCount failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress);
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
-            AuthenticationBlock newAuthenticationBlock = authenticationBlockRepository.create(
-                    new AuthenticationBlock(ipAddress, LocalDateTime.now()));
-            return new AuthenticationFailedEvent("Too many authentication failures! Try again later: " + newAuthenticationBlock.expiryDate());
+            int minutes = new Random().nextInt(8) + 3;
+            authenticationBlockRepository.create(
+                    new AuthenticationBlock(
+                            ipAddress,
+                            LocalDateTime.now().plusMinutes(minutes)));
+            return new AuthenticationFailedForTheNthTimeEvent(minutes);
         }
         PlainTextPassword enteredPassword = authenticationRequest.plainTextPassword();
         Email email = authenticationRequest.email();
@@ -65,7 +68,7 @@ public class Authentication implements Function<AuthenticationRequest, Authentic
             failedAuthenticationRepository.create(
                     new FailedAuthenticationDetails(ipAddress, LocalDateTime.now())
             );
-            return new AuthenticationFailedEvent("Authentication failed!");
+            return new AuthenticationFailedEvent();
         }
         failedAuthenticationRepository.removeAllFor(ipAddress);
         authenticationBlockRepository.removeAllFor(ipAddress);

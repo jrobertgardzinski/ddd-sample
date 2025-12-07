@@ -2,6 +2,7 @@ package com.jrobertgardzinski.security.service;
 
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.feature.Authentication;
 import com.jrobertgardzinski.security.domain.feature.Registration;
@@ -51,7 +52,7 @@ public class SecurityService {
         return authentication.apply(authenticationRequest);
     }
 
-    public SessionTokens refreshToken(SessionRefreshRequest sessionRefreshRequest) {
+    public RefreshTokenEvent refreshToken(SessionRefreshRequest sessionRefreshRequest) {
         return sessionRefresh.apply(sessionRefreshRequest);
     }
 }

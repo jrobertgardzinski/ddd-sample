@@ -1,6 +1,10 @@
 package com.jrobertgardzinski.security.domain.feature;
 
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
+import com.jrobertgardzinski.security.domain.event.refresh.NoRefreshTokenFoundEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
+import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.RefreshToken;
@@ -42,8 +46,10 @@ class SessionRefreshTest {
                 .thenReturn(
                         null);
 
-        assertThrows(IllegalArgumentException.class, () -> sessionRefresh.apply(
-                new SessionRefreshRequest(email, refreshToken)));
+        assertEquals(
+                new NoRefreshTokenFoundEvent(email),
+                sessionRefresh.apply(
+                        new SessionRefreshRequest(email, refreshToken)));
     }
 
     @Test
@@ -59,8 +65,10 @@ class SessionRefreshTest {
                 .thenReturn(
                         true);
 
-        assertThrows(IllegalArgumentException.class, () -> sessionRefresh.apply(
-                new SessionRefreshRequest(email, refreshToken)));
+        assertEquals(
+                new RefreshTokenExpiredEvent(email),
+                sessionRefresh.apply(
+                        new SessionRefreshRequest(email, refreshToken)));
     }
 
     @Test
@@ -81,9 +89,9 @@ class SessionRefreshTest {
                 .thenReturn(
                         sessionTokens);
 
-        SessionTokens result = sessionRefresh.apply(
+        RefreshTokenPassedEvent result = (RefreshTokenPassedEvent) sessionRefresh.apply(
                 new SessionRefreshRequest(email, refreshToken));
 
-        assertEquals(sessionTokens, result);
+        assertEquals(sessionTokens, result.sessionTokens());
     }
 }
