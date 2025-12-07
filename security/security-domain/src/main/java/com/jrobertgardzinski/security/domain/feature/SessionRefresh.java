@@ -20,7 +20,6 @@ public class SessionRefresh implements Function<SessionRefreshRequest, RefreshTo
         this.authorizationDataRepository = authorizationDataRepository;
     }
 
-    // todo bring back events (like register)
     @Override
     public RefreshTokenEvent apply(SessionRefreshRequest sessionRefreshRequest) {
         Email email = sessionRefreshRequest.email();
