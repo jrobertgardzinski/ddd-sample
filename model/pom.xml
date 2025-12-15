@@ -3,25 +3,20 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jrobertgardzinski</groupId>
-        <artifactId>security</artifactId>
+        <artifactId>ddd-sample</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>security-domain</artifactId>
+    <artifactId>model</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
         <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>model</artifactId>
-            <version>0.1-SNAPSHOT</version>
-<!--            <scope>provided</scope>-->
+            <groupId>commons-validator</groupId>
+            <artifactId>commons-validator</artifactId>
+            <version>1.10.0</version>
         </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>password-hash-algorithm-domain</artifactId>
-            <version>0.1-SNAPSHOT</version>
-        </dependency>
-<!--        test-->
+        <!--        test-->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

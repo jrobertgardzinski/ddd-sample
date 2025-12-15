@@ -22,7 +22,7 @@
     <micronaut.aot.packageName>com.jrobertgardzinski.security.aot.generated</micronaut.aot.packageName>
     <micronaut.runtime>netty</micronaut.runtime>
     <micronaut.test.resources.enabled>true</micronaut.test.resources.enabled>
-    <exec.mainClass>com.jrobertgardzinski.security.Application</exec.mainClass>
+    <exec.mainClass>com.jrobertgardzinski.security.domain.vo.security.Application</exec.mainClass>
   </properties>
 
   <repositories>
@@ -105,7 +105,7 @@
     </dependency>
     <dependency>
       <groupId>com.jrobertgardzinski</groupId>
-      <artifactId>security-password-hash-algorithm</artifactId>
+      <artifactId>password-hash-algorithm-argon2</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
