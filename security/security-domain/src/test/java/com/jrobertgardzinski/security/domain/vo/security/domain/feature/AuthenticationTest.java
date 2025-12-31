@@ -48,14 +48,6 @@ class AuthenticationTest {
 
     Authentication authentication;
 
-    IpAddress ipAddress;
-    Email email;
-    PlainTextPassword correctPlainTextPassword;
-    Salt correctPasswordSalt;
-    PlainTextPassword wrongPlainTextPassword;
-    Salt wrongPasswordSalt;
-    User user;
-
     @BeforeEach
     void init() {
         authentication = new Authentication(
@@ -65,15 +57,16 @@ class AuthenticationTest {
                 authenticationBlockRepository,
                 hashAlgorithmPort
         );
-
-        ipAddress = new IpAddress("123.123.123.123");
-        email = new Email("jrobertgardzinski@gmail.com");
-        correctPlainTextPassword = new PlainTextPassword("PasswordHardToGuessAt1stTime!");
-        correctPasswordSalt = Salt.generate();
-        wrongPlainTextPassword = new PlainTextPassword("AndEvenHarderAfter2ndTime!");
-        wrongPasswordSalt = Salt.generate();
-        user = new User(email, hashAlgorithmPort.hash(correctPlainTextPassword, correctPasswordSalt));
     }
+
+    @Mock
+    IpAddress ipAddress;
+    @Mock
+    Email email;
+    @Mock
+    PlainTextPassword correctPlainTextPassword;
+    @Mock
+    User user;
 
     @Nested
     class Positive {
@@ -82,7 +75,6 @@ class AuthenticationTest {
 
         @Test
         void positive() {
-            AuthenticationRequest input = new AuthenticationRequest(ipAddress, email, correctPlainTextPassword);
 
             when(
                     authenticationBlockRepository.findBy(ipAddress)
@@ -106,10 +98,12 @@ class AuthenticationTest {
                     .thenReturn(
                             sessionTokens);
 
+            AuthenticationRequest input = new AuthenticationRequest(ipAddress, email, correctPlainTextPassword);
+
             assertTrue(
                     authentication
                             .apply(
-                                    new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
+                                    input)
                             .getClass().isAssignableFrom(AuthenticationPassedEvent.class)
             );
         }

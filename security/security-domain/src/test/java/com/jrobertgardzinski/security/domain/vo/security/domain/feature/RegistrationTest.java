@@ -1,13 +1,12 @@
 package com.jrobertgardzinski.security.domain.vo.security.domain.feature;
 
+import com.jrobertgardzinski.security.domain.vo.Email;
+import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.UserRegistration;
 import com.jrobertgardzinski.security.domain.vo.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.registration.UserAlreadyExistsEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.vo.Email;
-import com.jrobertgardzinski.security.domain.vo.PasswordHash;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
-import com.jrobertgardzinski.security.domain.vo.UserRegistration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,21 +26,18 @@ class RegistrationTest {
 
     Registration registration;
 
-    PlainTextPassword plainTextPassword;
-    Email email;
-
     @BeforeEach
     void init() {
         registration = new Registration(userRepository, hashAlgorithmPort);
-        plainTextPassword = new PlainTextPassword("StrongPassword1!");
-        email = new Email("jan.nowak@wp.pl");
     }
 
-    // todo same as SessionRefresh
-    @Mock PasswordHash passwordHash;
+    @Mock
+    PlainTextPassword plainTextPassword;
+    @Mock
+    Email email;
 
     @Test
-    void positive() throws Exception {
+    void positive() {
         when(
                 userRepository.existsBy(email))
                 .thenReturn(

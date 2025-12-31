@@ -32,7 +32,6 @@ class SessionRefreshTest {
         sessionRefresh = new SessionRefresh(authorizationDataRepository);
     }
 
-    // todo compare it to AuthorizationTest - it uses implementations (stubs?) instead of mocks.
     @Mock
     Email email;
     @Mock
