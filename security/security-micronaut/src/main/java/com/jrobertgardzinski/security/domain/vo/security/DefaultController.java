@@ -53,11 +53,11 @@ public class DefaultController {
             case UserAlreadyExistsEvent e -> HttpResponse
                     .status(
                             HttpStatus.CONFLICT,
-                            e.exceptionSupplier().apply(new Email(email)).getMessage());
+                            e.error(new Email(email)));
             case PossibleRaceCondition e -> HttpResponse
                     .status(
                             HttpStatus.INTERNAL_SERVER_ERROR,
-                            e.exceptionSupplier().apply(new Email(email)).getMessage());
+                            e.error(new Email(email)));
         };
     }
 

@@ -1,15 +1,10 @@
 package com.jrobertgardzinski.security.domain.vo.security.domain.event.registration;
 
 import com.jrobertgardzinski.security.domain.vo.Email;
-import com.jrobertgardzinski.security.domain.vo.UserRegistration;
-
-import java.util.function.Function;
 
 public record UserAlreadyExistsEvent() implements RegistrationFailedEvent {
     @Override
-    public Function<Email, RuntimeException> exceptionSupplier() {
-        return user -> new IllegalArgumentException(
-                String.format("User with the e-mail: %s already exists!", user)
-        );
+    public String error(Email email) {
+        return String.format("User with the e-mail: %s already exists!", email.value());
     }
 }
