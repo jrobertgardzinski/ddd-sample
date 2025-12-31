@@ -7,12 +7,11 @@ import com.jrobertgardzinski.security.domain.vo.hash.algorithm.domain.HashAlgori
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 
-// todo adjust parameters according to https://github.com/phxql/argon2-jvm?tab=readme-ov-file#recommended-parameters
 public class HashAlgorithmAdapter implements HashAlgorithmPort {
-    private static final int ITERATIONS = 2;
-    private static final int MEM_LIMIT = 66536;
-    private static final int PARALLELISM = 1;
-    private static final Argon2 argon2 = Argon2Factory.create();
+    static final int ITERATIONS = 20;
+    static final int MEM_LIMIT = 66536;
+    static final int PARALLELISM = 1;
+    static final Argon2 argon2 = Argon2Factory.create();
 
     @Override
     public PasswordHash hash(PlainTextPassword plainTextPassword, Salt salt) {
