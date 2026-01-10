@@ -44,6 +44,7 @@ public class Authentication implements Function<AuthenticationRequest, Authentic
 
     @Override
     public AuthenticationEvent apply(AuthenticationRequest authenticationRequest) {
+        // todo should be decorated
         IpAddress ipAddress = authenticationRequest.ipAddress();
         Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
         if (authenticationBlock.isPresent() && authenticationBlock.get().isStillActive()) {
@@ -59,6 +60,8 @@ public class Authentication implements Function<AuthenticationRequest, Authentic
                             LocalDateTime.now().plusMinutes(minutes)));
             return new AuthenticationFailedForTheNthTimeEvent(minutes);
         }
+
+        // authentication logic
         PlainTextPassword enteredPassword = authenticationRequest.plainTextPassword();
         Email email = authenticationRequest.email();
         Optional<User> optionalUser = userRepository.findBy(email);
