@@ -64,6 +64,8 @@ public class Authentication implements Function<AuthenticationRequest, Authentic
         // authentication logic
         PlainTextPassword enteredPassword = authenticationRequest.plainTextPassword();
         Email email = authenticationRequest.email();
+
+        // wrong login and/or password - todo differentiate between wrong login and wrong password
         Optional<User> optionalUser = userRepository.findBy(email);
         if (optionalUser.isEmpty() || !hashAlgorithmPort.verify(optionalUser.get().passwordHash(), enteredPassword)) {
             failedAuthenticationRepository.create(
@@ -71,10 +73,15 @@ public class Authentication implements Function<AuthenticationRequest, Authentic
             );
             return new AuthenticationFailedEvent();
         }
+
+        // cleanup before the only positive scenario
         failedAuthenticationRepository.removeAllFor(ipAddress);
         authenticationBlockRepository.removeAllFor(ipAddress);
         authorizationDataRepository.findBy(email)
                 .ifPresent(e -> authorizationDataRepository.deleteBy(e.email()));
+
+        // the only positive scenario
+        // todo handle session management outside of Authentication! Decorate?
         SessionTokens sessionTokens = authorizationDataRepository.create(
                 new SessionTokens(
                         email,
