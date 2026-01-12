@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.aggregate.AuthorizedUserAggregate;
+import com.jrobertgardzinski.security.domain.vo.Email;
 
-public record AuthenticationPassedEvent(AuthorizedUserAggregate authorizedUserAggregate) implements AuthenticationEvent {
+public record AuthenticationPassedEvent(Email email) implements AuthenticationEvent {
 }

@@ -8,7 +8,7 @@ import com.jrobertgardzinski.security.domain.vo.security.domain.entity.SessionTo
 import com.jrobertgardzinski.security.domain.vo.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationFailedEvent;
-import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationFailedForTheNthTimeEvent;
+import com.jrobertgardzinski.security.domain.vo.security.domain.event.brute.force.protection.ActivateBlockadeEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.vo.security.domain.repository.AuthorizationDataRepository;
@@ -52,9 +52,6 @@ class AuthenticationTest {
     void init() {
         authentication = new Authentication(
                 userRepository,
-                authorizationDataRepository,
-                failedAuthenticationRepository,
-                authenticationBlockRepository,
                 hashAlgorithmPort
         );
     }
@@ -98,7 +95,7 @@ class AuthenticationTest {
                     .thenReturn(
                             sessionTokens);
 
-            AuthenticationRequest input = new AuthenticationRequest(ipAddress, email, correctPlainTextPassword);
+            Credentials input = new Credentials(email, correctPlainTextPassword);
 
             assertTrue(
                     authentication
@@ -140,7 +137,7 @@ class AuthenticationTest {
                     new AuthenticationFailedEvent(),
                     authentication
                             .apply(
-                                    new AuthenticationRequest(ipAddress, email, correctPlainTextPassword))
+                                    new Credentials(email, correctPlainTextPassword))
             );
         }
 
@@ -166,9 +163,9 @@ class AuthenticationTest {
 
                 AuthenticationEvent result = authentication
                         .apply(
-                                new AuthenticationRequest(ipAddress, email, correctPlainTextPassword));
+                                new Credentials(email, correctPlainTextPassword));
                 assertTrue(
-                        result instanceof AuthenticationFailedForTheNthTimeEvent);
+                        result instanceof ActivateBlockadeEvent);
             }
         }
 

@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.domain.vo.security.domain.feature;
 
 import com.jrobertgardzinski.security.domain.vo.AuthenticationRequest;
+import com.jrobertgardzinski.security.domain.vo.Credentials;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import com.jrobertgardzinski.security.domain.vo.hash.algorithm.domain.HashAlgorithmPort;
@@ -16,19 +17,19 @@ import com.jrobertgardzinski.security.domain.vo.security.domain.repository.UserR
 import java.util.Optional;
 import java.util.function.Function;
 
-public class Authentication implements Function<AuthenticationRequest, AuthenticationEvent> {
+public class Authentication implements Function<Credentials, AuthenticationEvent> {
     private final UserRepository userRepository;
     private final HashAlgorithmPort hashAlgorithmPort;
 
-    public Authentication(UserRepository userRepository, FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository, HashAlgorithmPort hashAlgorithmPort) {
+    public Authentication(UserRepository userRepository, HashAlgorithmPort hashAlgorithmPort) {
         this.userRepository = userRepository;
         this.hashAlgorithmPort = hashAlgorithmPort;
     }
 
     @Override
-    public AuthenticationEvent apply(/*todo switch to Credentials*/AuthenticationRequest authenticationRequest) {// authentication logic
-        PlainTextPassword enteredPassword = authenticationRequest.plainTextPassword();
-        Email email = authenticationRequest.email();
+    public AuthenticationEvent apply(Credentials credentials) {// authentication logic
+        PlainTextPassword enteredPassword = credentials.plainTextPassword();
+        Email email = credentials.email();
 
         Optional<User> optionalUser = userRepository.findBy(email);
         if (optionalUser.isEmpty()) {

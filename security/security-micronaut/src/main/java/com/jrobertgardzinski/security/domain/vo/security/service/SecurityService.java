@@ -35,9 +35,6 @@ public class SecurityService {
                 new HashAlgorithmAdapter());
         this.authentication = new Authentication(
                 new UserRepositoryAdapter(userJpaRepository),
-                new AuthorizationDataRepositoryAdapter(authorizationDataJpaRepository),
-                new FailedAuthenticationRepositoryAdapter(failedAuthenticationJpaRepository),
-                new AuthenticationBlockRepositoryAdapter(authorizationDataRepositoryAdapter),
                 new HashAlgorithmAdapter());
         this.sessionRefresh = new SessionRefresh(
                 new AuthorizationDataRepositoryAdapter(authorizationDataJpaRepository));
@@ -48,7 +45,8 @@ public class SecurityService {
     }
 
     public AuthenticationEvent authenticate(AuthenticationRequest authenticationRequest) {
-        return authentication.apply(authenticationRequest);
+        //return authentication.apply(authenticationRequest);
+        throw new IllegalStateException("not implemented");
     }
 
     public RefreshTokenEvent refreshToken(SessionRefreshRequest sessionRefreshRequest) {

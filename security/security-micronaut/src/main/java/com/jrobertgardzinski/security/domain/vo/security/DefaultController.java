@@ -7,8 +7,8 @@ import com.jrobertgardzinski.security.domain.vo.UserRegistration;
 import com.jrobertgardzinski.security.domain.vo.security.aggregate.AuthorizedUserAggregateRootEntity;
 import com.jrobertgardzinski.security.domain.vo.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationFailedEvent;
-import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationFailedForTheNthTimeEvent;
-import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationFailedOnActiveBlockadeEvent;
+import com.jrobertgardzinski.security.domain.vo.security.domain.event.brute.force.protection.ActivateBlockadeEvent;
+import com.jrobertgardzinski.security.domain.vo.security.domain.event.brute.force.protection.BlockadeStillActiveEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.refresh.NoRefreshTokenFoundEvent;
 import com.jrobertgardzinski.security.domain.vo.security.domain.event.refresh.RefreshTokenExpiredEvent;
@@ -76,16 +76,16 @@ public class DefaultController {
             case AuthenticationPassedEvent e -> HttpResponse
                     .ok(
                             AuthorizedUserAggregateRootEntity.fromDomain(
-                                    e.authorizedUserAggregate()));
+                                    e.email()));
             case AuthenticationFailedEvent e -> HttpResponse
                     .status(
                             HttpStatus.UNAUTHORIZED,
                             e.toString());
-            case AuthenticationFailedForTheNthTimeEvent e -> HttpResponse
+            case ActivateBlockadeEvent e -> HttpResponse
                     .status(
                             HttpStatus.TOO_MANY_REQUESTS,
                             e.toString());
-            case AuthenticationFailedOnActiveBlockadeEvent e -> HttpResponse
+            case BlockadeStillActiveEvent e -> HttpResponse
                     .<AuthorizedUserAggregateRootEntity>status(HttpStatus.FORBIDDEN, e.toString())
                     .header(HttpHeaders.RETRY_AFTER, Integer.toString(e.retryAfterHeader()));
         };
