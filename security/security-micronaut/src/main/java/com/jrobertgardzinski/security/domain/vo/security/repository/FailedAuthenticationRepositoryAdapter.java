@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.domain.vo.security.repository;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.FailedAuthentication;
-import com.jrobertgardzinski.security.domain.vo.security.domain.repository.FailedAuthenticationRepository;
+import com.jrobertgardzinski.security.domain.entity.FailedAuthentication;
+import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
 import com.jrobertgardzinski.security.domain.vo.FailedAuthenticationDetails;
 import com.jrobertgardzinski.security.domain.vo.FailuresCount;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;

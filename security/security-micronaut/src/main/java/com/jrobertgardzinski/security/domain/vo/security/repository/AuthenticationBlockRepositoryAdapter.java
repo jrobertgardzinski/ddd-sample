@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.domain.vo.security.repository;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.AuthenticationBlock;
-import com.jrobertgardzinski.security.domain.vo.security.domain.repository.AuthenticationBlockRepository;
+import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
+import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;
 import com.jrobertgardzinski.security.domain.vo.security.entity.AuthenticationBlockEntity;
 

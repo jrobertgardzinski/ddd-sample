@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.domain.vo.security.repository;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.User;
-import com.jrobertgardzinski.security.domain.vo.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.security.entity.UserEntity;
 

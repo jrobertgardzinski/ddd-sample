@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo.security.entity;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.AuthenticationBlock;
+import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.Entity;

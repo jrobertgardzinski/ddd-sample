@@ -1,9 +1,8 @@
 package com.jrobertgardzinski.security.domain.vo.security.entity;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

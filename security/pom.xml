@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>security-domain</module>
+        <module>security-application</module>
         <module>security-micronaut</module>
     </modules>
 </project>

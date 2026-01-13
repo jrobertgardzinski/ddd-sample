@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo.security.entity;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.FailedAuthentication;
+import com.jrobertgardzinski.security.domain.entity.FailedAuthentication;
 import com.jrobertgardzinski.security.domain.vo.FailedAuthenticationDetails;
 import com.jrobertgardzinski.security.domain.vo.FailedAuthetincationId;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;

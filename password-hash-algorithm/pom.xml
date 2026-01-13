@@ -10,7 +10,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>password-hash-algorithm-domain</module>
-        <module>password-hash-algorithm-argon2</module>
+        <module>hash-algorithm-domain</module>
+        <module>hash-algorithm-argon2</module>
     </modules>
 </project>

@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.domain.vo.security.entity;
 
 import com.jrobertgardzinski.security.domain.vo.*;
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.SessionTokens;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.persistence.*;
 

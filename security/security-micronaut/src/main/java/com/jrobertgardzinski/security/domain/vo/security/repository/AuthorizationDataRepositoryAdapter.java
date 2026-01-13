@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.domain.vo.security.repository;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.entity.SessionTokens;
-import com.jrobertgardzinski.security.domain.vo.security.domain.repository.AuthorizationDataRepository;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
+import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.RefreshToken;
 import com.jrobertgardzinski.security.domain.vo.RefreshTokenExpiration;

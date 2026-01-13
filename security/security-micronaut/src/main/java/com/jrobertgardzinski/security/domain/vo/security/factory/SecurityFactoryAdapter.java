@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.domain.vo.security.factory;
 
-import com.jrobertgardzinski.security.domain.vo.security.domain.factory.SecurityFactory;
+import com.jrobertgardzinski.security.domain.factory.SecurityFactory;
 import jakarta.inject.Singleton;
 
 @Singleton

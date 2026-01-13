@@ -105,7 +105,7 @@
     </dependency>
     <dependency>
       <groupId>com.jrobertgardzinski</groupId>
-      <artifactId>password-hash-algorithm-argon2</artifactId>
+      <artifactId>hash-algorithm-argon2</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
