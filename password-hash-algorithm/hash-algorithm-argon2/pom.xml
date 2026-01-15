@@ -12,17 +12,6 @@
     <dependencies>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>model</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>hash-algorithm-domain</artifactId>
-            <version>0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
             <artifactId>hash-algorithm-domain</artifactId>
             <version>0.1-SNAPSHOT</version>
             <type>test-jar</type>
@@ -30,7 +19,13 @@
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>security-domain</artifactId>
+            <artifactId>hash-algorithm-domain</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>security-domain-model</artifactId>
             <version>0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>

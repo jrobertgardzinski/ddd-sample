@@ -6,20 +6,28 @@
         <artifactId>security</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>security-domain</artifactId>
+    <artifactId>security-domain-event</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>model</artifactId>
+            <artifactId>security-domain-model</artifactId>
             <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>security-domain-persistence</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>hash-algorithm-domain</artifactId>
             <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

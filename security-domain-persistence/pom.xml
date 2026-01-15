@@ -6,12 +6,16 @@
         <artifactId>ddd-sample</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>security</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <modules>
-        <module>security-domain-event</module>
-        <module>security-application</module>
-        <module>security-infrastructure</module>
-    </modules>
+    <artifactId>security-domain-persistence</artifactId>
+    <version>0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>security-domain-model</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 </project>

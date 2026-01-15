@@ -1,21 +1,10 @@
 package com.jrobertgardzinski.security.application.feature;
 
-import com.jrobertgardzinski.security.domain.vo.Email;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
-import com.jrobertgardzinski.security.domain.vo.UserRegistration;
-import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
-import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
-import com.jrobertgardzinski.security.domain.event.registration.UserAlreadyExistsEvent;
-import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RegistrationTest {/*

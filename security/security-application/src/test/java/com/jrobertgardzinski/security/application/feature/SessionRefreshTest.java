@@ -1,24 +1,11 @@
 package com.jrobertgardzinski.security.application.feature;
 
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
-import com.jrobertgardzinski.security.domain.event.refresh.NoRefreshTokenFoundEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenExpiredEvent;
-import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenPassedEvent;
-import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
-import com.jrobertgardzinski.security.domain.vo.Email;
-import com.jrobertgardzinski.security.domain.vo.RefreshToken;
-import com.jrobertgardzinski.security.domain.vo.RefreshTokenExpiration;
-import com.jrobertgardzinski.security.domain.vo.SessionRefreshRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SessionRefreshTest {/*
