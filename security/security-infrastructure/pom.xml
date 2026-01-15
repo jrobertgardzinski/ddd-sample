@@ -7,6 +7,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>security-infrastructure</artifactId>
+    <!--todo should I keep version in each module or should I leave it to parent? Like removing version tag from here and it will use the "security" version maybe? Ok. Then I will get the version from the line 7. -->
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <dependencies>
@@ -22,9 +23,15 @@
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>hash-algorithm-domain</artifactId>
+            <artifactId>security-application</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>hash-algorithm-argon2</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+<!--        todo a place for micronaut starter-->
 
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>

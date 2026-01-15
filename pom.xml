@@ -11,7 +11,7 @@
         <module>test-starter</module>
         <module>security-domain-model</module>
         <module>security-domain-persistence</module>
-        <module>password-hash-algorithm</module>
+        <module>hash-algorithm</module>
         <module>security</module>
     </modules>
 
