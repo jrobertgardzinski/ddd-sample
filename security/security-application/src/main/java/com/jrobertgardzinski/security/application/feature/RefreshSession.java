@@ -13,10 +13,10 @@ import com.jrobertgardzinski.security.domain.vo.SessionRefreshRequest;
 
 import java.util.function.Function;
 
-public class SessionRefresh implements Function<SessionRefreshRequest, RefreshTokenEvent> {
+public class RefreshSession implements Function<SessionRefreshRequest, RefreshTokenEvent> {
     private final AuthorizationDataRepository authorizationDataRepository;
 
-    public SessionRefresh(AuthorizationDataRepository authorizationDataRepository) {
+    public RefreshSession(AuthorizationDataRepository authorizationDataRepository) {
         this.authorizationDataRepository = authorizationDataRepository;
     }
 

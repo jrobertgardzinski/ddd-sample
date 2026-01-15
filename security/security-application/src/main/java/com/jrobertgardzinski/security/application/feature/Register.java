@@ -11,11 +11,11 @@ import com.jrobertgardzinski.security.domain.repository.UserRepository;
 
 import java.util.function.Function;
 
-public class Registration implements Function<UserRegistration, RegistrationEvent> {
+public class Register implements Function<UserRegistration, RegistrationEvent> {
     private final UserRepository userRepository;
     private final HashAlgorithmPort hashAlgorithmPort;
 
-    public Registration(UserRepository userRepository, HashAlgorithmPort hashAlgorithmPort) {
+    public Register(UserRepository userRepository, HashAlgorithmPort hashAlgorithmPort) {
         this.userRepository = userRepository;
         this.hashAlgorithmPort = hashAlgorithmPort;
     }
