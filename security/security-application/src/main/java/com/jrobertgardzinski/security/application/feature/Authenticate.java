@@ -1,13 +1,16 @@
 package com.jrobertgardzinski.security.application.feature;
 
-import com.jrobertgardzinski.security.domain.event.auth.AuthResult;
-import com.jrobertgardzinski.security.domain.event.auth.Failed;
-import com.jrobertgardzinski.security.domain.event.auth.Passed;
-import com.jrobertgardzinski.security.domain.event.authentication.*;
-import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.security.domain.entity.User;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.UserNotFoundEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.WrongPasswordEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.domain.vo.Credentials;
+import com.jrobertgardzinski.security.domain.vo.Email;
+import com.jrobertgardzinski.security.domain.vo.PasswordHash;
+import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
 
 import java.util.Optional;
 import java.util.function.Function;

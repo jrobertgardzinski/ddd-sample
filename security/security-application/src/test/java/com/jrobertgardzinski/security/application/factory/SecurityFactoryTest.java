@@ -1,4 +1,4 @@
-package com.jrobertgardzinski.security.domain.factory;
+package com.jrobertgardzinski.security.application.factory;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
