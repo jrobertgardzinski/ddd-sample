@@ -1,46 +1,48 @@
 package com.jrobertgardzinski.security.application.feature;
 
-import com.jrobertgardzinski.security.domain.vo.FailuresCount;
-import com.jrobertgardzinski.security.domain.vo.IpAddress;
 import com.jrobertgardzinski.security.domain.entity.AuthenticationBlock;
-import com.jrobertgardzinski.security.domain.event.brute.force.protection.ActivateBlockadeEvent;
-import com.jrobertgardzinski.security.domain.event.brute.force.protection.BlockadeStillActiveEvent;
+import com.jrobertgardzinski.security.domain.event.brute.force.protection.Blocked;
 import com.jrobertgardzinski.security.domain.event.brute.force.protection.BruteForceProtectionEvent;
-import com.jrobertgardzinski.security.domain.event.brute.force.protection.NoBlockadeEvent;
+import com.jrobertgardzinski.security.domain.event.brute.force.protection.Passed;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
+import com.jrobertgardzinski.security.domain.vo.FailuresCount;
+import com.jrobertgardzinski.security.domain.vo.IpAddress;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
 import java.util.function.Function;
 
-public class BruteForceProtection implements Function<IpAddress, BruteForceProtectionEvent> {
+public class BruteForceGuard implements Function<IpAddress, BruteForceProtectionEvent> {
 
     private final FailedAuthenticationRepository failedAuthenticationRepository;
     private final AuthenticationBlockRepository authenticationBlockRepository;
 
-    public BruteForceProtection(FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository) {
+    public BruteForceGuard(FailedAuthenticationRepository failedAuthenticationRepository, AuthenticationBlockRepository authenticationBlockRepository) {
         this.failedAuthenticationRepository = failedAuthenticationRepository;
         this.authenticationBlockRepository = authenticationBlockRepository;
     }
 
     @Override
     public BruteForceProtectionEvent apply(IpAddress ipAddress) {
-        Optional<AuthenticationBlock> authenticationBlock = authenticationBlockRepository.findBy(ipAddress);
-        if (authenticationBlock.isPresent() && authenticationBlock.get().isStillActive()) {
-            return new BlockadeStillActiveEvent(authenticationBlock.get().expiryDate());
+        Optional<AuthenticationBlock> optionalAuthenticationBlock = authenticationBlockRepository.findBy(ipAddress)
+                .filter(AuthenticationBlock::isStillActive);
+        if (optionalAuthenticationBlock.isPresent()) {
+            AuthenticationBlock authenticationBlock = optionalAuthenticationBlock.get();
+            return new Blocked(authenticationBlock);
         }
         FailuresCount failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress);
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             int minutes = new Random().nextInt(8) + 3;
-            authenticationBlockRepository.create(
+            LocalDateTime until = LocalDateTime.now().plusMinutes(minutes);
+            AuthenticationBlock authenticationBlock = authenticationBlockRepository.create(
                     new AuthenticationBlock(
                             ipAddress,
-                            LocalDateTime.now().plusMinutes(minutes)));
-            return new ActivateBlockadeEvent(minutes);
+                            until));
+            return new Blocked(authenticationBlock);
         }
-        return new NoBlockadeEvent();
+        return new Passed();
     }
 }

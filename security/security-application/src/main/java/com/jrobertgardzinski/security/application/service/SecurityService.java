@@ -1,8 +1,15 @@
 package com.jrobertgardzinski.security.application.service;
 
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
+import com.jrobertgardzinski.security.application.event.AuthenticationBlocked;
+import com.jrobertgardzinski.security.application.event.AuthenticationFailed;
+import com.jrobertgardzinski.security.application.event.AuthenticationPassed;
+import com.jrobertgardzinski.security.application.event.AuthenticationResult;
 import com.jrobertgardzinski.security.application.feature.*;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.UserNotFoundEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.WrongPasswordEvent;
+import com.jrobertgardzinski.security.domain.event.brute.force.protection.Blocked;
 import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
@@ -36,14 +43,51 @@ public class SecurityService {
         return sessionRefresh.apply(sessionRefreshRequest);
     }
 
-    public AuthenticationEvent authenticate(AuthenticationRequest authenticationRequest) {
-        Authentication authentication = new Authentication(userRepository, hashAlgorithmPort);
-        BruteForceProtection bruteForceProtection = new BruteForceProtection(failedAuthenticationRepository, authenticationBlockRepository);
-        SessionGenerator sessionGenerator = new SessionGenerator(authorizationDataRepository);
+    public AuthenticationResult authenticate(AuthenticationRequest authenticationRequest) {
+        BruteForceGuard bruteForceGuard = new BruteForceGuard(failedAuthenticationRepository, authenticationBlockRepository);
 
         IpAddress ipAddress = authenticationRequest.ipAddress();
-        Credentials credentials = new Credentials(authenticationRequest.email(), authenticationRequest.plainTextPassword());
+        switch (bruteForceGuard.apply(ipAddress)) {
+            case Blocked b -> {
+                return new AuthenticationBlocked(b.authenticationBlock());
+            }
+            default -> {
+                Credentials credentials = new Credentials(
+                        authenticationRequest.email(),
+                        authenticationRequest.plainTextPassword()
+                );
+                return afterBruteForceProtection(credentials, ipAddress);
+            }
+        }
+    }
 
-        return bruteForceProtection.apply(ipAddress) // todo I don't know how to combine all three.
+    private AuthenticationResult afterBruteForceProtection(Credentials credentials, IpAddress ipAddress) {
+        Authenticate authenticate = new Authenticate(userRepository, hashAlgorithmPort);
+        GenerateSession generateSession = new GenerateSession(authorizationDataRepository);
+        UpdateBruteForceRecords updateBruteForceRecords = new UpdateBruteForceRecords(failedAuthenticationRepository);
+        CleanBruteForceRecords cleanBruteForceRecords = new CleanBruteForceRecords(failedAuthenticationRepository, authenticationBlockRepository);
+
+        return switch (authenticate.apply(credentials)) {
+
+            case AuthenticationPassedEvent p -> {
+                var session = generateSession.apply(p);
+                cleanBruteForceRecords.accept(ipAddress);
+                yield new AuthenticationPassed(session);
+            }
+
+            case UserNotFoundEvent e -> {
+                // todo store it somewhere
+                yield anAuthenticationFailure(ipAddress);
+            }
+
+            case WrongPasswordEvent e -> {
+                yield anAuthenticationFailure(ipAddress);
+            }
+        };
+    }
+
+    private AuthenticationResult anAuthenticationFailure(IpAddress ipAddress) {
+        updateBruteForceRecords.accept(ipAddress);
+        return new AuthenticationFailed();
     }
 }

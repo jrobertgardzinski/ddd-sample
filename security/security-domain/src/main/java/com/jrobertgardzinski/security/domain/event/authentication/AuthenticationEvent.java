@@ -1,4 +1,4 @@
 package com.jrobertgardzinski.security.domain.event.authentication;
 
-public sealed interface AuthenticationEvent permits AuthenticationFailedEvent, AuthenticationPassedEvent, WrongEmail, WrongPassword {
+public sealed interface AuthenticationEvent permits AuthenticationPassedEvent, UserNotFoundEvent, WrongPasswordEvent {
 }

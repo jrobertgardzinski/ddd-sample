@@ -1,16 +1,16 @@
 package com.jrobertgardzinski.security.application.feature;
 
-import com.jrobertgardzinski.security.domain.vo.*;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
+import com.jrobertgardzinski.security.domain.vo.*;
 
 import java.util.function.Function;
 
-public class SessionGenerator implements Function<AuthenticationPassedEvent, SessionTokens> {
+public class GenerateSession implements Function<AuthenticationPassedEvent, SessionTokens> {
     private final AuthorizationDataRepository authorizationDataRepository;
 
-    public SessionGenerator(AuthorizationDataRepository authorizationDataRepository) {
+    public GenerateSession(AuthorizationDataRepository authorizationDataRepository) {
         this.authorizationDataRepository = authorizationDataRepository;
     }
 

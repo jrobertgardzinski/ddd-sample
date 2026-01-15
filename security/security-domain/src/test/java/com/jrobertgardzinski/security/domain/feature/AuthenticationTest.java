@@ -7,8 +7,6 @@ import com.jrobertgardzinski.security.domain.entity.FailedAuthentication;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
-import com.jrobertgardzinski.security.domain.event.brute.force.protection.ActivateBlockadeEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepository;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
