@@ -5,7 +5,7 @@ Feature: register
   Scenario: Positive
     When I pass an email "user@gmail.com"
     And I pass a password "StrongPassword1!"
-    Then the request passes
+    Then the request succeeds
 
   Rule: Email and password are validated
 
