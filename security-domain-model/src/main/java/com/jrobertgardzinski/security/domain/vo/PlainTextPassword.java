@@ -7,6 +7,7 @@ import java.util.Objects;
 public record PlainTextPassword(
         String value
 ) {
+        // todo should become a specification and maybe moved to a separate module
         static final String EX_1_PASSWORD_LENGTH = "must be at least 12 characters long";
         static final String EX_2_SMALL_LETTER = "must contain a small letter";
         static final String EX_3_CAPITAL_LETTER = "must contain a capital letter";
