@@ -11,5 +11,5 @@ public interface UserRepository {
 
     Optional<User> findBy(Email email);
 
-    User save(User user) throws Exception;
+    User save(User user) throws Exception; // todo I don't like that exception
 }
