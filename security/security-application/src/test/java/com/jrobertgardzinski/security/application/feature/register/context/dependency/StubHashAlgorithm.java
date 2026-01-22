@@ -1,4 +1,4 @@
-package com.jrobertgardzinski.security.application.stub;
+package com.jrobertgardzinski.security.application.feature.register.context.dependency;
 
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;

@@ -1,17 +1,18 @@
-package com.jrobertgardzinski.security.application.stub;
+package com.jrobertgardzinski.security.application.feature.register.context.dependency;
 
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.Email;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
 public class StubUserRepository implements UserRepository {
     private final Set<User> users;
 
-    public StubUserRepository(Set<User> users) {
-        this.users = users;
+    public StubUserRepository() {
+        this.users = new HashSet<>();
     }
 
     @Override

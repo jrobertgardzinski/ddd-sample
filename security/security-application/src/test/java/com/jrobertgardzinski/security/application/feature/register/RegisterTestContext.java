@@ -2,26 +2,28 @@ package com.jrobertgardzinski.security.application.feature.register;
 
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.security.application.feature.Register;
-import com.jrobertgardzinski.security.application.stub.StubHashAlgorithm;
-import com.jrobertgardzinski.security.application.stub.StubUserRepository;
+import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubHashAlgorithm;
+import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubUserRepository;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 
 import java.util.HashSet;
 
 public class RegisterTestContext {
-
+    // input
     private String email;
     private String password;
 
+    // dependencies
     private final UserRepository userRepository;
     private final HashAlgorithmPort hashAlgorithm;
 
+    // use case
     private final Register register;
 
     public RegisterTestContext() {
         email = null;
         password = null;
-        userRepository = new StubUserRepository(new HashSet<>());
+        userRepository = new StubUserRepository();
         hashAlgorithm = new StubHashAlgorithm();
         register = new Register(userRepository, hashAlgorithm);
     }

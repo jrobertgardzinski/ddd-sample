@@ -3,7 +3,7 @@ package com.jrobertgardzinski.security.application.feature.register;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-public class Rule3 {
+public class RegisterRule3 {
 
     @When("I pass an email user_AT_gmail_DOT_com")
     public void i_pass_an_email_user_at_gmail_dot_com() {
