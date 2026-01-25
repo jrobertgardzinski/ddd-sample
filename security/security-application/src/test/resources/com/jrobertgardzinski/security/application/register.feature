@@ -18,12 +18,12 @@ Feature: register
     Rule: 3. Email and password are validated
 
         Scenario Outline: Passing wrong email and password
-        When I pass an email <email>
-        And I pass a password <password>
+        When I pass an email "<email>" and a password "<password>"
+        And I try to register
         Then I get an error for <validation_failed_for>
 
         Examples:
             | email                 | password         | validation_failed_for |
             | user_AT_gmail_DOT_com | secret           | ALL                   |
             | user_AT_gmail_DOT_com | StrongPassword1! | email                 |
-            | user@gmail.com        | StrongPassword1! | password              |
+            | user@gmail.com        | secret           | password              |
