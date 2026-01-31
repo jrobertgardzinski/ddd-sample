@@ -58,3 +58,10 @@ The project follows a strict layering approach:
 - Application features return domain events indicating success/failure
 - Cucumber BDD tests in `security-application` define behavior specifications
 - `SecurityService` orchestrates features and handles authentication flow with brute force protection
+
+## Notes / Ideas for future discussion
+
+- **Policy versioning case study**: "180 wrong questions in driving license exam database"
+  - Scenario: policy (exam questions) had errors, some examinees failed unfairly
+  - Need to identify affected users and compensate (refund + free retry)
+  - Analyze how to model this: policy versioning, affected user detection, compensation events
