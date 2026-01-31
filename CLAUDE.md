@@ -65,3 +65,11 @@ The project follows a strict layering approach:
   - Scenario: policy (exam questions) had errors, some examinees failed unfairly
   - Need to identify affected users and compensate (refund + free retry)
   - Analyze how to model this: policy versioning, affected user detection, compensation events
+
+- **Changelog tooling** - evaluate and pick one:
+  - [Conventional Commits](https://www.conventionalcommits.org/) - commit message standard (`feat:`, `fix:`, `breaking:`)
+  - [git-cliff](https://git-cliff.org/) - Rust-based, highly configurable, generates from conventional commits
+  - [standard-version](https://github.com/conventional-changelog/standard-version) - npm, auto-bumps version + generates CHANGELOG.md
+  - [release-please](https://github.com/googleapis/release-please) - Google's tool, GitHub Action friendly
+  - [Keep a Changelog](https://keepachangelog.com/) - manual format standard (if you prefer hand-written changelogs)
+  - For Java/Maven: consider [maven-git-changelog-plugin](https://github.com/jakubplichta/git-changelog-maven-plugin)
