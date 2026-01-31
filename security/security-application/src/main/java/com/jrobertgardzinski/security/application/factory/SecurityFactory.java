@@ -1,111 +1,68 @@
 package com.jrobertgardzinski.security.application.factory;
 
+import com.jrobertgardzinski.password.policy.domain.PasswordPolicyPort;
 import com.jrobertgardzinski.security.domain.vo.*;
+import io.vavr.control.Try;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class SecurityFactory {
 
-    public UserRegistration createUserRegistration(
-            String email,
-            String PlainTextPassword) {
+    private final PasswordPolicyPort passwordPolicy;
 
-        List<String> errors = new LinkedList<>();
-
-        Supplier<Email> emailSupplier = () -> new Email(email);
-        try {
-            emailSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("email: " + e.getMessage());
-        }
-
-        Supplier<PlainTextPassword> PlainTextPasswordSupplier = () -> new PlainTextPassword(PlainTextPassword);
-        try {
-            PlainTextPasswordSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("password: " + e.getMessage());
-        }
-
-        if (!errors.isEmpty()) {
-            throw new IllegalArgumentException(errors.toString());
-        }
-        else {
-            return new UserRegistration(emailSupplier.get(), PlainTextPasswordSupplier.get());
-        }
+    public SecurityFactory(PasswordPolicyPort passwordPolicy) {
+        this.passwordPolicy = passwordPolicy;
     }
 
-    public AuthenticationRequest createAuthenticationRequest(String ipAddress, String email, String PlainTextPassword) {
+    public UserRegistration createUserRegistration(String email, String password) throws UserRegistrationValidationException {
+        Try<Email> emailTry = Try.of(() -> new Email(email));
+        Try<PlainTextPassword> passwordTry = Try.of(() -> new PlainTextPassword(password));
 
-        List<String> errors = new LinkedList<>();
+        List<String> emailErrors = emailTry.isFailure()
+                ? List.of(emailTry.getCause().getMessage())
+                : List.of();
 
-        Supplier<IpAddress> ipAddressSupplier = () -> new IpAddress(ipAddress);
-        try {
-            ipAddressSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("ipAddress: " + e.getMessage());
-        }
+        List<String> passwordErrors = passwordTry.isFailure()
+                ? List.of(passwordTry.getCause().getMessage())
+                : passwordPolicy.validate(passwordTry.get());
 
-        Supplier<Email> emailSupplier = () -> new Email(email);
-        try {
-            emailSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("email: " + e.getMessage());
+        if (!emailErrors.isEmpty() || !passwordErrors.isEmpty()) {
+            throw new UserRegistrationValidationException(emailErrors, passwordErrors);
         }
 
-        Supplier<PlainTextPassword> PlainTextPasswordSupplier = () -> new PlainTextPassword(PlainTextPassword);
-        try {
-            PlainTextPasswordSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("PlainTextPassword: " + e.getMessage());
-        }
+        return new UserRegistration(emailTry.get(), passwordTry.get());
+    }
+
+    public AuthenticationRequest createAuthenticationRequest(String ipAddress, String email, String password) {
+        Try<IpAddress> ipTry = Try.of(() -> new IpAddress(ipAddress));
+        Try<Email> emailTry = Try.of(() -> new Email(email));
+        Try<PlainTextPassword> passwordTry = Try.of(() -> new PlainTextPassword(password));
+
+        List<String> errors = new ArrayList<>();
+        if (ipTry.isFailure()) errors.add("ipAddress: " + ipTry.getCause().getMessage());
+        if (emailTry.isFailure()) errors.add("email: " + emailTry.getCause().getMessage());
+        if (passwordTry.isFailure()) errors.add("password: " + passwordTry.getCause().getMessage());
 
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(errors.toString());
         }
-        else {
-            return new AuthenticationRequest(
-                    ipAddressSupplier.get(),
-                    emailSupplier.get(),
-                    PlainTextPasswordSupplier.get()
-            );
-        }
+
+        return new AuthenticationRequest(ipTry.get(), emailTry.get(), passwordTry.get());
     }
 
     public SessionRefreshRequest createTokenRefreshRequest(String email, String refreshToken) {
+        Try<Email> emailTry = Try.of(() -> new Email(email));
+        Try<RefreshToken> tokenTry = Try.of(() -> new RefreshToken(new Token(refreshToken)));
 
-        List<String> errors = new LinkedList<>();
-
-        Supplier<Email> emailSupplier = () -> new Email(email);
-        try {
-            emailSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("email: " + e.getMessage());
-        }
-
-        Supplier<RefreshToken> refreshTokenSupplier = () -> new RefreshToken(new Token(refreshToken));
-        try {
-            refreshTokenSupplier.get();
-        }
-        catch (RuntimeException e) {
-            errors.add("refreshToken: " + e.getMessage());
-        }
+        List<String> errors = new ArrayList<>();
+        if (emailTry.isFailure()) errors.add("email: " + emailTry.getCause().getMessage());
+        if (tokenTry.isFailure()) errors.add("refreshToken: " + tokenTry.getCause().getMessage());
 
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(errors.toString());
         }
-        else {
-            return new SessionRefreshRequest(
-                    emailSupplier.get(),
-                    refreshTokenSupplier.get()
-            );
-        }
+
+        return new SessionRefreshRequest(emailTry.get(), tokenTry.get());
     }
 }

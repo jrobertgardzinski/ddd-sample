@@ -10,7 +10,7 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 @SelectPackages("com.jrobertgardzinski.security.application")
 //@SelectClasspathResource("com/jrobertgardzinski/security/application")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "html:target/report.html")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.jrobertgardzinski.security.application.feature.register")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.jrobertgardzinski.security.application.feature")
 public class RunCucumberTest {
 }
 // todo missing assertions in RuleX

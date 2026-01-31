@@ -11,6 +11,7 @@ public record Email(
                 if (!value.matches("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")) {
                         throw new IllegalArgumentException("%s does not meet regex".formatted(value));
                 }
+                // todo remove below
                 if (value.endsWith("@gmail.com")) {
                         int atIndex = value.indexOf("@");
                         String before = value.substring(0, atIndex);
