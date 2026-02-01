@@ -1,6 +1,13 @@
 # todo must be more descriptive. "I get validation error for email" tells nothing. Should be more explicit.
 Feature: register input validation
 
+# how about adding here
+# given: An email: "blah@gmail.com" is considered valid
+# given: A password: "StrongPassword1!" is considered valid
+# given: A password: "StrongPassword1!" was considered valid before version 2.0
+# given: A password: "weak" is considered valid
+# and let it break! :)
+
     Rule: 1. Email must be valid
 
         Scenario: Invalid email format
