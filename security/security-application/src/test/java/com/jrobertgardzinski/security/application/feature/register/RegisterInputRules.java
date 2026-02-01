@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.security.application.feature.register;
 
 import com.jrobertgardzinski.password.policy.domain.StrongPasswordPolicyAdapter;
-import com.jrobertgardzinski.security.application.factory.SecurityFactory;
+import com.jrobertgardzinski.security.application.factory.RegisterFactory;
 import com.jrobertgardzinski.security.application.factory.UserRegistrationValidationException;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Then;
@@ -15,14 +15,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegisterInputRules {
 
-    private final SecurityFactory securityFactory = new SecurityFactory(new StrongPasswordPolicyAdapter());
+    private final RegisterFactory registerFactory = new RegisterFactory(new StrongPasswordPolicyAdapter());
 
     private UserRegistrationValidationException exception;
 
     @When("I create user registration with email {string} and password {string}")
     public void createUserRegistration(String email, String password) {
         try {
-            securityFactory.createUserRegistration(email, password);
+            registerFactory.create(email, password);
             exception = null;
         } catch (UserRegistrationValidationException e) {
             exception = e;

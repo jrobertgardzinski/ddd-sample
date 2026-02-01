@@ -1,8 +1,9 @@
 package com.jrobertgardzinski.security.application.feature.register;
 
-import com.jrobertgardzinski.security.application.TestData;
-import com.jrobertgardzinski.security.application.feature.register.context.RegisterResult;
-import com.jrobertgardzinski.security.application.feature.register.context.RegisterUseCase;
+import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubHashAlgorithm;
+import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubUserRepository;
+import com.jrobertgardzinski.security.application.usecase.register.RegisterResult;
+import com.jrobertgardzinski.security.application.usecase.register.RegisterUseCase;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationFailedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
@@ -11,7 +12,8 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import static com.jrobertgardzinski.security.application.TestData.VALID_PASSWORD;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegisterRules {
 
@@ -22,9 +24,9 @@ public class RegisterRules {
     private String rawPassword;
     private RegisterResult result;
 
-    public RegisterRules(RegisterUseCase registerUseCase, UserRepository userRepository) {
-        this.registerUseCase = registerUseCase;
-        this.userRepository = userRepository;
+    public RegisterRules(StubUserRepository stubUserRepository, StubHashAlgorithm stubHashAlgorithm) {
+        this.registerUseCase = new RegisterUseCase(stubUserRepository, stubHashAlgorithm);
+        this.userRepository = stubUserRepository;
     }
 
     // rule 1

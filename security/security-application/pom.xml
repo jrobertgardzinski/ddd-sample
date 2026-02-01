@@ -71,7 +71,7 @@
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>password-policy-strong</artifactId>
             <version>0.1-SNAPSHOT</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

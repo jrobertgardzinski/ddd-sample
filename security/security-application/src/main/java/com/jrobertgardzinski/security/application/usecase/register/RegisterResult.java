@@ -1,4 +1,4 @@
-package com.jrobertgardzinski.security.application.feature.register.context;
+package com.jrobertgardzinski.security.application.usecase.register;
 
 import com.jrobertgardzinski.security.application.factory.UserRegistrationValidationException;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationEvent;

@@ -7,15 +7,15 @@ import org.junit.jupiter.api.Test;
 import static com.jrobertgardzinski.security.application.TestData.VALID_PASSWORD;
 import static org.junit.jupiter.api.Assertions.*;
 
-class SecurityFactoryTest {
+class RegisterFactoryTest {
 
-    private final SecurityFactory factory = new SecurityFactory(new StrongPasswordPolicyAdapter());
+    private final RegisterFactory factory = new RegisterFactory(new StrongPasswordPolicyAdapter());
 
     @Test
     void shouldThrowWhenEmailAndPasswordInvalid() {
         UserRegistrationValidationException exception = assertThrows(
             UserRegistrationValidationException.class,
-            () -> factory.createUserRegistration("blah", "123")
+            () -> factory.create("blah", "123")
         );
 
         assertTrue(exception.hasEmailErrors());
@@ -26,7 +26,7 @@ class SecurityFactoryTest {
 
     @Test
     void shouldReturnUserRegistrationWhenValid() throws UserRegistrationValidationException {
-        UserRegistration registration = factory.createUserRegistration("test@example.com", VALID_PASSWORD);
+        UserRegistration registration = factory.create("test@example.com", VALID_PASSWORD);
 
         assertNotNull(registration);
         assertEquals("test@example.com", registration.email().value());
@@ -36,7 +36,7 @@ class SecurityFactoryTest {
     void shouldCollectAllPasswordViolations() {
         UserRegistrationValidationException exception = assertThrows(
             UserRegistrationValidationException.class,
-            () -> factory.createUserRegistration("test@example.com", "weak")
+            () -> factory.create("test@example.com", "weak")
         );
 
         assertFalse(exception.hasEmailErrors());
