@@ -73,3 +73,21 @@ The project follows a strict layering approach:
   - [release-please](https://github.com/googleapis/release-please) - Google's tool, GitHub Action friendly
   - [Keep a Changelog](https://keepachangelog.com/) - manual format standard (if you prefer hand-written changelogs)
   - For Java/Maven: consider [maven-git-changelog-plugin](https://github.com/jakubplichta/git-changelog-maven-plugin)
+
+- **BDD testing strategy across layers** - shared feature files, separate step definitions:
+  ```
+  ┌─────────────────────────────────────────┐
+  │  UI Layer                               │  Cypress/Playwright + Cucumber
+  │  (microfrontends integration)           │  Step definitions: TypeScript/JS
+  ├─────────────────────────────────────────┤
+  │  Infrastructure Layer                   │  Spring + Cucumber
+  │  (HTTP API, messaging)                  │  Step definitions: Java
+  ├─────────────────────────────────────────┤
+  │  Application Layer                      │  JUnit + Cucumber (current)
+  │  (use cases, domain logic)              │  Step definitions: Java
+  └─────────────────────────────────────────┘
+  ```
+  - Single `.feature` files shared across all layers (single source of truth)
+  - Each layer implements its own step definitions
+  - Enables testing the same behavior at different abstraction levels
+  - Microfrontend framework candidates: React, Vue, Angular (all support Module Federation)
