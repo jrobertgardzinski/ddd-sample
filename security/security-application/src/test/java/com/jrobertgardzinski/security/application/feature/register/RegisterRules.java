@@ -12,16 +12,13 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import static com.jrobertgardzinski.security.application.TestData.VALID_PASSWORD;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RegisterRules {
 
     private final RegisterUseCase registerUseCase;
     private final UserRepository userRepository;
 
-    private String rawEmail;
-    private String rawPassword;
     private RegisterResult result;
 
     public RegisterRules(StubUserRepository stubUserRepository, StubHashAlgorithm stubHashAlgorithm) {
@@ -29,27 +26,36 @@ public class RegisterRules {
         this.userRepository = stubUserRepository;
     }
 
+    public void when(String email, String password) {
+        result = registerUseCase.execute(email, password);
+    }
+
+    // rule 0
+
+    @When("I register with invalid arguments")
+    public void w01() {
+        when(null, null);
+    }
+
+    @Then("registration fails on validating input arguments")
+    public void t0() {
+        assertInstanceOf(RegisterResult.Invalid.class, result);
+        RegisterResult.Invalid casted = (RegisterResult.Invalid) result;
+        assertAll(
+                () -> assertTrue(casted.exception().hasEmailErrors()),
+                () -> assertTrue(casted.exception().hasPasswordErrors())
+        );
+    }
+
     // rule 1
 
-    @When("I pass an email {string} and a password {string}")
-    public void passCredentials(String email, String password) {
-        this.rawEmail = email;
-        this.rawPassword = password;
-    }
-
-    @When("I pass an email {string} and any other required valid parameters")
-    public void passEmailWithValidDefaults(String email) {
-        this.rawEmail = email;
-        this.rawPassword = VALID_PASSWORD;
-    }
-
-    @When("I try to register")
-    public void tryRegister() {
-        result = registerUseCase.execute(rawEmail, rawPassword);
+    @When("I register with an email {string} and a password {string}")
+    public void w1(String email, String password) {
+        when(email, password);
     }
 
     @Then("registration passes")
-    public void registrationPasses() {
+    public void t1() {
         assertInstanceOf(RegisterResult.Valid.class, result);
         RegisterResult.Valid valid = (RegisterResult.Valid) result;
         RegistrationPassedEvent event = (RegistrationPassedEvent) valid.event();
@@ -59,12 +65,17 @@ public class RegisterRules {
     // rule 2
 
     @Given("a user with an email {string} has already been registered")
-    public void userAlreadyRegistered(String email) {
+    public void g2(String email) {
         registerUseCase.execute(email, VALID_PASSWORD);
     }
 
+    @When("I register with an email {string} and any other required valid parameters")
+    public void w2(String email) {
+        when(email, VALID_PASSWORD);
+    }
+
     @Then("registration fails")
-    public void registrationFails() {
+    public void t2() {
         assertInstanceOf(RegisterResult.Valid.class, result);
         RegisterResult.Valid valid = (RegisterResult.Valid) result;
         assertInstanceOf(RegistrationFailedEvent.class, valid.event());

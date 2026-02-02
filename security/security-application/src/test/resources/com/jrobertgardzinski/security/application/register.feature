@@ -1,16 +1,20 @@
 Feature: register
 
+    Rule: 0. Input is validated
+
+        Example:
+        When I register with invalid arguments
+        Then registration fails on validating input arguments
+
     Rule: 1. Anyone can register a new user just by passing an email and password.
 
-        Scenario: Positive
-        When I pass an email "user@gmail.com" and a password "StrongPassword1#"
-        And I try to register
+        Example:
+        When I register with an email "user@gmail.com" and a password "StrongPassword1#"
         Then registration passes
 
     Rule: 2. Registering a new user with already registered email causes failure
 
-        Scenario: Sample
+        Example:
         Given a user with an email "user@gmail.com" has already been registered
-        When I pass an email "user@gmail.com" and any other required valid parameters
-        And I try to register
+        When I register with an email "user@gmail.com" and any other required valid parameters
         Then registration fails

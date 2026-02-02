@@ -5,7 +5,7 @@ import java.util.Objects;
 public record PlainTextPassword(String value) {
 
     public PlainTextPassword {
-        Objects.requireNonNull(value);
+        Objects.requireNonNull(value, "Cannot be null");
         if (value.isBlank()) {
             throw new IllegalArgumentException("Password cannot be blank");
         }
