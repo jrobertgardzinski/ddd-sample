@@ -1,22 +1,22 @@
 package com.jrobertgardzinski.security.application.feature.input;
 
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class PlainTextPasswordRules {
+public class PlaintextPasswordRules {
 
     private Exception exception;
-    private PlainTextPassword password;
+    private PlaintextPassword password;
 
     // rule 0
 
     @When("I provide no password")
     public void w0() {
         try {
-            password = new PlainTextPassword(null);
+            password = new PlaintextPassword(null);
         } catch (Exception e) {
             exception = e;
         }
@@ -27,7 +27,7 @@ public class PlainTextPasswordRules {
     @When("I create a password from {string}")
     public void w1(String value) {
         try {
-            password = new PlainTextPassword(value);
+            password = new PlaintextPassword(value);
         } catch (Exception e) {
             exception = e;
         }

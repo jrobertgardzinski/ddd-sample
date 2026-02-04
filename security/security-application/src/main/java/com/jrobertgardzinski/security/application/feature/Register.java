@@ -27,9 +27,9 @@ public class Register implements Function<UserRegistration, RegistrationEvent> {
             return new UserAlreadyExistsEvent();
         }
         try {
-            PlainTextPassword plainTextPassword = userRegistration.plainTextPassword();
+            PlaintextPassword plaintextPassword = userRegistration.plaintextPassword();
             Salt salt = Salt.generate();
-            PasswordHash passwordHash = hashAlgorithmPort.hash(plainTextPassword, salt);
+            PasswordHash passwordHash = hashAlgorithmPort.hash(plaintextPassword, salt);
             User user = new User(
                     userRegistration.email(),
                     passwordHash

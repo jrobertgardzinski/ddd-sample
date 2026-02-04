@@ -1,7 +1,7 @@
 package com.jrobertgardzinski.hash.algorithm.domain;
 
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 import com.jrobertgardzinski.security.domain.vo.Salt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,16 +16,16 @@ public abstract class HashAlgorithmPortTest {
 
     @BeforeEach
     void init() {
-        hash = hashAlgorithm().hash(new PlainTextPassword("StrongPassword1!"), new Salt("salt123456"));;
+        hash = hashAlgorithm().hash(new PlaintextPassword("StrongPassword1!"), new Salt("salt123456"));;
     }
 
     @Test
     void negative() {
-        assertFalse(hashAlgorithm().verify(hash, new PlainTextPassword("StrongPassword2!")));
+        assertFalse(hashAlgorithm().verify(hash, new PlaintextPassword("StrongPassword2!")));
     }
 
     @Test
     void positive() {
-        assertTrue(hashAlgorithm().verify(hash, new PlainTextPassword("StrongPassword1!")));
+        assertTrue(hashAlgorithm().verify(hash, new PlaintextPassword("StrongPassword1!")));
     }
 }

@@ -44,7 +44,7 @@ ddd-sample (parent)
 ### DDD Layer Pattern
 
 The project follows a strict layering approach:
-- **Value Objects (vo package)**: Immutable types with validation in constructors (e.g., `Email`, `PlainTextPassword`)
+- **Value Objects (vo package)**: Immutable types with validation in constructors (e.g., `Email`, `PlaintextPassword`)
 - **Entities**: Domain objects with identity (e.g., `User`, `AuthenticationBlock`)
 - **Repositories**: Interfaces in `security-domain-persistence`, implementations elsewhere
 - **Services/Features**: Application logic in `security-application` (e.g., `Register`, `Authenticate`)

@@ -2,19 +2,19 @@ package com.jrobertgardzinski.security.application.feature.register.context.depe
 
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 import com.jrobertgardzinski.security.domain.vo.Salt;
 
 public class StubHashAlgorithm implements HashAlgorithmPort {
     @Override
-    public PasswordHash hash(PlainTextPassword plainTextPassword, Salt salt) {
+    public PasswordHash hash(PlaintextPassword plaintextPassword, Salt salt) {
         return new PasswordHash(
-                salt.value() + plainTextPassword.value()
+                salt.value() + plaintextPassword.value()
         );
     }
 
     @Override
-    public boolean verify(PasswordHash passwordHash, PlainTextPassword plainTextPassword) {
-        return passwordHash.value().endsWith(plainTextPassword.value());
+    public boolean verify(PasswordHash passwordHash, PlaintextPassword plaintextPassword) {
+        return passwordHash.value().endsWith(plaintextPassword.value());
     }
 }

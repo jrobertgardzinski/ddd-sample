@@ -10,7 +10,7 @@ import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.Credentials;
 import com.jrobertgardzinski.security.domain.vo.Email;
 import com.jrobertgardzinski.security.domain.vo.PasswordHash;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,7 +34,7 @@ public class Authenticate implements Function<Credentials, AuthenticationEvent> 
         }
 
         PasswordHash passwordHash = optionalUser.get().passwordHash();
-        PlainTextPassword enteredPassword = credentials.plainTextPassword();
+        PlaintextPassword enteredPassword = credentials.plaintextPassword();
         if (!hashAlgorithmPort.verify(passwordHash, enteredPassword)) {
             return new WrongPasswordEvent(email);
         }

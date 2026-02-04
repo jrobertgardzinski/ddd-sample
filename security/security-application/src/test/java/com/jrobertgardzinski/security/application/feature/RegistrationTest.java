@@ -21,7 +21,7 @@ class RegistrationTest {/*
     }
 
     @Mock
-    PlainTextPassword plainTextPassword;
+    PlainTextPassword plaintextPassword;
     @Mock
     Email email;
 
@@ -32,7 +32,7 @@ class RegistrationTest {/*
                 .thenReturn(
                         false);
 
-        UserRegistration userRegistration = new UserRegistration(email, plainTextPassword);
+        UserRegistration userRegistration = new UserRegistration(email, plaintextPassword);
 
         assertEquals(new RegistrationPassedEvent(userRegistration.email()),
                 registration.apply(userRegistration));

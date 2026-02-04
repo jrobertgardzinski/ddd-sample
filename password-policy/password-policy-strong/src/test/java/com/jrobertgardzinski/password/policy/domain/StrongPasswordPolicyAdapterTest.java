@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.password.policy.domain;
 
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,8 +19,8 @@ class StrongPasswordPolicyAdapterTest {
 
     private final PasswordPolicyPort policy = new StrongPasswordPolicyAdapter();
 
-    private PlainTextPassword password(String value) {
-        return new PlainTextPassword(value);
+    private PlaintextPassword password(String value) {
+        return new PlaintextPassword(value);
     }
 
     private boolean hasViolation(List<String> violations, String keyword) {
@@ -29,7 +29,7 @@ class StrongPasswordPolicyAdapterTest {
 
     @Test
     void shouldAcceptValidPassword() {
-        PlainTextPassword pwd = password(VALID_PASSWORD);
+        PlaintextPassword pwd = password(VALID_PASSWORD);
         assertTrue(policy.validate(pwd).isEmpty());
         assertTrue(policy.isSatisfiedBy(pwd));
     }

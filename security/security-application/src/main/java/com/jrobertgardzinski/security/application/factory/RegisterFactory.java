@@ -16,7 +16,7 @@ public class RegisterFactory {
 
     public UserRegistration create(String email, String password) throws UserRegistrationValidationException {
         Try<Email> emailTry = Try.of(() -> new Email(email));
-        Try<PlainTextPassword> passwordTry = Try.of(() -> new PlainTextPassword(password));
+        Try<PlaintextPassword> passwordTry = Try.of(() -> new PlaintextPassword(password));
 
         List<String> emailErrors = emailTry.isFailure()
                 ? List.of(emailTry.getCause().getMessage())

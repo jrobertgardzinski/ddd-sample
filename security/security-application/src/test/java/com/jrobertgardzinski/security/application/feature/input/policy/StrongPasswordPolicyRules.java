@@ -2,7 +2,7 @@ package com.jrobertgardzinski.security.application.feature.input.policy;
 
 import com.jrobertgardzinski.password.policy.domain.PasswordPolicyPort;
 import com.jrobertgardzinski.password.policy.domain.StrongPasswordPolicyAdapter;
-import com.jrobertgardzinski.security.domain.vo.PlainTextPassword;
+import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
@@ -17,7 +17,7 @@ public class StrongPasswordPolicyRules {
 
     @When("I validate {string} against strong password policy")
     public void w(String password) {
-        violations = policy.validate(new PlainTextPassword(password));
+        violations = policy.validate(new PlaintextPassword(password));
     }
 
     @Then("the policy reports {string}")

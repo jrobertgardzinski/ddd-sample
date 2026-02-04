@@ -6,11 +6,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class PlainTextPasswordTest {
+class PlaintextPasswordTest {
 
     @Test
     void shouldRejectNull() {
-        assertThrows(NullPointerException.class, () -> new PlainTextPassword(null));
+        assertThrows(NullPointerException.class, () -> new PlaintextPassword(null));
     }
 
     @ParameterizedTest
@@ -18,19 +18,19 @@ class PlainTextPasswordTest {
     void shouldRejectBlank(String value) {
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> new PlainTextPassword(value)
+            () -> new PlaintextPassword(value)
         );
         assertTrue(exception.getMessage().contains("blank"));
     }
 
     @Test
     void shouldAcceptAnyNonBlankValue() {
-        assertDoesNotThrow(() -> new PlainTextPassword("any"));
+        assertDoesNotThrow(() -> new PlaintextPassword("any"));
     }
 
     @Test
     void shouldHideValueInToString() {
-        PlainTextPassword password = new PlainTextPassword("secret");
+        PlaintextPassword password = new PlaintextPassword("secret");
         assertEquals("<hidden>", password.toString());
     }
 }
