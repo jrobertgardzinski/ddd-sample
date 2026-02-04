@@ -32,19 +32,33 @@ public class RegisterRules {
 
     // rule 0
 
-    @When("I register with invalid arguments")
-    public void w01() {
-        when(null, null);
-    }
-
     @Then("registration fails on validating input arguments")
     public void t0() {
         assertInstanceOf(RegisterResult.Invalid.class, result);
+    }
+
+    @Then("there are some email errors")
+    public void t0emailSome() {
         RegisterResult.Invalid casted = (RegisterResult.Invalid) result;
-        assertAll(
-                () -> assertTrue(casted.exception().hasEmailErrors()),
-                () -> assertTrue(casted.exception().hasPasswordErrors())
-        );
+        assertTrue(casted.exception().hasEmailErrors());
+    }
+
+    @Then("there are no email errors")
+    public void t0emailNo() {
+        RegisterResult.Invalid casted = (RegisterResult.Invalid) result;
+        assertFalse(casted.exception().hasEmailErrors());
+    }
+
+    @Then("there are some password errors")
+    public void t0passwordSome() {
+        RegisterResult.Invalid casted = (RegisterResult.Invalid) result;
+        assertTrue(casted.exception().hasPasswordErrors());
+    }
+
+    @Then("there are no password errors")
+    public void t0passwordNo() {
+        RegisterResult.Invalid casted = (RegisterResult.Invalid) result;
+        assertFalse(casted.exception().hasPasswordErrors());
     }
 
     // rule 1
