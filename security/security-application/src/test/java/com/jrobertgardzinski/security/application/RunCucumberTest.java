@@ -13,4 +13,4 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.jrobertgardzinski.security.application.feature")
 public class RunCucumberTest {
 }
-// todo missing assertions in RuleX
+// todo test 3 auth use cases separately, then merge them into one bigger authentication use case.
