@@ -3,9 +3,8 @@ package com.jrobertgardzinski.security.application.feature;
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
+import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationPassedEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.UserNotFoundEvent;
-import com.jrobertgardzinski.security.domain.event.authentication.WrongPasswordEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.Credentials;
 import com.jrobertgardzinski.security.domain.vo.Email;
@@ -30,13 +29,13 @@ public class Authenticate implements Function<Credentials, AuthenticationEvent> 
 
         Optional<User> optionalUser = userRepository.findBy(email);
         if (optionalUser.isEmpty()) {
-            return new UserNotFoundEvent(email);
+            return new AuthenticationFailedEvent(email);
         }
 
         PasswordHash passwordHash = optionalUser.get().passwordHash();
         PlaintextPassword enteredPassword = credentials.plaintextPassword();
         if (!hashAlgorithmPort.verify(passwordHash, enteredPassword)) {
-            return new WrongPasswordEvent(email);
+            return new AuthenticationFailedEvent(email);
         }
 
         return new AuthenticationPassedEvent(email);
