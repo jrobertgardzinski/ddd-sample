@@ -8,6 +8,7 @@ import com.jrobertgardzinski.security.domain.repository.AuthenticationBlockRepos
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
 import com.jrobertgardzinski.security.domain.vo.FailuresCount;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;
+import com.jrobertgardzinski.system.SystemTime;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -36,7 +37,7 @@ public class BruteForceGuard implements Function<IpAddress, BruteForceProtection
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             int minutes = new Random().nextInt(8) + 3;
-            LocalDateTime until = LocalDateTime.now().plusMinutes(minutes);
+            LocalDateTime until = LocalDateTime.now(SystemTime.currentClock()).plusMinutes(minutes);
             AuthenticationBlock authenticationBlock = authenticationBlockRepository.create(
                     new AuthenticationBlock(
                             ipAddress,

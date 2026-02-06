@@ -3,6 +3,7 @@ package com.jrobertgardzinski.security.application.feature;
 import com.jrobertgardzinski.security.domain.repository.FailedAuthenticationRepository;
 import com.jrobertgardzinski.security.domain.vo.FailedAuthenticationDetails;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;
+import com.jrobertgardzinski.system.SystemTime;
 
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
@@ -17,6 +18,6 @@ public class UpdateBruteForceRecords implements Consumer<IpAddress> {
     @Override
     public void accept(IpAddress ipAddress) {
         failedAuthenticationRepository.create(
-                new FailedAuthenticationDetails(ipAddress, LocalDateTime.now()));
+                new FailedAuthenticationDetails(ipAddress, LocalDateTime.now(SystemTime.currentClock())));
     }
 }

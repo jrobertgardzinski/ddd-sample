@@ -1,24 +1,25 @@
 Feature: refresh session
 
-	Background: Extending a user session requires refreshing a token, which is valid for some time.
-	
-		Rule: 1. Refresh token has to be valid
-		
-			Scenario: Positive
-			
-			Given a user has an active refresh token
-			When the user passes refresh and authentication tokens
-			Then the system removes passed tokens from the database
-			And the user gets a pair of new tokens
-			
-			Scenario: Passing invalid tokens
-			
-			Given a user has an inactive refresh token
-			When the user passes refresh and authentication tokens
-			Then the system responds with the RefreshTokenExpiredEvent error
-			
-			Scenario: Passing invalid tokens twice
-			
-			Given a user has an inactive refresh token
-			When the user passes refresh and authentication tokens twice
-			Then the system responds with the NoRefreshTokenFoundEvent error
+    Background:
+    Given a user with email "user@gmail.com"
+
+    Rule: 1. A valid refresh token grants new session tokens
+
+        Example:
+        Given the user has an active session
+        When the user refreshes the session
+        Then the user receives new session tokens
+
+    Rule: 2. An expired refresh token is rejected
+
+        Example:
+        Given the user has an expired session
+        When the user refreshes the session
+        Then the refresh fails due to RefreshTokenExpiredEvent
+
+    Rule: 3. A non-existent refresh token is rejected
+
+        Example:
+        Given the user has no session
+        When the user refreshes the session
+        Then the refresh fails due to NoRefreshTokenFoundEvent

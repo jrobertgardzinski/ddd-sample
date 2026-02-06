@@ -9,6 +9,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>test-starter</module>
+        <module>system-time</module>
         <module>security-domain-model</module>
         <module>security-domain-persistence</module>
         <module>hash-algorithm</module>
