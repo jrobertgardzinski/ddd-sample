@@ -6,7 +6,7 @@
         <artifactId>security</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>security-application</artifactId>
+    <artifactId>security-system</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -57,42 +57,17 @@
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>security-system</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>password-policy-domain</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>password-policy-strong</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-persistence</artifactId>
             <version>0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>security-system</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
             <artifactId>hash-algorithm-domain</artifactId>
             <version>0.1-SNAPSHOT</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>test-starter</artifactId>
@@ -100,35 +75,25 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.vavr</groupId>
-            <artifactId>vavr</artifactId>
-            <version>0.10.4</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-picocontainer</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -147,6 +112,18 @@
                         <include>**/RunCucumberTest.java</include>
                     </includes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

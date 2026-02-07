@@ -1,12 +1,15 @@
 package com.jrobertgardzinski.security.application.feature.register;
 
-import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubHashAlgorithm;
-import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubUserRepository;
+import com.jrobertgardzinski.password.policy.domain.StrongPasswordPolicyAdapter;
+import com.jrobertgardzinski.security.application.factory.RegisterFactory;
+import com.jrobertgardzinski.security.system.stub.StubHashAlgorithm;
+import com.jrobertgardzinski.security.system.stub.StubUserRepository;
 import com.jrobertgardzinski.security.application.usecase.RegisterResult;
 import com.jrobertgardzinski.security.application.usecase.RegisterUseCase;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationFailedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.system.feature.Register;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -22,7 +25,9 @@ public class RegisterRules {
     private RegisterResult result;
 
     public RegisterRules(StubUserRepository stubUserRepository, StubHashAlgorithm stubHashAlgorithm) {
-        this.registerUseCase = new RegisterUseCase(stubUserRepository, stubHashAlgorithm);
+        Register register = new Register(stubUserRepository, stubHashAlgorithm);
+        RegisterFactory registerFactory = new RegisterFactory(new StrongPasswordPolicyAdapter());
+        this.registerUseCase = new RegisterUseCase(register, registerFactory);
         this.userRepository = stubUserRepository;
     }
 

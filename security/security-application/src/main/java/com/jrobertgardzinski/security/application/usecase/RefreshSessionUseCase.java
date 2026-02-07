@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.application.usecase;
 
-import com.jrobertgardzinski.security.application.feature.RefreshSession;
+import com.jrobertgardzinski.security.system.feature.RefreshSession;
 import com.jrobertgardzinski.security.domain.event.refresh.RefreshTokenEvent;
 import com.jrobertgardzinski.security.domain.vo.SessionRefreshRequest;
 

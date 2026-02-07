@@ -1,6 +1,6 @@
 package com.jrobertgardzinski.security.application.service;
 
-import com.jrobertgardzinski.security.application.event.AuthenticationResult;
+import com.jrobertgardzinski.security.system.event.AuthenticationResult;
 import com.jrobertgardzinski.security.application.usecase.AuthenticateUseCase;
 import com.jrobertgardzinski.security.application.usecase.RefreshSessionUseCase;
 import com.jrobertgardzinski.security.application.usecase.RegisterResult;

@@ -1,14 +1,14 @@
 package com.jrobertgardzinski.security.application.usecase;
 
-import com.jrobertgardzinski.security.application.event.AuthenticationBlocked;
-import com.jrobertgardzinski.security.application.event.AuthenticationFailed;
-import com.jrobertgardzinski.security.application.event.AuthenticationPassed;
-import com.jrobertgardzinski.security.application.event.AuthenticationResult;
-import com.jrobertgardzinski.security.application.feature.BruteForceGuard;
-import com.jrobertgardzinski.security.application.feature.CleanBruteForceRecords;
-import com.jrobertgardzinski.security.application.feature.GenerateSession;
-import com.jrobertgardzinski.security.application.feature.UpdateBruteForceRecords;
-import com.jrobertgardzinski.security.application.feature.VerifyCredentials;
+import com.jrobertgardzinski.security.system.event.AuthenticationBlocked;
+import com.jrobertgardzinski.security.system.event.AuthenticationFailed;
+import com.jrobertgardzinski.security.system.event.AuthenticationPassed;
+import com.jrobertgardzinski.security.system.event.AuthenticationResult;
+import com.jrobertgardzinski.security.system.feature.BruteForceGuard;
+import com.jrobertgardzinski.security.system.feature.CleanBruteForceRecords;
+import com.jrobertgardzinski.security.system.feature.GenerateSession;
+import com.jrobertgardzinski.security.system.feature.UpdateBruteForceRecords;
+import com.jrobertgardzinski.security.system.feature.VerifyCredentials;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationFailedEvent;

@@ -1,26 +1,17 @@
 package com.jrobertgardzinski.security.application.usecase;
 
-import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
-import com.jrobertgardzinski.password.policy.domain.StrongPasswordPolicyAdapter;
 import com.jrobertgardzinski.security.application.factory.RegisterFactory;
 import com.jrobertgardzinski.security.application.factory.UserRegistrationValidationException;
-import com.jrobertgardzinski.security.application.feature.Register;
-import com.jrobertgardzinski.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.system.feature.Register;
 import com.jrobertgardzinski.security.domain.vo.UserRegistration;
 
 public class RegisterUseCase {
     private final Register register;
     private final RegisterFactory registerFactory;
 
-    public RegisterUseCase(
-            UserRepository userRepository,
-            HashAlgorithmPort hashAlgorithm) {
-
-        this.register = new Register(
-                userRepository,
-                hashAlgorithm
-        );
-        this.registerFactory = new RegisterFactory(new StrongPasswordPolicyAdapter());
+    public RegisterUseCase(Register register, RegisterFactory registerFactory) {
+        this.register = register;
+        this.registerFactory = registerFactory;
     }
 
     public RegisterResult execute(String email, String password) {
