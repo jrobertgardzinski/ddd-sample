@@ -5,7 +5,9 @@ import com.jrobertgardzinski.security.application.event.AuthenticationFailed;
 import com.jrobertgardzinski.security.application.event.AuthenticationPassed;
 import com.jrobertgardzinski.security.application.event.AuthenticationResult;
 import com.jrobertgardzinski.security.application.feature.BruteForceGuard;
+import com.jrobertgardzinski.security.application.feature.CleanBruteForceRecords;
 import com.jrobertgardzinski.security.application.feature.GenerateSession;
+import com.jrobertgardzinski.security.application.feature.UpdateBruteForceRecords;
 import com.jrobertgardzinski.security.application.feature.VerifyCredentials;
 import com.jrobertgardzinski.security.application.feature.bruteforce.context.dependency.StubAuthenticationBlockRepository;
 import com.jrobertgardzinski.security.application.feature.bruteforce.context.dependency.StubFailedAuthenticationRepository;
@@ -47,7 +49,9 @@ public class AuthenticateRules {
         VerifyCredentials verifyCredentials = new VerifyCredentials(userRepository, hashAlgorithm);
         BruteForceGuard bruteForceGuard = new BruteForceGuard(failedAuthenticationRepository, authenticationBlockRepository);
         GenerateSession generateSession = new GenerateSession(authorizationDataRepository);
-        this.authenticateUseCase = new AuthenticateUseCase(verifyCredentials, bruteForceGuard, generateSession);
+        CleanBruteForceRecords cleanBruteForceRecords = new CleanBruteForceRecords(failedAuthenticationRepository, authenticationBlockRepository);
+        UpdateBruteForceRecords updateBruteForceRecords = new UpdateBruteForceRecords(failedAuthenticationRepository);
+        this.authenticateUseCase = new AuthenticateUseCase(verifyCredentials, bruteForceGuard, generateSession, cleanBruteForceRecords, updateBruteForceRecords);
     }
 
     // background

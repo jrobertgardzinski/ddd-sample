@@ -5,7 +5,9 @@ import com.jrobertgardzinski.security.application.event.AuthenticationFailed;
 import com.jrobertgardzinski.security.application.event.AuthenticationPassed;
 import com.jrobertgardzinski.security.application.event.AuthenticationResult;
 import com.jrobertgardzinski.security.application.feature.BruteForceGuard;
+import com.jrobertgardzinski.security.application.feature.CleanBruteForceRecords;
 import com.jrobertgardzinski.security.application.feature.GenerateSession;
+import com.jrobertgardzinski.security.application.feature.UpdateBruteForceRecords;
 import com.jrobertgardzinski.security.application.feature.VerifyCredentials;
 import com.jrobertgardzinski.security.domain.entity.SessionTokens;
 import com.jrobertgardzinski.security.domain.event.authentication.AuthenticationEvent;
@@ -22,11 +24,15 @@ public class AuthenticateUseCase implements Function<AuthenticationRequest, Auth
     private final VerifyCredentials verifyCredentials;
     private final BruteForceGuard bruteForceGuard;
     private final GenerateSession generateSession;
+    private final CleanBruteForceRecords cleanBruteForceRecords;
+    private final UpdateBruteForceRecords updateBruteForceRecords;
 
-    public AuthenticateUseCase(VerifyCredentials verifyCredentials, BruteForceGuard bruteForceGuard, GenerateSession generateSession) {
+    public AuthenticateUseCase(VerifyCredentials verifyCredentials, BruteForceGuard bruteForceGuard, GenerateSession generateSession, CleanBruteForceRecords cleanBruteForceRecords, UpdateBruteForceRecords updateBruteForceRecords) {
         this.verifyCredentials = verifyCredentials;
         this.bruteForceGuard = bruteForceGuard;
         this.generateSession = generateSession;
+        this.cleanBruteForceRecords = cleanBruteForceRecords;
+        this.updateBruteForceRecords = updateBruteForceRecords;
     }
 
     @Override
@@ -42,10 +48,12 @@ public class AuthenticateUseCase implements Function<AuthenticationRequest, Auth
                 AuthenticationEvent authenticationEvent = verifyCredentials.apply(credentials);
                 switch (authenticationEvent) {
                     case AuthenticationPassedEvent authenticationPassedEvent -> {
+                        cleanBruteForceRecords.accept(ip);
                         SessionTokens sessionTokens = generateSession.apply(authenticationPassedEvent);
                         return new AuthenticationPassed(sessionTokens);
                     }
                     case AuthenticationFailedEvent authenticationFailedEvent -> {
+                        updateBruteForceRecords.accept(ip);
                         return new AuthenticationFailed();
                     }
                 }
