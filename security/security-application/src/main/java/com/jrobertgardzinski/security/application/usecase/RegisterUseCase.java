@@ -1,4 +1,4 @@
-package com.jrobertgardzinski.security.application.usecase.register;
+package com.jrobertgardzinski.security.application.usecase;
 
 import com.jrobertgardzinski.hash.algorithm.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.password.policy.domain.StrongPasswordPolicyAdapter;

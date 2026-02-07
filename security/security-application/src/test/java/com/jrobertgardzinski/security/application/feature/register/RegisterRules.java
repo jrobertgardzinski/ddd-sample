@@ -2,8 +2,8 @@ package com.jrobertgardzinski.security.application.feature.register;
 
 import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubHashAlgorithm;
 import com.jrobertgardzinski.security.application.feature.register.context.dependency.StubUserRepository;
-import com.jrobertgardzinski.security.application.usecase.register.RegisterResult;
-import com.jrobertgardzinski.security.application.usecase.register.RegisterUseCase;
+import com.jrobertgardzinski.security.application.usecase.RegisterResult;
+import com.jrobertgardzinski.security.application.usecase.RegisterUseCase;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationFailedEvent;
 import com.jrobertgardzinski.security.domain.event.registration.RegistrationPassedEvent;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;

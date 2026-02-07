@@ -14,11 +14,11 @@ import com.jrobertgardzinski.security.domain.vo.PlaintextPassword;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class Authenticate implements Function<Credentials, AuthenticationEvent> {
+public class VerifyCredentials implements Function<Credentials, AuthenticationEvent> {
     private final UserRepository userRepository;
     private final HashAlgorithmPort hashAlgorithmPort;
 
-    public Authenticate(UserRepository userRepository, HashAlgorithmPort hashAlgorithmPort) {
+    public VerifyCredentials(UserRepository userRepository, HashAlgorithmPort hashAlgorithmPort) {
         this.userRepository = userRepository;
         this.hashAlgorithmPort = hashAlgorithmPort;
     }

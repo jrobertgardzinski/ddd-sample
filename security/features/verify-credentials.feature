@@ -1,4 +1,4 @@
-Feature: authenticate
+Feature: verify credentials
 
   User authentication
 

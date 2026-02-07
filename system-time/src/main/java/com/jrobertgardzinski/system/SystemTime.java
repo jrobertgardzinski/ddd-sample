@@ -2,7 +2,6 @@ package com.jrobertgardzinski.system;
 
 import java.time.Clock;
 
-// todo move package to system
 public class SystemTime {
     private static Clock clock = Clock.systemDefaultZone();
 
