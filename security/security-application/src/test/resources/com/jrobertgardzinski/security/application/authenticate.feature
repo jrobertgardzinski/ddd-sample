@@ -38,3 +38,16 @@ Feature: authenticate
         And the IP has 3 recorded failures
         When the user authenticates with email "user@gmail.com" and password "StrongPassword1!"
         Then the authentication result is blocked
+
+    Rule: 4. Only failures from the last 15 minutes count
+
+        Scenario Outline:
+        Given the IP has no blockade
+        And the IP has 3 failures recorded <minutes_ago> minutes ago
+        When the user authenticates with email "user@gmail.com" and password "StrongPassword1!"
+        Then the authentication result is <result>
+
+        Examples:
+        | minutes_ago | result  |
+        | 15          | passed  |
+        | 14          | blocked |

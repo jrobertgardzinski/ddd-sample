@@ -55,6 +55,15 @@ public class BruteForceGuardRules {
         }
     }
 
+    @Given("{int} failures recorded {int} minutes ago for the IP")
+    public void givenOldFailures(int count, int minutesAgo) {
+        LocalDateTime time = LocalDateTime.now().minusMinutes(minutesAgo);
+        for (int i = 0; i < count; i++) {
+            failedAuthenticationRepository.create(
+                    new FailedAuthenticationDetails(ipAddress, time));
+        }
+    }
+
     @Given("an active blockade exists for the IP")
     public void givenActiveBlockade() {
         authenticationBlockRepository.create(

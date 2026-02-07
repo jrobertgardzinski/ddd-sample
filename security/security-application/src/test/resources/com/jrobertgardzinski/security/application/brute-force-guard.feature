@@ -31,3 +31,16 @@ Feature: brute force guard
         Given an active blockade exists for the IP
         When the brute force guard checks the IP
         Then the guard blocks the authentication
+
+    Rule: 4. Guard only counts failures from the last 15 minutes
+
+        Scenario Outline:
+        Given no blockade is set for the IP
+        And 3 failures recorded <minutes_ago> minutes ago for the IP
+        When the brute force guard checks the IP
+        Then the guard <result>
+
+        Examples:
+            | minutes_ago | result                            |
+            | 15          | lets the authentication through   |
+            | 14          | blocks the authentication         |

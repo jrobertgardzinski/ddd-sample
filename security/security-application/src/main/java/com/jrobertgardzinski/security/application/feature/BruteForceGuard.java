@@ -33,7 +33,8 @@ public class BruteForceGuard implements Function<IpAddress, BruteForceProtection
             AuthenticationBlock authenticationBlock = optionalAuthenticationBlock.get();
             return new Blocked(authenticationBlock);
         }
-        FailuresCount failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress);
+        LocalDateTime since = LocalDateTime.now(SystemTime.currentClock()).minusMinutes(15);
+        FailuresCount failuresCount = failedAuthenticationRepository.countFailuresBy(ipAddress, since);
         if (failuresCount.hasReachedTheLimit()) {
             failedAuthenticationRepository.removeAllFor(ipAddress);
             int minutes = new Random().nextInt(8) + 3;

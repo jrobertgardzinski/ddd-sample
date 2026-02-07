@@ -85,6 +85,15 @@ public class AuthenticateRules {
         }
     }
 
+    @Given("the IP has {int} failures recorded {int} minutes ago")
+    public void givenOldFailures(int count, int minutesAgo) {
+        LocalDateTime time = LocalDateTime.now().minusMinutes(minutesAgo);
+        for (int i = 0; i < count; i++) {
+            failedAuthenticationRepository.create(
+                    new FailedAuthenticationDetails(ipAddress, time));
+        }
+    }
+
     @Given("the IP has an active blockade")
     public void givenActiveBlockade() {
         authenticationBlockRepository.create(

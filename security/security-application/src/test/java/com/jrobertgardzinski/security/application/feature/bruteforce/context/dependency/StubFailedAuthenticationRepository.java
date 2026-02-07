@@ -7,6 +7,7 @@ import com.jrobertgardzinski.security.domain.vo.FailedAuthetincationId;
 import com.jrobertgardzinski.security.domain.vo.FailuresCount;
 import com.jrobertgardzinski.security.domain.vo.IpAddress;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +23,10 @@ public class StubFailedAuthenticationRepository implements FailedAuthenticationR
     }
 
     @Override
-    public FailuresCount countFailuresBy(IpAddress ipAddress) {
+    public FailuresCount countFailuresBy(IpAddress ipAddress, LocalDateTime since) {
         int count = (int) records.stream()
                 .filter(r -> r.ipAddress().equals(ipAddress))
+                .filter(r -> !r.time().isBefore(since))
                 .count();
         return new FailuresCount(count);
     }
