@@ -13,21 +13,13 @@
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>system-time</artifactId>
-            <version>0.1-SNAPSHOT</version>
             <scope>provided</scope>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
-        <dependency>
-            <groupId>commons-validator</groupId>
-            <artifactId>commons-validator</artifactId>
-            <version>1.10.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>test-starter</artifactId>
+            <artifactId>unit-test-starter</artifactId>
             <scope>test</scope>
-            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>

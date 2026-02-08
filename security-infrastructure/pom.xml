@@ -14,35 +14,29 @@
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-model</artifactId>
-            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-persistence</artifactId>
-            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-system</artifactId>
-            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-application</artifactId>
-            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>hash-algorithm-argon2</artifactId>
-            <version>0.1-SNAPSHOT</version>
         </dependency>
 <!--        todo a place for micronaut starter-->
 
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>test-starter</artifactId>
+            <artifactId>unit-test-starter</artifactId>
             <scope>test</scope>
-            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>

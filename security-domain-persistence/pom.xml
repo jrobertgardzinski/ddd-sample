@@ -14,13 +14,11 @@
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>system-time</artifactId>
-            <version>0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-model</artifactId>
-            <version>0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
