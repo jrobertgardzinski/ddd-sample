@@ -14,7 +14,10 @@
         <module>security-domain-persistence</module>
         <module>hash-algorithm</module>
         <module>password-policy</module>
-        <module>security</module>
+        <module>security-domain-event</module>
+        <module>security-system</module>
+        <module>security-application</module>
+        <module>security-infrastructure</module>
     </modules>
 
     <properties>

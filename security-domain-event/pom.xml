@@ -3,40 +3,32 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jrobertgardzinski</groupId>
-        <artifactId>security</artifactId>
+        <artifactId>ddd-sample</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>security-infrastructure</artifactId>
-    <!--todo should I keep version in each module or should I leave it to parent? Like removing version tag from here and it will use the "security" version maybe? Ok. Then I will get the version from the line 7. -->
+    <artifactId>security-domain-event</artifactId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
+
     <dependencies>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-model</artifactId>
             <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-persistence</artifactId>
             <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>security-system</artifactId>
+            <artifactId>hash-algorithm-domain</artifactId>
             <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>security-application</artifactId>
-            <version>0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>hash-algorithm-argon2</artifactId>
-            <version>0.1-SNAPSHOT</version>
-        </dependency>
-<!--        todo a place for micronaut starter-->
 
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
