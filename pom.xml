@@ -9,9 +9,7 @@
     <packaging>pom</packaging>
     <modules>
 <!--        domain-->
-        <module>security-domain-model</module>
-        <module>security-domain-persistence</module>
-        <module>security-domain-event</module>
+        <module>security-domain</module>
 <!--        additional-->
         <module>hash-algorithm</module>
         <module>password-policy</module>
@@ -19,13 +17,13 @@
         <module>security-system</module>
         <module>security-application</module>
         <module>security-infrastructure</module>
-        <module>security-domain</module>
     </modules>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <security-domain.version>0.1-SNAPSHOT</security-domain.version>
     </properties>
 
     <dependencyManagement>
@@ -82,17 +80,17 @@
             <dependency>
                 <groupId>com.jrobertgardzinski</groupId>
                 <artifactId>security-domain-model</artifactId>
-                <version>0.1-SNAPSHOT</version>
+                <version>${security-domain.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.jrobertgardzinski</groupId>
                 <artifactId>security-domain-persistence</artifactId>
-                <version>0.1-SNAPSHOT</version>
+                <version>${security-domain.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.jrobertgardzinski</groupId>
                 <artifactId>security-domain-event</artifactId>
-                <version>0.1-SNAPSHOT</version>
+                <version>${security-domain.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.jrobertgardzinski</groupId>

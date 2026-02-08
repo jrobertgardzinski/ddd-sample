@@ -3,34 +3,22 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jrobertgardzinski</groupId>
-        <artifactId>ddd-sample</artifactId>
+        <artifactId>security-domain</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>security-domain-event</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <artifactId>security-domain-persistence</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>system-time</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jrobertgardzinski</groupId>
             <artifactId>security-domain-model</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>security-domain-persistence</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>hash-algorithm-domain</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.jrobertgardzinski</groupId>
-            <artifactId>unit-test-starter</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
