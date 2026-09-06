@@ -82,6 +82,17 @@ security:
   # mfa.min.factors.admin: 3                # >= 1
   # session.access.token.validity.hours: 1  # >= 1
   # session.refresh.token.validity.hours: 24 # >= 1
+  #
+  # The step-up requirement per sensitive action (the catalogue is StepUpAction in security-domain;
+  # each constant ships its default): NONE, SECOND_FACTORS or FULL_CHAIN, anything else fails the boot.
+  # step.up.delete.account: FULL_CHAIN
+  # step.up.admin.reset: FULL_CHAIN
+  # step.up.enrol.factor: SECOND_FACTORS
+  # step.up.remove.factor: SECOND_FACTORS
+  # step.up.generate.recovery.codes: SECOND_FACTORS
+  # step.up.change.email: FULL_CHAIN
+  # step.up.admin.roles: FULL_CHAIN
+  # step.up.admin.settings: FULL_CHAIN
   saga:
     # The saga-listener lamp's stall tolerance, wired to an environment variable ON PURPOSE rather
     # than left to the @Value default. OffboardingListenerHealth refuses to start on a value below

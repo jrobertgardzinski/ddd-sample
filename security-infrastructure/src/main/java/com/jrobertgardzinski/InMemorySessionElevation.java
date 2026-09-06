@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.security.system.mfa.SessionElevation;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -30,21 +31,21 @@ final class InMemorySessionElevation implements SessionElevation {
     }
 
     @Override
-    public void elevate(String accessToken, String action) {
+    public void elevate(String accessToken, StepUpAction action) {
         elevatedUntil.put(key(accessToken, action), clock.instant().plus(ttl));
     }
 
     @Override
-    public boolean consume(String accessToken, String action) {
+    public boolean consume(String accessToken, StepUpAction action) {
         Instant until = elevatedUntil.remove(key(accessToken, action));
         return until != null && clock.instant().isBefore(until);
     }
 
     /** Token and action together — an elevation for one action never satisfies another (poz. 1). */
-    private static String key(String accessToken, String action) {
+    private static String key(String accessToken, StepUpAction action) {
         // NUL separates the two parts: a base64url access token never contains it, so
         // (token, action) pairs cannot collide across a shared token.
-        return accessToken + "\u0000" + action;
+        return accessToken + "\u0000" + action.wire();
     }
 
     /** Drops elevations whose TTL has passed so an unclaimed mark cannot pile up unbounded (poz. 17). */

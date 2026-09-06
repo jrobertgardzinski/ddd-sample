@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -46,7 +47,7 @@ final class AdminFactorsController {
         if (notAnAdmin.isPresent()) {
             return notAnAdmin.get();
         }
-        Optional<HttpResponse<Map<String, Object>>> stepUp = stepUpGuard.requireElevation(request, "admin-reset");
+        Optional<HttpResponse<Map<String, Object>>> stepUp = stepUpGuard.requireElevation(request, StepUpAction.ADMIN_RESET);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }

@@ -103,6 +103,42 @@ class StepUpCoverageTest {
                         + " which is exactly how a stolen session becomes permanent");
     }
 
+    /**
+     * The catalogue and the endpoints agree: every {@link StepUpAction} is consumed by some
+     * controller (a constant nobody guards with is a requirement the deployment configures for
+     * nothing), and every endpoint that must step up names its action from the catalogue - the
+     * only way an action reaches the policy, so a string that is not in the catalogue cannot
+     * quietly fall to the strictest requirement, or to none.
+     */
+    @Test
+    void the_catalogue_of_actions_and_the_endpoints_agree() throws IOException {
+        Map<String, String> sources = new java.util.TreeMap<>();
+        try (Stream<Path> files = walkAll()) {
+            files.filter(path -> path.getFileName().toString().endsWith("Controller.java"))
+                    .forEach(path -> sources.put(path.getFileName().toString().replace(".java", ""), read(path)));
+        }
+        List<String> orphans = java.util.Arrays.stream(com.jrobertgardzinski.security.domain.vo.StepUpAction.values())
+                .filter(action -> sources.values().stream().noneMatch(source -> source.contains("StepUpAction." + action.name())))
+                .map(Enum::name)
+                .toList();
+        assertEquals(List.of(), orphans,
+                "these actions are in the catalogue but no endpoint consumes an elevation for them: " + orphans);
+
+        List<String> unnamed = MUST_STEP_UP.keySet().stream().sorted()
+                .filter(controller -> !sources.getOrDefault(controller, "").contains("StepUpAction."))
+                .toList();
+        assertEquals(List.of(), unnamed,
+                "these endpoints step up without naming their action from the catalogue: " + unnamed);
+    }
+
+    private static String read(Path path) {
+        try {
+            return Files.readString(path);
+        } catch (IOException unreadable) {
+            throw new IllegalStateException("cannot read " + path, unreadable);
+        }
+    }
+
     private static Set<String> controllers() throws IOException {
         try (Stream<Path> files = walkAll()) {
             return files.map(Path::getFileName)

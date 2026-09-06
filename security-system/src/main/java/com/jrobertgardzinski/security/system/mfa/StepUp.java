@@ -1,5 +1,7 @@
 package com.jrobertgardzinski.security.system.mfa;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpRequirement;
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.password.domain.HashAlgorithmPort;
 import com.jrobertgardzinski.password.domain.PlaintextPassword;
@@ -58,9 +60,9 @@ public class StepUp {
         this.clock = clock;
     }
 
-    public Result start(Email email, String action, String accessToken, String passwordAttempt) {
-        String requirement = policy.requirementFor(action);
-        if (StepUpPolicy.NONE.equals(requirement)) {
+    public Result start(Email email, StepUpAction action, String accessToken, String passwordAttempt) {
+        StepUpRequirement requirement = policy.requirementFor(action);
+        if (requirement == StepUpRequirement.NONE) {
             elevation.elevate(accessToken, action);
             return new Result.Elevated();
         }
@@ -70,7 +72,7 @@ public class StepUp {
         // the live session alone, which turned any non-NONE action into "a stolen token is enough".
         // A passwordless (federated) account has nothing to prove here — its live session is all it
         // ever has — so it keeps the direct elevation.
-        boolean mustProvePassword = StepUpPolicy.FULL_CHAIN.equals(requirement) || enrolled.isEmpty();
+        boolean mustProvePassword = requirement == StepUpRequirement.FULL_CHAIN || enrolled.isEmpty();
         if (mustProvePassword && !passwordless.isPasswordless(email)
                 && !passwordMatches(email, passwordAttempt)) {
             return new Result.WrongPassword();

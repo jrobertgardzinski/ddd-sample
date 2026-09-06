@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.security.system.mfa.SessionElevation;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -24,13 +25,13 @@ public final class StepUpGuard {
     }
 
     /** A 403 response if the caller has not stepped up, otherwise empty (proceed). */
-    public Optional<HttpResponse<Map<String, Object>>> requireElevation(HttpRequest<?> request, String action) {
+    public Optional<HttpResponse<Map<String, Object>>> requireElevation(HttpRequest<?> request, StepUpAction action) {
         String token = Caller.bearerToken(request);
         if (token != null && elevation.consume(token, action)) {
             return Optional.empty();
         }
         return Optional.of(HttpResponse.<Map<String, Object>>status(HttpStatus.FORBIDDEN)
-                .body(Map.of("status", "STEP_UP_REQUIRED", "action", action)));
+                .body(Map.of("status", "STEP_UP_REQUIRED", "action", action.wire())));
     }
 
     public static String bearerToken(HttpRequest<?> request) {

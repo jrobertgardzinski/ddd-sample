@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -49,7 +50,13 @@ final class StepUpController {
         }
         Email email = Email.of(request.getAttribute(Caller.ATTRIBUTE, String.class).orElseThrow());
         String token = StepUpGuard.bearerToken(request);
-        return respond(stepUp.start(email, body.getOrDefault("action", ""), token, body.get("password")));
+        // the action must be one of the catalogue: an unknown name is a client error, not an
+        // elevation minted for something nobody would ever consume
+        java.util.Optional<StepUpAction> action = StepUpAction.fromWire(body.getOrDefault("action", ""));
+        if (action.isEmpty()) {
+            return HttpResponse.badRequest(Map.of("status", "UNKNOWN_ACTION"));
+        }
+        return respond(stepUp.start(email, action.get(), token, body.get("password")));
     }
 
     @Post(value = "/factor", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)

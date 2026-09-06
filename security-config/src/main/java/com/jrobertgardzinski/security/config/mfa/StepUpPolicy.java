@@ -1,45 +1,46 @@
 package com.jrobertgardzinski.security.config.mfa;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
+import com.jrobertgardzinski.security.domain.vo.StepUpRequirement;
+
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * How much a sensitive action must be re-proven — step-up authentication. Per action, one of
- * {@code NONE} (a live session is enough), {@code SECOND_FACTORS} (re-pass the enrolled factors)
- * or {@code FULL_CHAIN} (re-enter the password AND re-pass the factors). Config, overridable per
- * deployment ({@code security.step-up.<action>}); keyed by an action name so the layer stays
- * independent of the endpoints. Defaults: deleting an account is FULL_CHAIN, changing a password is
- * SECOND_FACTORS (the old password is already required inline there).
+ * The requirement for every action in the catalogue, complete by construction: a policy that
+ * leaves an action out is refused, so there is no "action nobody configured" to fall open or
+ * closed on - the catalogue is {@link StepUpAction}, and the compiler keeps it whole.
  */
-public record StepUpPolicy(Map<String, String> byAction) {
-
-    public static final String NONE = "NONE";
-    public static final String SECOND_FACTORS = "SECOND_FACTORS";
-    public static final String FULL_CHAIN = "FULL_CHAIN";
+public record StepUpPolicy(Map<StepUpAction, StepUpRequirement> byAction) {
 
     public StepUpPolicy {
-        byAction = Map.copyOf(byAction);
-        // a typo in a per-action requirement (e.g. FULL_CHAN) must not silently degrade to "a live
-        // session is enough" — reject unknown values at start, the way parseParticipants does in
-        // offboarding, so a misconfiguration fails loudly instead of dropping the guard.
-        byAction.forEach((action, requirement) -> {
-            if (!NONE.equals(requirement) && !SECOND_FACTORS.equals(requirement)
-                    && !FULL_CHAIN.equals(requirement)) {
-                throw new IllegalArgumentException("step-up requirement for '" + action
-                        + "' must be one of NONE, SECOND_FACTORS, FULL_CHAIN but was '" + requirement + "'");
+        byAction = Map.copyOf(new EnumMap<>(byAction));
+        for (StepUpAction action : StepUpAction.values()) {
+            if (!byAction.containsKey(action)) {
+                throw new IllegalArgumentException("step-up policy leaves '" + action.wire() + "' without a requirement");
             }
-        });
+        }
     }
 
-    /**
-     * The requirement for an action. An action nobody configured is treated as the strictest
-     * ({@code FULL_CHAIN}): a new sensitive endpoint that forgot to register its policy must fail
-     * closed (re-prove everything), never open (a live session is enough).
-     */
-    public String requirementFor(String action) {
-        return byAction.getOrDefault(action, FULL_CHAIN);
+    public static StepUpPolicy of(Collection<StepUpFor> requirements) {
+        Map<StepUpAction, StepUpRequirement> byAction = new EnumMap<>(StepUpAction.class);
+        for (StepUpFor each : requirements) {
+            byAction.put(each.action(), each.requirement());
+        }
+        return new StepUpPolicy(byAction);
     }
 
+    public StepUpRequirement requirementFor(StepUpAction action) {
+        return byAction.get(action);
+    }
+
+    /** Every action at the requirement the code ships. */
     public static StepUpPolicy withDefaults() {
-        return new StepUpPolicy(Map.of("delete-account", FULL_CHAIN, "change-password", SECOND_FACTORS));
+        Map<StepUpAction, StepUpRequirement> byAction = new EnumMap<>(StepUpAction.class);
+        for (StepUpAction action : StepUpAction.values()) {
+            byAction.put(action, action.defaultRequirement());
+        }
+        return new StepUpPolicy(byAction);
     }
 }

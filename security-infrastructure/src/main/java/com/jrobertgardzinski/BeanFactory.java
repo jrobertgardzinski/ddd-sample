@@ -1,5 +1,7 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpRequirement;
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.config.ladder.ConfigLadder;
 import com.jrobertgardzinski.config.ladder.Parse;
 import com.jrobertgardzinski.config.ladder.Rung;
@@ -491,31 +493,22 @@ public class BeanFactory {
                 new AdminMinFactors(restartBound(AdminMinFactors.DEFAULT, AdminMinFactors::new, properties)));
     }
 
-    @Singleton
-    com.jrobertgardzinski.security.config.mfa.StepUpPolicy stepUpPolicy(
-            @io.micronaut.context.annotation.Value("${security.step-up.delete-account:FULL_CHAIN}") String deleteAccount,
-            @io.micronaut.context.annotation.Value("${security.step-up.change-password:SECOND_FACTORS}") String changePassword,
-            // resetting another user's factors is as destructive as deleting an account, so it is
-            // FULL_CHAIN by default and pinned here explicitly — an elevation minted for it must not
-            // ride over to delete-account (the elevation key carries the action, see SessionElevation)
-            @io.micronaut.context.annotation.Value("${security.step-up.admin-reset:FULL_CHAIN}") String adminReset,
-            // enrolling or removing a factor rewrites what it takes to sign in; a stolen live session
-            // must re-prove itself first, or it could add an attacker-held factor / strip the owner's
-            @io.micronaut.context.annotation.Value("${security.step-up.enrol-factor:SECOND_FACTORS}") String enrolFactor,
-            @io.micronaut.context.annotation.Value("${security.step-up.remove-factor:SECOND_FACTORS}") String removeFactor,
-            // spare keys, the address itself and a granted role: each hands a live session
-            // something durable, so each asks for fresh proof (P18 follow-up, StepUpCoverageTest)
-            @io.micronaut.context.annotation.Value("${security.step-up.generate-recovery-codes:SECOND_FACTORS}") String recoveryCodes,
-            @io.micronaut.context.annotation.Value("${security.step-up.change-email:FULL_CHAIN}") String changeEmail,
-            @io.micronaut.context.annotation.Value("${security.step-up.admin-roles:FULL_CHAIN}") String adminRoles,
-            // the password policy binds every future password in the estate; a stolen admin
-            // session must not be able to lower the floor on a live token alone
-            @io.micronaut.context.annotation.Value("${security.step-up.admin-settings:FULL_CHAIN}") String adminSettings) {
-        return new com.jrobertgardzinski.security.config.mfa.StepUpPolicy(
-                java.util.Map.of("delete-account", deleteAccount, "change-password", changePassword,
-                        "admin-reset", adminReset, "enrol-factor", enrolFactor, "remove-factor", removeFactor,
-                        "generate-recovery-codes", recoveryCodes, "change-email", changeEmail,
-                        "admin-roles", adminRoles, "admin-settings", adminSettings));
+    /**
+     * The step-up requirement per action, one ladder per entry of the {@link StepUpAction}
+     * catalogue: the deployment's property ({@code security.step.up.<action>}) over the requirement
+     * the code ships. A property that is not NONE, SECOND_FACTORS or FULL_CHAIN fails the boot,
+     * by name; an action the catalogue does not know does not compile.
+     */
+    @Context
+    com.jrobertgardzinski.security.config.mfa.StepUpPolicy stepUpPolicy(RestartConfigPort<String> properties) {
+        java.util.List<com.jrobertgardzinski.security.config.mfa.StepUpFor> requirements = new java.util.ArrayList<>();
+        for (StepUpAction action : StepUpAction.values()) {
+            requirements.add(new com.jrobertgardzinski.security.config.mfa.StepUpFor(action,
+                    ConfigLadder.of(action.key(), requirement -> { },
+                            Rung.restart(properties, StepUpRequirement::parse),
+                            Rung.rebuild(action.defaultRequirement())).resolve()));
+        }
+        return com.jrobertgardzinski.security.config.mfa.StepUpPolicy.of(requirements);
     }
 
     @Singleton

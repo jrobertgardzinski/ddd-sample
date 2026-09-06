@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -51,7 +52,7 @@ final class EmailChangeController {
         // learn about it from a notice. Guarded where the change STARTS; the confirmation itself
         // still needs the token mailed to that new address.
         java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
-                stepUpGuard.requireElevation(request, "change-email");
+                stepUpGuard.requireElevation(request, StepUpAction.CHANGE_EMAIL);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }

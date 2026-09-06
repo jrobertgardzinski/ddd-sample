@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.security.system.mfa.PendingAuthentication;
 import com.jrobertgardzinski.security.system.mfa.StepUpStore;
@@ -24,7 +25,7 @@ class InMemoryStepUpStoreTest {
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-30T12:00:00Z"), ZoneOffset.UTC);
 
     private StepUpStore.StepUpPending pending(LocalDateTime expiresAt) {
-        return new StepUpStore.StepUpPending(Email.of("user@example.com"), "access-token", "delete-account",
+        return new StepUpStore.StepUpPending(Email.of("user@example.com"), "access-token", StepUpAction.DELETE_ACCOUNT,
                 new PendingAuthentication(Email.of("user@example.com"), List.of(), null, 3, expiresAt));
     }
 

@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.config.ladder.Resolution;
 import com.jrobertgardzinski.security.domain.vo.Role;
 import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
@@ -28,7 +29,7 @@ import java.util.Optional;
 @Controller("/admin/settings/password")
 final class AdminPasswordPolicyController {
 
-    static final String STEP_UP_ACTION = "admin-settings";
+    static final StepUpAction STEP_UP_ACTION = StepUpAction.ADMIN_SETTINGS;
 
     private final SetMinPasswordLength setMinPasswordLength;
     private final LadderedPasswordPolicy policy;

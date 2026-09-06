@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -44,7 +45,7 @@ final class DeleteAccountController {
     HttpResponse<Map<String, Object>> delete(HttpRequest<?> request, @Body @Nullable Map<String, Map<String, String>> body) {
         // deleting an account is irreversible: a live session is not enough, the caller must have
         // just stepped up (the thief of a live session would have to pass the chain too)
-        Optional<HttpResponse<Map<String, Object>>> stepUp = stepUpGuard.requireElevation(request, "delete-account");
+        Optional<HttpResponse<Map<String, Object>>> stepUp = stepUpGuard.requireElevation(request, StepUpAction.DELETE_ACCOUNT);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }

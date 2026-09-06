@@ -1,5 +1,6 @@
 package com.jrobertgardzinski.security.system.mfa;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 /**
  * A short-lived, one-shot "recently re-proven" mark for step-up authentication, keyed by the
  * caller's access token AND the action it was proven for. A sensitive action mints it after the
@@ -11,8 +12,8 @@ package com.jrobertgardzinski.security.system.mfa;
  */
 public interface SessionElevation {
 
-    void elevate(String accessToken, String action);
+    void elevate(String accessToken, StepUpAction action);
 
     /** True and cleared if the token holds a live elevation for this action; false otherwise (one-shot). */
-    boolean consume(String accessToken, String action);
+    boolean consume(String accessToken, StepUpAction action);
 }

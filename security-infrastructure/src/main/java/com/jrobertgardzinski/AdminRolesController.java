@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -52,7 +53,7 @@ final class AdminRolesController {
         // must prove itself again before handing that out — the same rule the factor reset next
         // door already follows.
         java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
-                stepUpGuard.requireElevation(request, "admin-roles");
+                stepUpGuard.requireElevation(request, StepUpAction.ADMIN_ROLES);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }

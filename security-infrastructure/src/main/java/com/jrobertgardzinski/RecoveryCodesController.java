@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -47,7 +48,7 @@ final class RecoveryCodesController {
         // recovery codes are spare keys: shown once, and each one signs in when a factor is out of
         // reach. A merely-live session must not be able to mint itself a set and keep them.
         java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
-                stepUpGuard.requireElevation(request, "generate-recovery-codes");
+                stepUpGuard.requireElevation(request, StepUpAction.GENERATE_RECOVERY_CODES);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }

@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 
 
 import com.jrobertgardzinski.email.domain.Email;
@@ -73,7 +74,7 @@ final class FactorsController {
         // must step up first — otherwise a thief adds an attacker-held factor and locks the owner out.
         // Guarding start alone is enough: confirm needs a pending enrolment only a guarded start mints.
         java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
-                stepUpGuard.requireElevation(request, "enrol-factor");
+                stepUpGuard.requireElevation(request, StepUpAction.ENROL_FACTOR);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }
@@ -107,7 +108,7 @@ final class FactorsController {
         }
         // dropping a factor weakens the account, so a stolen live session must step up to do it
         java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
-                stepUpGuard.requireElevation(request, "remove-factor");
+                stepUpGuard.requireElevation(request, StepUpAction.REMOVE_FACTOR);
         if (stepUp.isPresent()) {
             return stepUp.get();
         }

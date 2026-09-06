@@ -103,24 +103,32 @@ class StepUpHttpTest {
     }
 
     @Test
-    @DisplayName("an elevation earned for another action does not unlock delete; no password never elevates (poz. 1)")
+    @DisplayName("an unknown action is refused outright; an elevation earned for another action does not unlock delete (poz. 1)")
     void a_stolen_token_cannot_delete_via_a_cheap_or_unknown_action() {
         String email = "poz1@example.com";
         String token = onboard(email);   // has a password, no factors
 
-        // an unknown action falls closed to FULL_CHAIN, so without the password it never elevates
+        // an action outside the catalogue is a client error - no elevation is ever minted for it,
+        // so there is nothing to fall open or closed on
+        HttpResponse<Map> unknown = exchange(HttpRequest.POST("/account/step-up",
+                        Map.of("action", "some-unknown-action", "password", PASSWORD))
+                .header("Authorization", "Bearer " + token));
+        assertEquals(HttpStatus.BAD_REQUEST, unknown.getStatus());
+        assertEquals("UNKNOWN_ACTION", unknown.getBody(Map.class).orElseThrow().get("status"));
+
+        // a catalogue action at FULL_CHAIN never elevates without the password
         HttpResponse<Map> noPassword = exchange(HttpRequest.POST("/account/step-up",
-                        Map.of("action", "some-unknown-action"))
+                        Map.of("action", "admin-reset"))
                 .header("Authorization", "Bearer " + token));
         assertEquals(HttpStatus.UNAUTHORIZED, noPassword.getStatus());
 
         // even WITH the password, the elevation is minted for that action alone
         HttpResponse<Map> elevated = exchange(HttpRequest.POST("/account/step-up",
-                        Map.of("action", "some-unknown-action", "password", PASSWORD))
+                        Map.of("action", "admin-reset", "password", PASSWORD))
                 .header("Authorization", "Bearer " + token));
         assertEquals(HttpStatus.OK, elevated.getStatus());
 
-        // and it must NOT open delete-account — the delete still demands its own step-up
+        // and it must NOT open delete-account - the delete still demands its own step-up
         assertEquals(HttpStatus.FORBIDDEN, delete(token).getStatus());
     }
 

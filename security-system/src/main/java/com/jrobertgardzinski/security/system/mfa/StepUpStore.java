@@ -1,5 +1,6 @@
 package com.jrobertgardzinski.security.system.mfa;
 
+import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.email.domain.Email;
 
 import java.util.Optional;
@@ -11,7 +12,7 @@ import java.util.Optional;
  */
 public interface StepUpStore {
 
-    record StepUpPending(Email email, String accessToken, String action, PendingAuthentication chain) {}
+    record StepUpPending(Email email, String accessToken, StepUpAction action, PendingAuthentication chain) {}
 
     String open(StepUpPending pending);
 
