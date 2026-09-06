@@ -41,11 +41,18 @@ class LadderedPasswordPolicyRulesTest {
         return new LadderedPasswordPolicy(new Configuration(table, deployment));
     }
 
+    @SuppressWarnings("unchecked")
+    private Resolution<MinLength> minLengthResolution() {
+        return (Resolution<MinLength>) policy().inForce().get(MinLength.KEY);
+    }
+
     @Test
     @DisplayName("nothing set anywhere → the library's defaults, every rule from the rebuild level")
     void defaultsWhenEveryLevelIsVacant() {
         assertThat(policy().current()).isEqualTo(PasswordPolicy.withDefaults());
-        assertThat(policy().minLengthResolution().source()).isEqualTo(Level.REBUILD.label());
+        assertThat(policy().inForce()).containsOnlyKeys(MinLength.KEY, SpecialChars.KEY, RequiresUppercase.KEY,
+                RequiresLowercase.KEY, RequiresDigit.KEY);
+        policy().inForce().values().forEach(resolution -> assertThat(resolution.source()).isEqualTo(Level.REBUILD.label()));
     }
 
     @Test
@@ -71,7 +78,7 @@ class LadderedPasswordPolicyRulesTest {
         PasswordPolicy current = policy().current();
         assertThat(current.minLength()).isEqualTo(new MinLength(live));
         assertThat(current.requiresDigit()).isEqualTo(new RequiresDigit(false));
-        assertThat(policy().minLengthResolution().source()).isEqualTo(Level.LIVE.label());
+        assertThat(minLengthResolution().source()).isEqualTo(Level.LIVE.label());
     }
 
     @Test
@@ -92,7 +99,7 @@ class LadderedPasswordPolicyRulesTest {
     void illegalRowFallsThrough(int held) {
         Allure.parameter("row", held);
         rows.put(MinLength.KEY, Integer.toString(held));
-        Resolution<MinLength> resolution = policy().minLengthResolution();
+        Resolution<MinLength> resolution = minLengthResolution();
         assertThat(resolution.value()).isEqualTo(MinLength.DEFAULT);
         assertThat(resolution.source()).isEqualTo(Level.REBUILD.label());
         assertThat(resolution.rejected()).singleElement().satisfies(rejected -> {
@@ -107,7 +114,7 @@ class LadderedPasswordPolicyRulesTest {
         rows.put(MinLength.KEY, "ten");
         rows.put(RequiresDigit.KEY, "yes");
         assertThat(policy().current()).isEqualTo(PasswordPolicy.withDefaults());
-        assertThat(policy().minLengthResolution().rejected()).singleElement()
+        assertThat(minLengthResolution().rejected()).singleElement()
                 .satisfies(rejected -> assertThat(rejected.value()).isEqualTo("ten"));
     }
 

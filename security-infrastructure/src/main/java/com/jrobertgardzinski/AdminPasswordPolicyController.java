@@ -1,8 +1,8 @@
 package com.jrobertgardzinski;
 
 import com.jrobertgardzinski.security.domain.vo.StepUpAction;
+import com.jrobertgardzinski.config.ConfigValue;
 import com.jrobertgardzinski.config.ladder.Resolution;
-import com.jrobertgardzinski.password.config.MinLength;
 import com.jrobertgardzinski.security.domain.vo.Role;
 import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
 import io.micronaut.http.HttpRequest;
@@ -15,16 +15,18 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Admin-only: the minimum password length as a live decision. POST sets it through the use case,
- * so the value object is the only gate and a refused length changes nothing. GET reports the value
- * IN FORCE with its provenance: which level answered and what was refused on the way, in the
- * gate's own words — how an admin learns that a row written at the database console is not the
- * value the system uses. The caller must be an ADMIN, and setting the policy takes a fresh
- * step-up, since it binds every future password.
+ * Admin-only: the password policy in force and the minimum length as a live decision. GET reports
+ * EVERY rule of the policy under its key, each with its provenance: which level answered and
+ * what was refused on the way, in the gate's own words — how an admin learns that a row written
+ * at the database console, under any of the five keys, is not the value the system uses. POST
+ * sets the minimum length through the use case, so the value object is the only gate and a
+ * refused length changes nothing. The caller must be an ADMIN, and setting the policy takes a
+ * fresh step-up, since it binds every future password.
  */
 @ExecuteOn(TaskExecutors.BLOCKING)
 @Controller("/admin/settings/password")
@@ -46,13 +48,15 @@ final class AdminPasswordPolicyController {
         this.stepUpGuard = stepUpGuard;
     }
 
-    @Get(value = "/min-length", produces = MediaType.APPLICATION_JSON)
+    @Get(produces = MediaType.APPLICATION_JSON)
     HttpResponse<Map<String, Object>> report(HttpRequest<?> request) {
         Optional<HttpResponse<Map<String, Object>>> notAnAdmin = roleGuard.require(request, Role.ADMIN);
         if (notAnAdmin.isPresent()) {
             return notAnAdmin.get();
         }
-        return HttpResponse.ok(report(policy.minLengthResolution()));
+        Map<String, Object> report = new LinkedHashMap<>();
+        policy.inForce().forEach((key, resolution) -> report.put(key, report(resolution)));
+        return HttpResponse.ok(report);
     }
 
     @Post(value = "/min-length", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
@@ -78,7 +82,7 @@ final class AdminPasswordPolicyController {
         return HttpResponse.ok(Map.of("status", "ACCEPTED", "value", result.minLength().value()));
     }
 
-    private static Map<String, Object> report(Resolution<MinLength> resolution) {
+    private static Map<String, Object> report(Resolution<? extends ConfigValue<?>> resolution) {
         return Map.of(
                 "value", resolution.value().value(),
                 "source", resolution.source(),

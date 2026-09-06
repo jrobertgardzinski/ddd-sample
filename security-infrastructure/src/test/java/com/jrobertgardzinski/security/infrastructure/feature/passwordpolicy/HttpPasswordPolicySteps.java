@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * HTTP glue for {@code password-policy.feature}. Black-box: users are really registered and
  * verified, tokens are obtained by authenticating, the length is set via
- * POST /admin/settings/password/min-length (behind a step-up, like every admin hand) and read back
- * via GET. "admin@example.com" is a bootstrap admin (test config). The one thing done behind the
+ * POST /admin/settings/password/min-length (behind a step-up, like every admin hand) and the
+ * whole policy in force is read back via GET /admin/settings/password. "admin@example.com" is a bootstrap admin (test config). The one thing done behind the
  * API's back is done on purpose: "written at the console" seeds the in-memory settings table
  * directly, bypassing the value object — which is exactly what a hand at psql does. The test
  * deployment's snapshot TTL is zero, so the table is read on every question.
@@ -37,12 +37,14 @@ public class HttpPasswordPolicySteps {
 
     private static final String PASSWORD = "StrongPassword1!";
     private static final String ADMIN = "admin@example.com";
-    private static final String PATH = "/admin/settings/password/min-length";
+    private static final String POLICY = "/admin/settings/password";
+    private static final String PATH = POLICY + "/min-length";
 
     private EmbeddedServer server;
     private BlockingHttpClient client;
     private HttpResponse<Map> response;
-    private Map<?, ?> report;
+    /** The whole policy in force, every rule under its key. */
+    private Map<?, ?> policy;
 
     @Before
     public void startServer() {
@@ -88,9 +90,37 @@ public class HttpPasswordPolicySteps {
         response = set(tokenFor(caller), length);
     }
 
-    @When("the ADMIN asks for the minimum password length in force")
+    @Given("the database row {string} holds {string}, written at the console")
+    public void theDatabaseRowHoldsTextWrittenAtTheConsole(String name, String value) {
+        server.getApplicationContext().getBean(InMemorySecuritySettings.class).put(name, value);
+    }
+
+    @When("the ADMIN asks for the password policy in force")
     public void theAdminAsks() {
         fetchReport();
+    }
+
+    @Then("REGISTRATION succeeds")
+    public void registrationSucceeds() {
+        assertEquals(HttpStatus.CREATED, response.getStatus(), response.getBody(Map.class).map(Object::toString).orElse(""));
+    }
+
+    @Then("the rule {string} in force is {string}, decided by the {string} source")
+    public void theRuleInForceIs(String key, String value, String source) {
+        fetchReport();
+        Map<?, ?> rule = (Map<?, ?>) policy.get(key);
+        assertNotNull(rule, "no such rule in the report: " + policy);
+        assertEquals(value, String.valueOf(rule.get("value")));
+        assertEquals(source, rule.get("source"));
+    }
+
+    @Then("the report says the rule {string} was refused holding the text {string}")
+    public void theReportSaysTheRuleWasRefusedHoldingTheText(String key, String held) {
+        Map<?, ?> rule = (Map<?, ?>) policy.get(key);
+        Object rejected = rule.get("rejected");
+        assertTrue(rejected instanceof List<?> list && list.stream()
+                        .anyMatch(r -> r instanceof Map<?, ?> m && held.equals(m.get("value"))),
+                "expected a refusal holding " + held + " in " + rejected);
     }
 
     @When("the USER REGISTERS with EMAIL {string} and password {string}")
@@ -123,13 +153,13 @@ public class HttpPasswordPolicySteps {
     @Then("the minimum password length in force is {int}, decided by the {string} source")
     public void theMinimumPasswordLengthInForceIs(int value, String source) {
         fetchReport();
-        assertEquals(value, report.get("value"));
-        assertEquals(source, report.get("source"));
+        assertEquals(value, minLength().get("value"));
+        assertEquals(source, minLength().get("source"));
     }
 
     @Then("the report says the {string} source was refused holding {int} because {string}")
     public void theReportSaysTheSourceWasRefused(String source, int held, String reason) {
-        Object rejected = report.get("rejected");
+        Object rejected = minLength().get("rejected");
         assertTrue(rejected instanceof List<?> list
                         && list.contains(Map.of("source", source, "value", held, "reason", reason)),
                 "expected the refusal in " + rejected);
@@ -147,9 +177,13 @@ public class HttpPasswordPolicySteps {
     }
 
     private void fetchReport() {
-        HttpResponse<Map> fetched = exchange(HttpRequest.GET(PATH).header("Authorization", "Bearer " + tokenFor(ADMIN)));
+        HttpResponse<Map> fetched = exchange(HttpRequest.GET(POLICY).header("Authorization", "Bearer " + tokenFor(ADMIN)));
         assertEquals(HttpStatus.OK, fetched.getStatus());
-        report = fetched.getBody(Map.class).orElseThrow();
+        policy = fetched.getBody(Map.class).orElseThrow();
+    }
+
+    private Map<?, ?> minLength() {
+        return (Map<?, ?>) policy.get(SetMinPasswordLength.KEY);
     }
 
     private String tokenFor(String email) {

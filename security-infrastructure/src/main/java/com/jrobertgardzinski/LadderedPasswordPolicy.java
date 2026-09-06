@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.config.ConfigValue;
 import com.jrobertgardzinski.config.Configuration;
 import com.jrobertgardzinski.config.ladder.ConfigLadder;
 import com.jrobertgardzinski.config.ladder.Resolution;
@@ -10,6 +11,10 @@ import com.jrobertgardzinski.password.config.RequiresUppercase;
 import com.jrobertgardzinski.password.config.SpecialChars;
 import com.jrobertgardzinski.password.policy.PasswordPolicy;
 import com.jrobertgardzinski.password.policy.PasswordPolicyInForce;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The password policy in force: every rule on the same ladder - a {@code security_settings} row
@@ -41,8 +46,15 @@ public final class LadderedPasswordPolicy implements PasswordPolicyInForce {
                 requiresUppercase.resolve(), requiresLowercase.resolve(), requiresDigit.resolve());
     }
 
-    /** The minimum length with its provenance: which level answered and what was refused on the way. */
-    public Resolution<MinLength> minLengthResolution() {
-        return minLength.resolution();
+    /**
+     * Every rule in force with its provenance, under the rule's key: which level answered and
+     * what was refused on the way. In the policy's own order.
+     */
+    public Map<String, Resolution<? extends ConfigValue<?>>> inForce() {
+        Map<String, Resolution<? extends ConfigValue<?>>> inForce = new LinkedHashMap<>();
+        for (ConfigLadder<? extends ConfigValue<?>> rule : List.of(minLength, specialChars, requiresUppercase, requiresLowercase, requiresDigit)) {
+            inForce.put(rule.key(), rule.resolution());
+        }
+        return inForce;
     }
 }
