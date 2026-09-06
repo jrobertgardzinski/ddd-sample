@@ -5,10 +5,10 @@ import com.jrobertgardzinski.config.ladder.ConfigLadder;
 import com.jrobertgardzinski.config.source.live.LiveConfigPort;
 import com.jrobertgardzinski.config.source.live.SnapshotLiveConfigPort;
 import com.jrobertgardzinski.config.source.restart.RestartConfigPort;
-import com.jrobertgardzinski.password.config.MinLength;
 import com.jrobertgardzinski.persistence.SecuritySettingsTable;
-import com.jrobertgardzinski.security.system.passwordpolicy.MinLengthRepository;
-import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
+import com.jrobertgardzinski.security.system.settings.SetSetting;
+import com.jrobertgardzinski.security.system.settings.SettingCatalog;
+import com.jrobertgardzinski.security.system.settings.SettingsRepository;
 import com.jrobertgardzinski.email.config.BlockedDomains;
 import com.jrobertgardzinski.email.config.CanRegisterConfig;
 import com.jrobertgardzinski.email.config.CompanyDomains;
@@ -139,20 +139,29 @@ public class BeanFactory {
     }
 
     /**
-     * The write side of the live level: an ADMIN's decision lands in the table under the record's
+     * The rules an ADMIN may set while the system runs: exactly the keys declared live, straight
+     * from the declarations - no list of its own to fall out of step with what the system reads.
+     */
+    @Singleton
+    SettingCatalog settingCatalog(Configuration configuration) {
+        return configuration::liveKey;
+    }
+
+    /**
+     * The write side of the live level: an ADMIN's decision lands in the table under the rule's
      * key, and the snapshot is refreshed so the writer sees their own decision at once.
      */
     @Singleton
-    MinLengthRepository minLengthRepository(SecuritySettingsTable table, SnapshotLiveConfigPort snapshot) {
-        return minLength -> {
-            table.put(MinLength.KEY, Integer.toString(minLength.value()));
+    SettingsRepository settingsRepository(SecuritySettingsTable table, SnapshotLiveConfigPort snapshot) {
+        return (key, text) -> {
+            table.put(key, text);
             snapshot.refresh();
         };
     }
 
     @Singleton
-    SetMinPasswordLength setMinPasswordLength(MinLengthRepository store) {
-        return new SetMinPasswordLength(store);
+    SetSetting setSetting(SettingCatalog catalogue, SettingsRepository store) {
+        return new SetSetting(catalogue, store);
     }
 
     /**

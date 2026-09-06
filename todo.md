@@ -298,7 +298,7 @@ w UI zadziała bez przebudowy.
 
 **Najmniejszy pierwszy krok, gdy Robert wróci:** sam TEKST pliku procesu, bez glue — sprawdzić,
 czy sekwencja czyta się jako historia. Powiązane otwarte: password-policy przez 3 warstwy
-(brak: kroki application dla `SetMinPasswordLength` + panel admina w security-ui).
+(brak: kroki application dla `SetSetting` + panel admina w security-ui).
 
 ## Otwarte — nazwy pól po wprowadzeniu portu odczytu (2026-09-02, drobne)
 
@@ -322,7 +322,7 @@ legitymizował złamanie zasady Newmana), więc każdy klucz ma live/restart/reb
 Moduły `security-custom`, `security-roles`, `security-http` ROZPUSZCZONE w warstwach
 (reguła właściciela: 3–5 warstw, nie wymyślać nowych): `RequireRole`/`RolesOf`/`BootstrapAdmins`
 → `security-system/roles`; `SetMinPasswordLength` + `MinLengthRepository` →
-`security-system/passwordpolicy`; `Caller`/`RoleGuard`/`StepUpGuard`, `AdminPasswordPolicyController`,
+`security-system/passwordpolicy` (od 2026-09-06 wieczorem: `SetSetting` w `security-system/settings`); `Caller`/`RoleGuard`/`StepUpGuard`, `AdminPasswordPolicyController`,
 `LadderedPasswordPolicy` (5 drabinek pod kluczami rekordów `password-config`, jedna polityka, bez
 @Primary/@Secondary) → `security-infrastructure`; `SecuritySettingsTable` (Jdbc + InMemory) →
 `security-infrastructure/persistence`. `password-application` w bibliotece SKASOWANY.
@@ -334,8 +334,16 @@ raport `rejected` niesie to, co wiersz trzymał (liczbę albo surowy tekst).
   lowercase, digit, brute-force, mfa, session) są w praktyce Restart — wiersz w bazie wchodzi
   dopiero przy następnym starcie albo przy zapisie admina pod innym kluczem; bramka drabinki nadal
   chroni przed wartością nielegalną. Powiedziane w `specs/password-policy.feature` (krok „written
-  at the console before the last start") i w `application.yml`. Chcąc Live naprawdę: endpoint per
-  klucz.
+  at the console before the last start") i w `application.yml`.
+- **ZROBIONE 2026-09-06 (wieczór): generyczny zapis po kluczu.** `Configuration.liveOver` buduje
+  katalog `LiveKey` (parser + bramka reguły, ta sama co przy odczycie); `SetSetting(key, text)` w
+  `security-system/settings` (porty `SettingCatalog`, `SettingsRepository`) zastępuje
+  `SetMinPasswordLength` + `MinLengthRepository`; `PUT /admin/settings/{key}` + `GET /admin/settings`
+  (`AdminSettingsController`), `POST .../password/min-length` zostaje jako przypadek filmu 5.
+  Spec `specs/settings.feature` (7 scenariuszy, glue `feature.settings`). Każdy nowy `liveOver`
+  jest ustawialny bez linijki kodu. Decyzja właściciela: ryzyko „admin nadpisze każdy klucz"
+  przyjęte świadomie — bramka = rola ADMIN + step-up; flaga per klucz „nie przez API" do
+  dołożenia, gdy zajdzie potrzeba.
 - **ADR do spisania** (właściciel): kontrakt drabinki + snapshot + dlaczego biblioteka nie zna
   drabinki. `SourceThrottle` → Live = te same trzy szczeble w `BeanFactory`, bez nowego modułu.
 

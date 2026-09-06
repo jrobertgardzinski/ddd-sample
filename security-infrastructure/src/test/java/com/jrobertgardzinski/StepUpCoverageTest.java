@@ -46,7 +46,8 @@ class StepUpCoverageTest {
             "RecoveryCodesController", "recovery codes are durable spare keys: minted once, usable when the factor is out of reach",
             "EmailChangeController", "moving the address moves the account — the confirmation lands in the NEW mailbox",
             "AdminRolesController", "granting a role is a permanent widening of what the session may do",
-            "AdminPasswordPolicyController", "the password floor binds every future password in the estate — lowering it on a stolen live session is a lasting weakening");
+            "AdminPasswordPolicyController", "the password floor binds every future password in the estate — lowering it on a stolen live session is a lasting weakening",
+            "AdminSettingsController", "every rule declared live is settable here by its key — a weakening written on a stolen live session binds every future decision under that rule");
 
     /**
      * The rest, each with the reason a live session is enough. These are not oversights; leaving

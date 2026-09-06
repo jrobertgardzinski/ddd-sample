@@ -17,7 +17,8 @@ Feature: Setting the minimum password length while the system runs
   # security.password.policy.min.length property (restart) over MinLength.DEFAULT (rebuild).
   # The test deployment sets no property, so a vacant live level falls to the default of 5.
   # The live level is one snapshot of the whole table, read at the start and after each ADMIN's
-  # write, never on a question — so EVERY key of the policy has it, endpoint or no endpoint. The
+  # write, never on a question — so EVERY key of the policy has it, and every key is settable by
+  # name (settings.feature); the min-length endpoint here is the one case a film follows. The
   # table is the service's own and the API is the only way in: a row written at the console is
   # in force from the next start, and the ladder's gate is what keeps such a hand from putting an
   # illegal value in force. The report an ADMIN asks for is the whole policy: every rule under
@@ -53,7 +54,7 @@ Feature: Setting the minimum password length while the system runs
       Then the minimum password length in force is 5, decided by the "rebuild (default)" source
       And the report says the "live (database)" source was refused holding 3 because "minLength must be at least 5"
 
-  Rule: Every rule of the policy reads the same table, endpoint or no endpoint
+  Rule: Every rule of the policy reads the same table, written at the console or not
 
     Example:
       Given the database row "security.password.policy.requires.digit" holds "false", written at the console before the last start

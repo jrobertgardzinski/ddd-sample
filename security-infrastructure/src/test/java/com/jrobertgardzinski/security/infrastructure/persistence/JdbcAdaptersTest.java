@@ -42,8 +42,8 @@ import io.micronaut.context.ApplicationContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import com.jrobertgardzinski.persistence.SecuritySettingsTable;
-import com.jrobertgardzinski.security.system.passwordpolicy.MinLengthRepository;
-import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
+import com.jrobertgardzinski.password.config.MinLength;
+import com.jrobertgardzinski.security.system.settings.SettingsRepository;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -302,26 +302,26 @@ class JdbcAdaptersTest {
 
     @Test
     void the_admin_store_upserts_the_min_length_row_and_the_snapshot_sees_it_at_once() throws Exception {
-        var store = context.getBean(MinLengthRepository.class);
+        var store = context.getBean(SettingsRepository.class);
         LiveConfigPort<?> settings = context.getBean(LiveConfigPort.class);
         SecuritySettingsTable table = context.getBean(SecuritySettingsTable.class);
         try {
-            store.save(new com.jrobertgardzinski.password.config.MinLength(10));
-            assertThat(table.rows()).containsEntry(SetMinPasswordLength.KEY, "10");
-            assertThat(settings.find(SetMinPasswordLength.KEY)).isEqualTo("10");
+            store.save(MinLength.KEY, "10");
+            assertThat(table.rows()).containsEntry(MinLength.KEY, "10");
+            assertThat(settings.find(MinLength.KEY)).isEqualTo("10");
 
             // a second decision replaces the row - one key, one row, never a duplicate - and the
             // snapshot is refreshed by the write itself
-            store.save(new com.jrobertgardzinski.password.config.MinLength(12));
-            assertThat(table.rows()).containsEntry(SetMinPasswordLength.KEY, "12");
-            assertThat(settings.find(SetMinPasswordLength.KEY)).isEqualTo("12");
+            store.save(MinLength.KEY, "12");
+            assertThat(table.rows()).containsEntry(MinLength.KEY, "12");
+            assertThat(settings.find(MinLength.KEY)).isEqualTo("12");
         } finally {
             // the shared container outlives this method and the settings test next door inserts
             // rows by hand - leave the table as found, whatever the run order
             try (var connection = java.sql.DriverManager.getConnection(
                     POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                  var delete = connection.createStatement()) {
-                delete.execute("DELETE FROM security_settings WHERE name = '" + SetMinPasswordLength.KEY + "'");
+                delete.execute("DELETE FROM security_settings WHERE name = '" + MinLength.KEY + "'");
             }
         }
     }

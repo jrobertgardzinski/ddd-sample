@@ -3,7 +3,7 @@ package com.jrobertgardzinski.security.infrastructure.feature.passwordpolicy;
 import com.jrobertgardzinski.CapturingEmailVerificationNotifier;
 import com.jrobertgardzinski.config.source.live.SnapshotLiveConfigPort;
 import com.jrobertgardzinski.persistence.InMemorySecuritySettings;
-import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
+import com.jrobertgardzinski.password.config.MinLength;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -78,7 +78,7 @@ public class HttpPasswordPolicySteps {
 
     @Given("the database row for the minimum password length holds {int}, written at the console before the last start")
     public void theDatabaseRowHoldsWrittenAtTheConsole(int value) {
-        writtenAtTheConsole(SetMinPasswordLength.KEY, Integer.toString(value));
+        writtenAtTheConsole(MinLength.KEY, Integer.toString(value));
     }
 
     @When("the ADMIN SETS the minimum password length to {int}")
@@ -190,7 +190,7 @@ public class HttpPasswordPolicySteps {
     }
 
     private Map<?, ?> minLength() {
-        return (Map<?, ?>) policy.get(SetMinPasswordLength.KEY);
+        return (Map<?, ?>) policy.get(MinLength.KEY);
     }
 
     private String tokenFor(String email) {

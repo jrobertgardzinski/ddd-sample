@@ -40,8 +40,10 @@ security:
   # the hardcoded default (compile time). EVERY key below has all three levels: the live level is
   # one snapshot of the whole table, read when the service starts and again after each admin's
   # write, never on a question — and an illegal row is refused and fallen through, never obeyed.
-  # The table is this service's and the API is the only way in: a row written at the console is
-  # not in force until the next start or the next admin's write.
+  # The table is this service's and the API is the only way in: every key declared live is set by
+  # name through PUT /admin/settings/{key} (the catalogue: GET /admin/settings), through the same
+  # parser and gate the ladder reads it with; a row written at the console is not in force until
+  # the next start or the next admin's write.
   # The keys are deliberately ABSENT below: an absent property is a VACANT level, not zero — the
   # hardcoded default (MinLength.DEFAULT = 5) answers until a deployment or an administrator says
   # otherwise. Setting a value here (or the env var) claims the deployment level.

@@ -4,7 +4,8 @@ import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.config.ConfigValue;
 import com.jrobertgardzinski.config.ladder.Resolution;
 import com.jrobertgardzinski.security.domain.vo.Role;
-import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
+import com.jrobertgardzinski.password.config.MinLength;
+import com.jrobertgardzinski.security.system.settings.SetSetting;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -24,9 +25,10 @@ import java.util.Optional;
  * EVERY rule of the policy under its key, each with its provenance: which level answered and
  * what was refused on the way, in the gate's own words — how an admin learns that a row written
  * at the database console, under any of the five keys, is not the value the system uses. POST
- * sets the minimum length through the use case, so the value object is the only gate and a
- * refused length changes nothing. The caller must be an ADMIN, and setting the policy takes a
- * fresh step-up, since it binds every future password.
+ * sets the minimum length: the one case of {@link SetSetting} a film follows by name, under the
+ * rule's own key, so the value object is the only gate and a refused length changes nothing.
+ * Every other rule goes through {@link AdminSettingsController} by its key. The caller must be
+ * an ADMIN, and setting the policy takes a fresh step-up, since it binds every future password.
  */
 @ExecuteOn(TaskExecutors.BLOCKING)
 @Controller("/admin/settings/password")
@@ -34,15 +36,15 @@ final class AdminPasswordPolicyController {
 
     static final StepUpAction STEP_UP_ACTION = StepUpAction.ADMIN_SETTINGS;
 
-    private final SetMinPasswordLength setMinPasswordLength;
+    private final SetSetting setSetting;
     private final LadderedPasswordPolicy policy;
     private final RoleGuard roleGuard;
     private final StepUpGuard stepUpGuard;
 
-    AdminPasswordPolicyController(SetMinPasswordLength setMinPasswordLength,
+    AdminPasswordPolicyController(SetSetting setSetting,
                                   LadderedPasswordPolicy policy,
                                   RoleGuard roleGuard, StepUpGuard stepUpGuard) {
-        this.setMinPasswordLength = setMinPasswordLength;
+        this.setSetting = setSetting;
         this.policy = policy;
         this.roleGuard = roleGuard;
         this.stepUpGuard = stepUpGuard;
@@ -75,11 +77,11 @@ final class AdminPasswordPolicyController {
         } catch (NumberFormatException notANumber) {
             return HttpResponse.badRequest(Map.of("status", "NOT_A_NUMBER"));
         }
-        SetMinPasswordLength.Result result = setMinPasswordLength.execute(requested);
-        if (result.status() == SetMinPasswordLength.Status.REFUSED) {
+        SetSetting.Result result = setSetting.execute(MinLength.KEY, Integer.toString(requested));
+        if (result.status() != SetSetting.Status.ACCEPTED) {
             return HttpResponse.badRequest(Map.of("status", "REFUSED", "reason", result.reason()));
         }
-        return HttpResponse.ok(Map.of("status", "ACCEPTED", "value", result.minLength().value()));
+        return HttpResponse.ok(Map.of("status", "ACCEPTED", "value", result.value()));
     }
 
     private static Map<String, Object> report(Resolution<? extends ConfigValue<?>> resolution) {
