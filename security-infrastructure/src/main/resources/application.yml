@@ -70,6 +70,18 @@ security:
   # brute.force.max.failures.per.source: 30 # 5-500, per address, never below max.failures
   # brute.force.min.block.minutes: 3        # 1-60
   # brute.force.max.block.minutes: 10       # 1-1440, never below min.block.minutes
+  #
+  # The MFA rules and the token validities, the same way (security-config/mfa/vo, security-domain):
+  # mfa.code.ttl.minutes: 5                 # > 0
+  # mfa.code.max.attempts: 5                # > 0
+  # mfa.code.length: 6                      # 4-10
+  # mfa.recovery.count: 10                  # 1-50
+  # mfa.recovery.length: 10                 # 8-40
+  # mfa.min.factors.user: 1                 # >= 1; also the floor for a role nobody configured
+  # mfa.min.factors.moderator: 2            # >= 1
+  # mfa.min.factors.admin: 3                # >= 1
+  # session.access.token.validity.hours: 1  # >= 1
+  # session.refresh.token.validity.hours: 24 # >= 1
   saga:
     # The saga-listener lamp's stall tolerance, wired to an environment variable ON PURPOSE rather
     # than left to the @Value default. OffboardingListenerHealth refuses to start on a value below

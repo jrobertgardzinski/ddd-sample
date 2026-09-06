@@ -13,7 +13,7 @@ public abstract class AbstractTokenValidityInHours {
         this.value = value;
     }
 
-    public int value() {
+    public Integer value() {
         return value;
     }
 

@@ -1,27 +1,20 @@
 package com.jrobertgardzinski.security.config.mfa;
 
-/**
- * The lifecycle of an MFA challenge code (e-mail / SMS): how long a code lives, how many wrong
- * proofs a single sign-in ticket tolerates before it is torn down, and how many digits the code
- * has. Config, not constants — overridable per deployment ({@code security.mfa.code.*}), same as
- * the brute-force policy and the throttle windows. The defaults are a sane starting point, not a
- * hard-coded rule.
- */
-public record ChallengeCodeConfig(int codeTtlMinutes, int maxAttempts, int codeLength) {
+import com.jrobertgardzinski.security.config.mfa.vo.CodeLength;
+import com.jrobertgardzinski.security.config.mfa.vo.CodeMaxAttempts;
+import com.jrobertgardzinski.security.config.mfa.vo.CodeTtlMinutes;
 
-    public ChallengeCodeConfig {
-        if (codeTtlMinutes <= 0) {
-            throw new IllegalArgumentException("codeTtlMinutes must be positive");
-        }
-        if (maxAttempts <= 0) {
-            throw new IllegalArgumentException("maxAttempts must be positive");
-        }
-        if (codeLength < 4 || codeLength > 10) {
-            throw new IllegalArgumentException("codeLength must be between 4 and 10");
-        }
+/**
+ * The shape of a mailed or texted challenge code: three rules, each a value object with its own
+ * key and default, held together as one value.
+ */
+public record ChallengeCodeConfig(CodeTtlMinutes codeTtlMinutes, CodeMaxAttempts maxAttempts, CodeLength codeLength) {
+
+    public ChallengeCodeConfig(int codeTtlMinutes, int maxAttempts, int codeLength) {
+        this(new CodeTtlMinutes(codeTtlMinutes), new CodeMaxAttempts(maxAttempts), new CodeLength(codeLength));
     }
 
     public static ChallengeCodeConfig withDefaults() {
-        return new ChallengeCodeConfig(5, 5, 6);
+        return new ChallengeCodeConfig(CodeTtlMinutes.DEFAULT, CodeMaxAttempts.DEFAULT, CodeLength.DEFAULT);
     }
 }

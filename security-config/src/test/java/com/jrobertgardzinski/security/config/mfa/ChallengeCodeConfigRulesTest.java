@@ -17,9 +17,9 @@ class ChallengeCodeConfigRulesTest {
     @DisplayName("the defaults are a usable 5-minute, 5-attempt, 6-digit code")
     void defaults() {
         ChallengeCodeConfig config = ChallengeCodeConfig.withDefaults();
-        assertEquals(5, config.codeTtlMinutes());
-        assertEquals(5, config.maxAttempts());
-        assertEquals(6, config.codeLength());
+        assertEquals(5, config.codeTtlMinutes().value());
+        assertEquals(5, config.maxAttempts().value());
+        assertEquals(6, config.codeLength().value());
     }
 
     @Test

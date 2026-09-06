@@ -19,6 +19,10 @@
 
         <dependency>
             <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jrobertgardzinski</groupId>
             <artifactId>password-domain</artifactId>
         </dependency>
 

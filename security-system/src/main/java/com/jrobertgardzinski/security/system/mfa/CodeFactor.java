@@ -65,12 +65,12 @@ public class CodeFactor implements AuthenticationFactor {
     private Challenge sendCodeTo(String target) {
         String code = randomCode();
         channel.sendCode(target, code);
-        return Challenge.secret(hasher.hash(code), LocalDateTime.now(clock).plusMinutes(config.codeTtlMinutes()));
+        return Challenge.secret(hasher.hash(code), LocalDateTime.now(clock).plusMinutes(config.codeTtlMinutes().value()));
     }
 
     private String randomCode() {
-        StringBuilder code = new StringBuilder(config.codeLength());
-        for (int i = 0; i < config.codeLength(); i++) {
+        StringBuilder code = new StringBuilder(config.codeLength().value());
+        for (int i = 0; i < config.codeLength().value(); i++) {
             code.append(RANDOM.nextInt(10));
         }
         return code.toString();

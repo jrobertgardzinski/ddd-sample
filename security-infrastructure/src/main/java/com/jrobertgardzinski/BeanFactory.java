@@ -25,6 +25,14 @@ import com.jrobertgardzinski.security.config.bruteforce.vo.MaxBlockMinutes;
 import com.jrobertgardzinski.security.config.bruteforce.vo.MaxFailures;
 import com.jrobertgardzinski.security.config.bruteforce.vo.MaxFailuresPerSource;
 import com.jrobertgardzinski.security.config.bruteforce.vo.MinBlockMinutes;
+import com.jrobertgardzinski.security.config.mfa.vo.AdminMinFactors;
+import com.jrobertgardzinski.security.config.mfa.vo.CodeLength;
+import com.jrobertgardzinski.security.config.mfa.vo.CodeMaxAttempts;
+import com.jrobertgardzinski.security.config.mfa.vo.CodeTtlMinutes;
+import com.jrobertgardzinski.security.config.mfa.vo.ModeratorMinFactors;
+import com.jrobertgardzinski.security.config.mfa.vo.RecoveryCodeCount;
+import com.jrobertgardzinski.security.config.mfa.vo.RecoveryCodeLength;
+import com.jrobertgardzinski.security.config.mfa.vo.UserMinFactors;
 import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.system.roles.BootstrapAdmins;
 import com.jrobertgardzinski.security.system.roles.RequireRole;
@@ -265,9 +273,12 @@ public class BeanFactory {
                 Rung.restart(properties, Parse::integer), Rung.rebuild(shipped.defaultValue())).resolve();
     }
 
-    @Singleton
-    SessionTokensConfig sessionTokensConfig() {
-        return new SessionTokensConfig(new RefreshTokenValidityInHours(24), new AccessTokenValidityInHours(1));
+    /** Token validities from the deployment's properties over the code defaults, declared from the value objects. */
+    @Context
+    SessionTokensConfig sessionTokensConfig(RestartConfigPort<String> properties) {
+        return new SessionTokensConfig(
+                new RefreshTokenValidityInHours(restartBound(RefreshTokenValidityInHours.DEFAULT, RefreshTokenValidityInHours::new, properties)),
+                new AccessTokenValidityInHours(restartBound(AccessTokenValidityInHours.DEFAULT, AccessTokenValidityInHours::new, properties)));
     }
 
     @Singleton
@@ -283,12 +294,12 @@ public class BeanFactory {
         return bound.settings();
     }
 
-    @Singleton
-    com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig challengeCodeConfig(
-            @io.micronaut.context.annotation.Value("${security.mfa.code.ttl-minutes:5}") int ttlMinutes,
-            @io.micronaut.context.annotation.Value("${security.mfa.code.max-attempts:5}") int maxAttempts,
-            @io.micronaut.context.annotation.Value("${security.mfa.code.length:6}") int length) {
-        return new com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig(ttlMinutes, maxAttempts, length);
+    @Context
+    com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig challengeCodeConfig(RestartConfigPort<String> properties) {
+        return new com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig(
+                new CodeTtlMinutes(restartBound(CodeTtlMinutes.DEFAULT, CodeTtlMinutes::new, properties)),
+                new CodeMaxAttempts(restartBound(CodeMaxAttempts.DEFAULT, CodeMaxAttempts::new, properties)),
+                new CodeLength(restartBound(CodeLength.DEFAULT, CodeLength::new, properties)));
     }
 
     /** One {@link com.jrobertgardzinski.security.system.mfa.CodeFactor} per configured code channel
@@ -361,11 +372,11 @@ public class BeanFactory {
                 factorRegistry, challengeCodeConfig, recoveryCodeRepository, codeHasher, clock, ticketTtlMinutes);
     }
 
-    @Singleton
-    com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig recoveryCodeConfig(
-            @io.micronaut.context.annotation.Value("${security.mfa.recovery.count:10}") int count,
-            @io.micronaut.context.annotation.Value("${security.mfa.recovery.length:10}") int length) {
-        return new com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig(count, length);
+    @Context
+    com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig recoveryCodeConfig(RestartConfigPort<String> properties) {
+        return new com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig(
+                new RecoveryCodeCount(restartBound(RecoveryCodeCount.DEFAULT, RecoveryCodeCount::new, properties)),
+                new RecoveryCodeLength(restartBound(RecoveryCodeLength.DEFAULT, RecoveryCodeLength::new, properties)));
     }
 
     @Singleton
@@ -472,13 +483,12 @@ public class BeanFactory {
                 sessions, java.time.Duration.ofMinutes(resetTtlMinutes), clock);
     }
 
-    @Singleton
-    com.jrobertgardzinski.security.config.mfa.MfaPolicy mfaPolicy(
-            @io.micronaut.context.annotation.Value("${security.mfa.min-factors.user:1}") int user,
-            @io.micronaut.context.annotation.Value("${security.mfa.min-factors.moderator:2}") int moderator,
-            @io.micronaut.context.annotation.Value("${security.mfa.min-factors.admin:3}") int admin) {
+    @Context
+    com.jrobertgardzinski.security.config.mfa.MfaPolicy mfaPolicy(RestartConfigPort<String> properties) {
         return new com.jrobertgardzinski.security.config.mfa.MfaPolicy(
-                java.util.Map.of("USER", user, "MODERATOR", moderator, "ADMIN", admin));
+                new UserMinFactors(restartBound(UserMinFactors.DEFAULT, UserMinFactors::new, properties)),
+                new ModeratorMinFactors(restartBound(ModeratorMinFactors.DEFAULT, ModeratorMinFactors::new, properties)),
+                new AdminMinFactors(restartBound(AdminMinFactors.DEFAULT, AdminMinFactors::new, properties)));
     }
 
     @Singleton

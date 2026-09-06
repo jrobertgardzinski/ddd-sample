@@ -36,8 +36,8 @@ public class GenerateRecoveryCodes {
 
     /** The plain codes, shown once; the repository keeps only their normalised hashes. */
     public List<String> execute(Email userEmail) {
-        List<String> plain = new ArrayList<>(config.count());
-        for (int i = 0; i < config.count(); i++) {
+        List<String> plain = new ArrayList<>(config.count().value());
+        for (int i = 0; i < config.count().value(); i++) {
             plain.add(mint());
         }
         repository.replaceAll(userEmail,
@@ -51,8 +51,8 @@ public class GenerateRecoveryCodes {
     }
 
     private String mint() {
-        StringBuilder code = new StringBuilder(config.length() + config.length() / GROUP);
-        for (int i = 0; i < config.length(); i++) {
+        StringBuilder code = new StringBuilder(config.length().value() + config.length().value() / GROUP);
+        for (int i = 0; i < config.length().value(); i++) {
             if (i > 0 && i % GROUP == 0) {
                 code.append('-');
             }
