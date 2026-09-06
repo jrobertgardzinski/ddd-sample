@@ -22,4 +22,9 @@ public record CodeMaxAttempts(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public CodeMaxAttempts holding(Integer value) {
+        return new CodeMaxAttempts(value);
+    }
 }

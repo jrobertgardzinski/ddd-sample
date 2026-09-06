@@ -22,4 +22,9 @@ public record ModeratorMinFactors(Integer value) implements ConfigValue<Integer>
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public ModeratorMinFactors holding(Integer value) {
+        return new ModeratorMinFactors(value);
+    }
 }

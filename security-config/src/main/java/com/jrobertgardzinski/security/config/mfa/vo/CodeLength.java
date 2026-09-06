@@ -22,4 +22,9 @@ public record CodeLength(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public CodeLength holding(Integer value) {
+        return new CodeLength(value);
+    }
 }

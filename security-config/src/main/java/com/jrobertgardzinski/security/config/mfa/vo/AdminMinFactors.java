@@ -22,4 +22,9 @@ public record AdminMinFactors(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public AdminMinFactors holding(Integer value) {
+        return new AdminMinFactors(value);
+    }
 }

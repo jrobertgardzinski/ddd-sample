@@ -22,4 +22,9 @@ public record CodeTtlMinutes(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public CodeTtlMinutes holding(Integer value) {
+        return new CodeTtlMinutes(value);
+    }
 }

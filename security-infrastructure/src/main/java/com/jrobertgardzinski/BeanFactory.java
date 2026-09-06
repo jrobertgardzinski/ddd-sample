@@ -1,6 +1,5 @@
 package com.jrobertgardzinski;
 
-import com.jrobertgardzinski.security.domain.vo.StepUpRequirement;
 import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.config.ladder.ConfigLadder;
 import com.jrobertgardzinski.config.ladder.Parse;
@@ -20,7 +19,7 @@ import com.jrobertgardzinski.email.domain.DomainPart;
 import com.jrobertgardzinski.hash.algorithm.argon2.Argon2HashAlgorithm;
 import com.jrobertgardzinski.password.policy.PasswordPolicyInForce;
 import com.jrobertgardzinski.password.domain.HashAlgorithmPort;
-import com.jrobertgardzinski.config.ConfigValue;
+import com.jrobertgardzinski.config.Configuration;
 import com.jrobertgardzinski.security.config.bruteforce.BruteForceConfig;
 import com.jrobertgardzinski.security.config.bruteforce.vo.FailureWindowMinutes;
 import com.jrobertgardzinski.security.config.bruteforce.vo.MaxBlockMinutes;
@@ -121,14 +120,23 @@ public class BeanFactory {
     }
 
     /**
+     * This deployment's configuration: the settings snapshot and the properties, from which every
+     * rule is read either live or bound, over the rule the code ships.
+     */
+    @Singleton
+    Configuration configuration(LiveConfigPort<String> rows, RestartConfigPort<String> properties) {
+        return new Configuration(rows, properties);
+    }
+
+    /**
      * The password policy in force: every rule live over restart over rebuild, under the library's
      * own keys ({@code security.password.policy.*}). {@code @Context} so an illegal property fails
      * the boot and never the first request. The one bean of its kind: the use cases ask it as
      * {@link PasswordPolicyInForce}, the admin report asks it for the length's provenance.
      */
     @Context
-    LadderedPasswordPolicy passwordPolicyInForce(LiveConfigPort<String> rows, RestartConfigPort<String> properties) {
-        return new LadderedPasswordPolicy(rows, properties);
+    LadderedPasswordPolicy passwordPolicyInForce(Configuration configuration) {
+        return new LadderedPasswordPolicy(configuration);
     }
 
     /**
@@ -259,28 +267,21 @@ public class BeanFactory {
      * the code default; a property outside a limit's range fails the boot, by name.
      */
     @Context
-    BruteForceConfig bruteForceConfig(RestartConfigPort<String> properties) {
+    BruteForceConfig bruteForceConfig(Configuration configuration) {
         return new BruteForceConfig(
-                new FailureWindowMinutes(restartBound(FailureWindowMinutes.DEFAULT, FailureWindowMinutes::new, properties)),
-                new MaxFailures(restartBound(MaxFailures.DEFAULT, MaxFailures::new, properties)),
-                new MaxFailuresPerSource(restartBound(MaxFailuresPerSource.DEFAULT, MaxFailuresPerSource::new, properties)),
-                new MinBlockMinutes(restartBound(MinBlockMinutes.DEFAULT, MinBlockMinutes::new, properties)),
-                new MaxBlockMinutes(restartBound(MaxBlockMinutes.DEFAULT, MaxBlockMinutes::new, properties)));
-    }
-
-    /** One integer limit on a restart-over-rebuild ladder, declared from its value object. */
-    private static int restartBound(ConfigValue<Integer> shipped, java.util.function.Consumer<Integer> gate,
-                                    RestartConfigPort<String> properties) {
-        return ConfigLadder.of(shipped.key(), gate,
-                Rung.restart(properties, Parse::integer), Rung.rebuild(shipped.defaultValue())).resolve();
+                configuration.boundOver(FailureWindowMinutes.DEFAULT),
+                configuration.boundOver(MaxFailures.DEFAULT),
+                configuration.boundOver(MaxFailuresPerSource.DEFAULT),
+                configuration.boundOver(MinBlockMinutes.DEFAULT),
+                configuration.boundOver(MaxBlockMinutes.DEFAULT));
     }
 
     /** Token validities from the deployment's properties over the code defaults, declared from the value objects. */
     @Context
-    SessionTokensConfig sessionTokensConfig(RestartConfigPort<String> properties) {
+    SessionTokensConfig sessionTokensConfig(Configuration configuration) {
         return new SessionTokensConfig(
-                new RefreshTokenValidityInHours(restartBound(RefreshTokenValidityInHours.DEFAULT, RefreshTokenValidityInHours::new, properties)),
-                new AccessTokenValidityInHours(restartBound(AccessTokenValidityInHours.DEFAULT, AccessTokenValidityInHours::new, properties)));
+                configuration.boundOver(RefreshTokenValidityInHours.DEFAULT),
+                configuration.boundOver(AccessTokenValidityInHours.DEFAULT));
     }
 
     @Singleton
@@ -297,11 +298,11 @@ public class BeanFactory {
     }
 
     @Context
-    com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig challengeCodeConfig(RestartConfigPort<String> properties) {
+    com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig challengeCodeConfig(Configuration configuration) {
         return new com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig(
-                new CodeTtlMinutes(restartBound(CodeTtlMinutes.DEFAULT, CodeTtlMinutes::new, properties)),
-                new CodeMaxAttempts(restartBound(CodeMaxAttempts.DEFAULT, CodeMaxAttempts::new, properties)),
-                new CodeLength(restartBound(CodeLength.DEFAULT, CodeLength::new, properties)));
+                configuration.boundOver(CodeTtlMinutes.DEFAULT),
+                configuration.boundOver(CodeMaxAttempts.DEFAULT),
+                configuration.boundOver(CodeLength.DEFAULT));
     }
 
     /** One {@link com.jrobertgardzinski.security.system.mfa.CodeFactor} per configured code channel
@@ -375,10 +376,10 @@ public class BeanFactory {
     }
 
     @Context
-    com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig recoveryCodeConfig(RestartConfigPort<String> properties) {
+    com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig recoveryCodeConfig(Configuration configuration) {
         return new com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig(
-                new RecoveryCodeCount(restartBound(RecoveryCodeCount.DEFAULT, RecoveryCodeCount::new, properties)),
-                new RecoveryCodeLength(restartBound(RecoveryCodeLength.DEFAULT, RecoveryCodeLength::new, properties)));
+                configuration.boundOver(RecoveryCodeCount.DEFAULT),
+                configuration.boundOver(RecoveryCodeLength.DEFAULT));
     }
 
     @Singleton
@@ -486,11 +487,11 @@ public class BeanFactory {
     }
 
     @Context
-    com.jrobertgardzinski.security.config.mfa.MfaPolicy mfaPolicy(RestartConfigPort<String> properties) {
+    com.jrobertgardzinski.security.config.mfa.MfaPolicy mfaPolicy(Configuration configuration) {
         return new com.jrobertgardzinski.security.config.mfa.MfaPolicy(
-                new UserMinFactors(restartBound(UserMinFactors.DEFAULT, UserMinFactors::new, properties)),
-                new ModeratorMinFactors(restartBound(ModeratorMinFactors.DEFAULT, ModeratorMinFactors::new, properties)),
-                new AdminMinFactors(restartBound(AdminMinFactors.DEFAULT, AdminMinFactors::new, properties)));
+                configuration.boundOver(UserMinFactors.DEFAULT),
+                configuration.boundOver(ModeratorMinFactors.DEFAULT),
+                configuration.boundOver(AdminMinFactors.DEFAULT));
     }
 
     /**
@@ -500,13 +501,10 @@ public class BeanFactory {
      * by name; an action the catalogue does not know does not compile.
      */
     @Context
-    com.jrobertgardzinski.security.config.mfa.StepUpPolicy stepUpPolicy(RestartConfigPort<String> properties) {
+    com.jrobertgardzinski.security.config.mfa.StepUpPolicy stepUpPolicy(Configuration configuration) {
         java.util.List<com.jrobertgardzinski.security.config.mfa.StepUpFor> requirements = new java.util.ArrayList<>();
         for (StepUpAction action : StepUpAction.values()) {
-            requirements.add(new com.jrobertgardzinski.security.config.mfa.StepUpFor(action,
-                    ConfigLadder.of(action.key(), requirement -> { },
-                            Rung.restart(properties, StepUpRequirement::parse),
-                            Rung.rebuild(action.defaultRequirement())).resolve()));
+            requirements.add(configuration.boundOver(com.jrobertgardzinski.security.config.mfa.StepUpFor.shipped(action)));
         }
         return com.jrobertgardzinski.security.config.mfa.StepUpPolicy.of(requirements);
     }

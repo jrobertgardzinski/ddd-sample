@@ -25,4 +25,9 @@ public final class RefreshTokenValidityInHours extends AbstractTokenValidityInHo
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public RefreshTokenValidityInHours holding(Integer value) {
+        return new RefreshTokenValidityInHours(value);
+    }
 }

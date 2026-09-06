@@ -40,4 +40,9 @@ public record MaxFailuresPerSource(Integer value) implements ConfigValue<Integer
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public MaxFailuresPerSource holding(Integer value) {
+        return new MaxFailuresPerSource(value);
+    }
 }

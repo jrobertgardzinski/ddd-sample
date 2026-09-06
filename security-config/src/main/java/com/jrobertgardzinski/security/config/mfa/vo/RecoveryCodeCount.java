@@ -22,4 +22,9 @@ public record RecoveryCodeCount(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public RecoveryCodeCount holding(Integer value) {
+        return new RecoveryCodeCount(value);
+    }
 }

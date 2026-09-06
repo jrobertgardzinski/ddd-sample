@@ -22,4 +22,9 @@ public record RecoveryCodeLength(Integer value) implements ConfigValue<Integer> 
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public RecoveryCodeLength holding(Integer value) {
+        return new RecoveryCodeLength(value);
+    }
 }

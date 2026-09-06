@@ -25,4 +25,9 @@ public final class AccessTokenValidityInHours extends AbstractTokenValidityInHou
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public AccessTokenValidityInHours holding(Integer value) {
+        return new AccessTokenValidityInHours(value);
+    }
 }

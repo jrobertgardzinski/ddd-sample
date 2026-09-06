@@ -2,6 +2,7 @@ package com.jrobertgardzinski;
 
 import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.config.ladder.Resolution;
+import com.jrobertgardzinski.password.config.MinLength;
 import com.jrobertgardzinski.security.domain.vo.Role;
 import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
 import io.micronaut.http.HttpRequest;
@@ -77,9 +78,9 @@ final class AdminPasswordPolicyController {
         return HttpResponse.ok(Map.of("status", "ACCEPTED", "value", result.minLength().value()));
     }
 
-    private static Map<String, Object> report(Resolution<Integer> resolution) {
+    private static Map<String, Object> report(Resolution<MinLength> resolution) {
         return Map.of(
-                "value", resolution.value(),
+                "value", resolution.value().value(),
                 "source", resolution.source(),
                 "rejected", resolution.rejected().stream()
                         .map(r -> Map.<String, Object>of("source", r.source(), "value", r.value(), "reason", r.reason()))

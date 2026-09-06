@@ -23,4 +23,9 @@ public record FailureWindowMinutes(Integer value) implements ConfigValue<Integer
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public FailureWindowMinutes holding(Integer value) {
+        return new FailureWindowMinutes(value);
+    }
 }

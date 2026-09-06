@@ -23,4 +23,9 @@ public record MaxFailures(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public MaxFailures holding(Integer value) {
+        return new MaxFailures(value);
+    }
 }

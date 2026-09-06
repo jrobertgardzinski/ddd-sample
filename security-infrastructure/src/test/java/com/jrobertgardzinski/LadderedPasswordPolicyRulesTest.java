@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.config.Configuration;
 import com.jrobertgardzinski.config.ladder.Level;
 import com.jrobertgardzinski.config.ladder.Resolution;
 import com.jrobertgardzinski.config.source.live.LiveConfigPort;
@@ -37,7 +38,7 @@ class LadderedPasswordPolicyRulesTest {
     private final RestartConfigPort<String> deployment = properties::get;
 
     private LadderedPasswordPolicy policy() {
-        return new LadderedPasswordPolicy(table, deployment);
+        return new LadderedPasswordPolicy(new Configuration(table, deployment));
     }
 
     @Test
@@ -91,8 +92,8 @@ class LadderedPasswordPolicyRulesTest {
     void illegalRowFallsThrough(int held) {
         Allure.parameter("row", held);
         rows.put(MinLength.KEY, Integer.toString(held));
-        Resolution<Integer> resolution = policy().minLengthResolution();
-        assertThat(resolution.value()).isEqualTo(MinLength.DEFAULT.value());
+        Resolution<MinLength> resolution = policy().minLengthResolution();
+        assertThat(resolution.value()).isEqualTo(MinLength.DEFAULT);
         assertThat(resolution.source()).isEqualTo(Level.REBUILD.label());
         assertThat(resolution.rejected()).singleElement().satisfies(rejected -> {
             assertThat(rejected.source()).isEqualTo(Level.LIVE.label());

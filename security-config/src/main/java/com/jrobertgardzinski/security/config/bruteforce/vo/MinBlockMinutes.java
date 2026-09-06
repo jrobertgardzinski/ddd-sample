@@ -23,4 +23,9 @@ public record MinBlockMinutes(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public MinBlockMinutes holding(Integer value) {
+        return new MinBlockMinutes(value);
+    }
 }

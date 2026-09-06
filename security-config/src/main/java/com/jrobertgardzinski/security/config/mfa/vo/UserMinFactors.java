@@ -22,4 +22,9 @@ public record UserMinFactors(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public UserMinFactors holding(Integer value) {
+        return new UserMinFactors(value);
+    }
 }

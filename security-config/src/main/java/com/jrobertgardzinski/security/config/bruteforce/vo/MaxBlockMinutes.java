@@ -23,4 +23,9 @@ public record MaxBlockMinutes(Integer value) implements ConfigValue<Integer> {
     public Integer defaultValue() {
         return DEFAULT.value();
     }
+
+    @Override
+    public MaxBlockMinutes holding(Integer value) {
+        return new MaxBlockMinutes(value);
+    }
 }

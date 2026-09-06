@@ -24,4 +24,14 @@ public record StepUpFor(StepUpAction action, StepUpRequirement requirement) impl
     public StepUpRequirement defaultValue() {
         return action.defaultRequirement();
     }
+
+    @Override
+    public StepUpFor holding(StepUpRequirement value) {
+        return new StepUpFor(action, value);
+    }
+
+    /** The action at the requirement the code ships: the rule a ladder is declared over. */
+    public static StepUpFor shipped(StepUpAction action) {
+        return new StepUpFor(action, action.defaultRequirement());
+    }
 }
