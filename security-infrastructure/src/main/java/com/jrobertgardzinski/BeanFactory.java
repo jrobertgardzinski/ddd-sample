@@ -2,8 +2,6 @@ package com.jrobertgardzinski;
 
 import com.jrobertgardzinski.security.domain.vo.StepUpAction;
 import com.jrobertgardzinski.config.ladder.ConfigLadder;
-import com.jrobertgardzinski.config.ladder.Parse;
-import com.jrobertgardzinski.config.ladder.Rung;
 import com.jrobertgardzinski.config.source.live.LiveConfigPort;
 import com.jrobertgardzinski.config.source.live.SnapshotLiveConfigPort;
 import com.jrobertgardzinski.config.source.restart.RestartConfigPort;
@@ -73,6 +71,7 @@ import com.jrobertgardzinski.security.system.passwordreset.ResetPassword;
 import com.jrobertgardzinski.security.system.verification.RequestEmailVerification;
 import com.jrobertgardzinski.security.system.verification.VerifyEmail;
 import io.micronaut.context.annotation.Context;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.context.env.Environment;
@@ -103,20 +102,20 @@ public class BeanFactory {
 
     /**
      * The live level of the configuration ladder: one snapshot of the {@code security_settings}
-     * table, taken at most once per TTL, answering every key. The TTL is itself on a ladder, but
-     * one level BELOW what it governs - a property over the default, never a row - so a bad TTL
-     * (say 24h) can never delay the very correction that fixes it. Zero reads the table on every
-     * question, which is what the feature suites want.
+     * table, answering every key. The table is read when the service starts - {@code @Context},
+     * so a table that cannot be read fails the boot, like an illegal property does - and again
+     * after each admin's write, never on a question. The table is this service's and its API is
+     * the only way in, so there is nothing to poll for: a row written behind the API's back is not
+     * in force until the next start or the next admin's write.
+     *
+     * <p>The first read touches the datasource, so it waits for the {@link CredentialsFuse} where
+     * one exists (a declared {@code prod} profile): a missing or dev-default password must be
+     * refused by the fuse's own words, not by the placeholder error of a datasource that this
+     * snapshot would otherwise be the first to open.
      */
-    @Singleton
-    SnapshotLiveConfigPort settingsSnapshot(SecuritySettingsTable table, RestartConfigPort<String> properties,
-                                            Clock clock) {
-        ConfigLadder<Integer> ttlSeconds = ConfigLadder.of("security.settings.cache.ttl.seconds",
-                seconds -> {
-                    if (seconds < 0) throw new IllegalArgumentException("ttl must not be negative");
-                },
-                Rung.restart(properties, Parse::integer), Rung.rebuild(10));
-        return new SnapshotLiveConfigPort(table::rows, java.time.Duration.ofSeconds(ttlSeconds.resolve()), clock);
+    @Context
+    SnapshotLiveConfigPort settingsSnapshot(SecuritySettingsTable table, @Nullable CredentialsFuse fuse) {
+        return new SnapshotLiveConfigPort(table::rows);
     }
 
     /**
@@ -141,8 +140,7 @@ public class BeanFactory {
 
     /**
      * The write side of the live level: an ADMIN's decision lands in the table under the record's
-     * key, and this instance refreshes its snapshot so the writer sees their own decision at once;
-     * other instances converge within one TTL.
+     * key, and the snapshot is refreshed so the writer sees their own decision at once.
      */
     @Singleton
     MinLengthRepository minLengthRepository(SecuritySettingsTable table, SnapshotLiveConfigPort snapshot) {

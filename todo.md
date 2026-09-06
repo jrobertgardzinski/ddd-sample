@@ -313,9 +313,12 @@ stopień Live, dostaną taki sam port i asymetria zniknie.
 
 ## Otwarte — po przeprojektowaniu drabinki (2026-09-05, przepisane 2026-09-06)
 
-Stan po 2026-09-06: poziom live to JEDEN snapshot tabeli `security_settings` co TTL
-(`SnapshotLiveConfigPort` w `shared/config`, TTL Restart+Rebuild, zero = odczyt przy każdym
-pytaniu), więc każdy klucz ma live/restart/rebuild i nie ma „zamówień" na live per klucz.
+Stan po 2026-09-06: poziom live to JEDEN snapshot tabeli `security_settings`, brany przy starcie
+(`@Context`, brak bazy wali boot) i po każdym zapisie admina — nigdy przy pytaniu, nigdy z zegara
+(`SnapshotLiveConfigPort` w `shared/config`; TTL i property `security.settings.cache.ttl.seconds`
+SKASOWANE tego samego dnia: TTL istniał tylko po to, żeby zauważać wiersze pisane obok API, czyli
+legitymizował złamanie zasady Newmana), więc każdy klucz ma live/restart/rebuild i nie ma
+„zamówień" na live per klucz.
 Moduły `security-custom`, `security-roles`, `security-http` ROZPUSZCZONE w warstwach
 (reguła właściciela: 3–5 warstw, nie wymyślać nowych): `RequireRole`/`RolesOf`/`BootstrapAdmins`
 → `security-system/roles`; `SetMinPasswordLength` + `MinLengthRepository` →
@@ -323,13 +326,16 @@ Moduły `security-custom`, `security-roles`, `security-http` ROZPUSZCZONE w wars
 `LadderedPasswordPolicy` (5 drabinek pod kluczami rekordów `password-config`, jedna polityka, bez
 @Primary/@Secondary) → `security-infrastructure`; `SecuritySettingsTable` (Jdbc + InMemory) →
 `security-infrastructure/persistence`. `password-application` w bibliotece SKASOWANY.
-Zapis admina odświeża snapshot własnej instancji (`BeanFactory#minLengthRepository`); inne
-instancje dochodzą w ciągu TTL. Nielegalny wiersz: warn RAZ per odmowa (nie per pytanie),
+Zapis admina odświeża snapshot (`BeanFactory#minLengthRepository`, refresh czyta całą tabelę);
+przy replikach (k3s, odłożone) unieważnienie musi pójść zdarzeniem między instancjami, nie zegarem. Nielegalny wiersz: warn RAZ per odmowa (nie per pytanie),
 raport `rejected` niesie to, co wiersz trzymał (liczbę albo surowy tekst).
 
-- **Zaakceptowana konsekwencja**: admin przez wiersz w bazie nadpisze KAŻDY klucz polityki, także
-  bez endpointu; bramka drabinki chroni przed wartością nielegalną. Powiedziane w
-  `specs/password-policy.feature` i w `application.yml`.
+- **Zaakceptowana konsekwencja**: klucze BEZ endpointu admina (special chars, uppercase,
+  lowercase, digit, brute-force, mfa, session) są w praktyce Restart — wiersz w bazie wchodzi
+  dopiero przy następnym starcie albo przy zapisie admina pod innym kluczem; bramka drabinki nadal
+  chroni przed wartością nielegalną. Powiedziane w `specs/password-policy.feature` (krok „written
+  at the console before the last start") i w `application.yml`. Chcąc Live naprawdę: endpoint per
+  klucz.
 - **ADR do spisania** (właściciel): kontrakt drabinki + snapshot + dlaczego biblioteka nie zna
   drabinki. `SourceThrottle` → Live = te same trzy szczeble w `BeanFactory`, bez nowego modułu.
 

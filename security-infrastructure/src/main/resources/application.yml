@@ -35,24 +35,22 @@ micronaut:
           # silent client-side one this file's comment above describes.
           allowed-origins: ${SECURITY_CORS_ORIGINS:`http://localhost:8083,http://localhost:8084,http://localhost:4200,http://localhost:8093,http://localhost:5173`}
 security:
-  # The configuration ladder (shared/config): a security_settings database row (runtime — live
-  # within one snapshot TTL) beats a property set here (deployment — needs a restart) beats the
-  # hardcoded default (compile time). EVERY key below has all three levels: the live level is one
-  # snapshot of the whole table, so a row under any of these names is in force within one TTL,
-  # endpoint or no endpoint — and an illegal row is refused and fallen through, never obeyed.
+  # The configuration ladder (shared/config): a security_settings database row (runtime — live,
+  # written through the admin API) beats a property set here (deployment — needs a restart) beats
+  # the hardcoded default (compile time). EVERY key below has all three levels: the live level is
+  # one snapshot of the whole table, read when the service starts and again after each admin's
+  # write, never on a question — and an illegal row is refused and fallen through, never obeyed.
+  # The table is this service's and the API is the only way in: a row written at the console is
+  # not in force until the next start or the next admin's write.
   # The keys are deliberately ABSENT below: an absent property is a VACANT level, not zero — the
-  # hardcoded default (MinLength.DEFAULT = 5, TTL 10 s) answers until a deployment or an
-  # administrator says otherwise. Setting a value here (or the env var) claims the deployment level.
+  # hardcoded default (MinLength.DEFAULT = 5) answers until a deployment or an administrator says
+  # otherwise. Setting a value here (or the env var) claims the deployment level.
   #
   # password.policy.min.length: 12          # every rule of the policy has a key of its own,
   # password.policy.special.chars: "#?!"     # translated in password-application; only the
   # password.policy.requires.uppercase: true # the record's KEY in shared/password. A property
   # password.policy.requires.lowercase: true # that is not its type or is below the rule's
   # password.policy.requires.digit: true     # floor fails the boot, by name.
-  # settings.cache.ttl.seconds: 10   # zero reads the table on every question. The TTL has NO
-  #                                  # database level ON PURPOSE: meta-configuration lives one
-  #                                  # level below what it governs, or a bad TTL (say 24h) would
-  #                                  # delay the very correction that fixes it by 24h.
   #
   # The email policy for registration lives on the deployment level only (BeanFactory#emailPolicy):
   # comma-separated domain lists, each ABSENT by default, so no email rule is in force until a

@@ -12,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * The table without a database: empty unless a test seeds it or an admin writes. Mirrors the
  * other InMemory* fallbacks - the service boots and behaves identically, the level is vacant and
  * the ladder falls through. {@link #put} is also the test's stand-in for a hand at the database
- * console: it bypasses the value object on purpose, and the snapshot notices within one TTL like
- * it would a real row.
+ * console: it bypasses the value object on purpose, and the snapshot notices it when it is next
+ * taken - at a start or after an admin's write - like it would a real row.
  */
 @Singleton
 @Requires(missingBeans = DataSource.class)

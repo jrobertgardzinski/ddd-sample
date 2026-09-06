@@ -10,13 +10,6 @@ security:
   # from localhost across scenarios); it is exercised in isolation by RegisterThrottleHttpTest
   registration:
     max-per-window: 0
-  # the settings table is read on every question in the feature suites, so a row a test writes
-  # "at the console" is in force on the very next request; the snapshot TTL itself is exercised
-  # in isolation by shared/config's snapshot-live-config.feature
-  settings:
-    cache:
-      ttl:
-        seconds: 0
 
 # no broker in tests: the outbox publisher is @Requires(notEnv=test); this silences kafka's health check
 kafka:

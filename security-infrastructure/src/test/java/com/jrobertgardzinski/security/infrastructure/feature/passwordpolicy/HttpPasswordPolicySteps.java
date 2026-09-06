@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.infrastructure.feature.passwordpolicy;
 
 import com.jrobertgardzinski.CapturingEmailVerificationNotifier;
+import com.jrobertgardzinski.config.source.live.SnapshotLiveConfigPort;
 import com.jrobertgardzinski.persistence.InMemorySecuritySettings;
 import com.jrobertgardzinski.security.system.passwordpolicy.SetMinPasswordLength;
 import io.cucumber.java.After;
@@ -30,8 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * POST /admin/settings/password/min-length (behind a step-up, like every admin hand) and the
  * whole policy in force is read back via GET /admin/settings/password. "admin@example.com" is a bootstrap admin (test config). The one thing done behind the
  * API's back is done on purpose: "written at the console" seeds the in-memory settings table
- * directly, bypassing the value object — which is exactly what a hand at psql does. The test
- * deployment's snapshot TTL is zero, so the table is read on every question.
+ * directly, bypassing the value object — which is exactly what a hand at psql does — and then
+ * takes the snapshot again, which is what the next start of the service would do.
  */
 public class HttpPasswordPolicySteps {
 
@@ -75,9 +76,9 @@ public class HttpPasswordPolicySteps {
         assertEquals(HttpStatus.OK, response.getStatus(), "the precondition itself was refused");
     }
 
-    @Given("the database row for the minimum password length holds {int}, written at the console")
+    @Given("the database row for the minimum password length holds {int}, written at the console before the last start")
     public void theDatabaseRowHoldsWrittenAtTheConsole(int value) {
-        server.getApplicationContext().getBean(InMemorySecuritySettings.class).put(SetMinPasswordLength.KEY, Integer.toString(value));
+        writtenAtTheConsole(SetMinPasswordLength.KEY, Integer.toString(value));
     }
 
     @When("the ADMIN SETS the minimum password length to {int}")
@@ -90,9 +91,15 @@ public class HttpPasswordPolicySteps {
         response = set(tokenFor(caller), length);
     }
 
-    @Given("the database row {string} holds {string}, written at the console")
+    @Given("the database row {string} holds {string}, written at the console before the last start")
     public void theDatabaseRowHoldsTextWrittenAtTheConsole(String name, String value) {
+        writtenAtTheConsole(name, value);
+    }
+
+    /** The row lands behind the API's back and the snapshot is taken again, as the next start would. */
+    private void writtenAtTheConsole(String name, String value) {
         server.getApplicationContext().getBean(InMemorySecuritySettings.class).put(name, value);
+        server.getApplicationContext().getBean(SnapshotLiveConfigPort.class).refresh();
     }
 
     @When("the ADMIN asks for the password policy in force")

@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.infrastructure.persistence;
 
 import com.jrobertgardzinski.config.source.live.LiveConfigPort;
+import com.jrobertgardzinski.config.source.live.SnapshotLiveConfigPort;
 import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.email.domain.NormalizedEmail;
 import com.jrobertgardzinski.password.domain.HashedPassword;
@@ -289,6 +290,10 @@ class JdbcAdaptersTest {
                     + " ('security.settings.broken', 'not-a-number')");
         }
 
+        // rows written behind the API's back reach the snapshot when it is next taken - at a start
+        // or after an admin's write; here, as a start would
+        context.getBean(SnapshotLiveConfigPort.class).refresh();
+
         // text in, text out: the ladder's rung parses and refuses, never the table
         assertThat(settings.find("security.settings.sample")).isEqualTo("10");
         assertThat(settings.find("security.settings.broken")).isEqualTo("not-a-number");
@@ -306,7 +311,7 @@ class JdbcAdaptersTest {
             assertThat(settings.find(SetMinPasswordLength.KEY)).isEqualTo("10");
 
             // a second decision replaces the row - one key, one row, never a duplicate - and the
-            // writer's own snapshot is refreshed, whatever the TTL
+            // snapshot is refreshed by the write itself
             store.save(new com.jrobertgardzinski.password.config.MinLength(12));
             assertThat(table.rows()).containsEntry(SetMinPasswordLength.KEY, "12");
             assertThat(settings.find(SetMinPasswordLength.KEY)).isEqualTo("12");

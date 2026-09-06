@@ -16,10 +16,12 @@ Feature: Setting the minimum password length while the system runs
   # The ladder for this key: a security_settings row (live) over the
   # security.password.policy.min.length property (restart) over MinLength.DEFAULT (rebuild).
   # The test deployment sets no property, so a vacant live level falls to the default of 5.
-  # The live level is one snapshot of the whole table, so EVERY key of the policy has it — a row
-  # under any key is in force within one TTL, endpoint or no endpoint; the ladder's gate is what
-  # keeps a hand at the console from putting an illegal value in force. The report an ADMIN asks
-  # for is the whole policy: every rule under its key, each with the level that answered.
+  # The live level is one snapshot of the whole table, read at the start and after each ADMIN's
+  # write, never on a question — so EVERY key of the policy has it, endpoint or no endpoint. The
+  # table is the service's own and the API is the only way in: a row written at the console is
+  # in force from the next start, and the ladder's gate is what keeps such a hand from putting an
+  # illegal value in force. The report an ADMIN asks for is the whole policy: every rule under
+  # its key, each with the level that answered.
 
   Background:
     Given a registered USER "member@example.com" with password "StrongPassword1!"
@@ -46,22 +48,22 @@ Feature: Setting the minimum password length while the system runs
   Rule: A value written straight into the database is not law — the ladder refuses it, falls through, and says so
 
     Example:
-      Given the database row for the minimum password length holds 3, written at the console
+      Given the database row for the minimum password length holds 3, written at the console before the last start
       When the ADMIN asks for the password policy in force
       Then the minimum password length in force is 5, decided by the "rebuild (default)" source
       And the report says the "live (database)" source was refused holding 3 because "minLength must be at least 5"
 
-  Rule: Every rule of the policy has the same live level, endpoint or no endpoint
+  Rule: Every rule of the policy reads the same table, endpoint or no endpoint
 
     Example:
-      Given the database row "security.password.policy.requires.digit" holds "false", written at the console
+      Given the database row "security.password.policy.requires.digit" holds "false", written at the console before the last start
       When the ADMIN asks for the password policy in force
       Then the rule "security.password.policy.requires.digit" in force is "false", decided by the "live (database)" source
       And the USER REGISTERS with EMAIL "nodigit@example.com" and password "NoDigitsHere!"
       And REGISTRATION succeeds
 
     Example:
-      Given the database row "security.password.policy.requires.digit" holds "maybe", written at the console
+      Given the database row "security.password.policy.requires.digit" holds "maybe", written at the console before the last start
       When the ADMIN asks for the password policy in force
       Then the rule "security.password.policy.requires.digit" in force is "true", decided by the "rebuild (default)" source
       And the report says the rule "security.password.policy.requires.digit" was refused holding the text "maybe"
