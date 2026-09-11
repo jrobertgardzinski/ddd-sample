@@ -517,8 +517,10 @@ export function App() {
 
   const performDelete = async () => {
     try {
-      const r = await request(`${SECURITY}/account/delete`, {
-        method: 'POST',
+      // the address in the path is the caller's own, which is what makes this a request to be
+      // forgotten rather than an administrator's act — the same route, a different address
+      const r = await request(`${SECURITY}/account/${encodeURIComponent(me)}`, {
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.status === 202) {

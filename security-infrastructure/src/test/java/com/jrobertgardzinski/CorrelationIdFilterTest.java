@@ -53,9 +53,10 @@ class CorrelationIdFilterTest {
     @Test
     @DisplayName("an ordinary path is logged exactly as it arrived")
     void ordinary_paths_are_untouched() {
-        new CorrelationIdFilter().onRequest(HttpRequest.POST("/account/delete", Map.of()));
+        new CorrelationIdFilter().onRequest(HttpRequest.DELETE("/account/leaver@example.com", Map.of()));
 
-        assertTrue(onlyLine().contains("/account/delete"), onlyLine());
+        // the address in the path is masked on the way into the log (MaskedEmail.maskedPath)
+        assertTrue(onlyLine().contains("/account/le***@example.com"), onlyLine());
     }
 
     private String onlyLine() {

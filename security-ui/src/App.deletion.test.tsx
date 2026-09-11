@@ -15,7 +15,7 @@ import { SECURITY } from './lib';
  *
  * <p>The fetch stub below therefore behaves like the filter: /account/** without a Bearer token
  * answers 401, with one it answers the happy path. The assertion is behavioural — the deletion
- * must actually reach POST /account/delete.
+ * must actually reach DELETE /account/{the caller's own address}.
  *
  * <p>(No testing-library in this project by design — the e2e suite owns browser flows — so this
  * drives React with jsdom events and `act` directly.)
@@ -52,7 +52,7 @@ const answer = (url: string, init?: RequestInit): Response => {
     return json({ status: 'FACTOR_REQUIRED', stepUpTicket: 'ticket-1' }, 202);
   }
   if (url === `${SECURITY}/account/step-up/factor`) return json({ status: 'ELEVATED' });
-  if (url === `${SECURITY}/account/delete`) return json({}, 202);
+  if (url === `${SECURITY}/account/alice%40example.com`) return json({}, 202);
   if (url === `${SECURITY}/logout`) return json({});
   return json({}, 404);
 };
@@ -135,7 +135,8 @@ describe('deleting an account that has an enrolled factor', () => {
 
     // the proof call must authenticate itself — AuthorizationFilter guards /account/** and would
     // otherwise answer 401 before any controller saw the (perfectly valid) code
-    await until('the deletion request', () => calls.some((c) => c.url === `${SECURITY}/account/delete`));
+    await until('the deletion request',
+      () => calls.some((c) => c.url === `${SECURITY}/account/alice%40example.com` && c.init?.method === 'DELETE'));
     const proof = calls.find((c) => c.url === `${SECURITY}/account/step-up/factor`);
     expect(proof).toBeDefined();
     expect((proof!.init!.headers as Record<string, string>).Authorization).toBe('Bearer token-123');

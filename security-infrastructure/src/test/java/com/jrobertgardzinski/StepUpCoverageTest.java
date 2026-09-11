@@ -39,15 +39,15 @@ class StepUpCoverageTest {
      * Endpoints that must be behind a step-up, each with the durable access it would otherwise
      * hand a thief holding nothing but a live session.
      */
-    private static final Map<String, String> MUST_STEP_UP = Map.of(
-            "DeleteAccountController", "closing an account is irreversible and takes the content with it",
-            "FactorsController", "a factor added here decides every future sign-in — and a factor removed weakens it",
-            "AdminFactorsController", "resetting another account's factors strips that person's second factor",
-            "RecoveryCodesController", "recovery codes are durable spare keys: minted once, usable when the factor is out of reach",
-            "EmailChangeController", "moving the address moves the account — the confirmation lands in the NEW mailbox",
-            "AdminRolesController", "granting a role is a permanent widening of what the session may do",
-            "AdminPasswordPolicyController", "the password floor binds every future password in the estate — lowering it on a stolen live session is a lasting weakening",
-            "AdminSettingsController", "every rule declared live is settable here by its key — a weakening written on a stolen live session binds every future decision under that rule");
+    private static final Map<String, String> MUST_STEP_UP = Map.ofEntries(
+            Map.entry("DeleteAccountController", "closing an account is irreversible and takes the content with it — and on the same route, closing SOMEBODY ELSE's destroys their content on one press"),
+            Map.entry("FactorsController", "a factor added here decides every future sign-in — and a factor removed weakens it"),
+            Map.entry("AdminFactorsController", "resetting another account's factors strips that person's second factor"),
+            Map.entry("RecoveryCodesController", "recovery codes are durable spare keys: minted once, usable when the factor is out of reach"),
+            Map.entry("EmailChangeController", "moving the address moves the account — the confirmation lands in the NEW mailbox"),
+            Map.entry("AdminRolesController", "granting a role is a permanent widening of what the session may do"),
+            Map.entry("AdminPasswordPolicyController", "the password floor binds every future password in the estate — lowering it on a stolen live session is a lasting weakening"),
+            Map.entry("AdminSettingsController", "every rule declared live is settable here by its key — a weakening written on a stolen live session binds every future decision under that rule"));
 
     /**
      * The rest, each with the reason a live session is enough. These are not oversights; leaving

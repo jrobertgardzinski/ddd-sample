@@ -20,7 +20,9 @@ import io.micronaut.runtime.server.EmbeddedServer;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * HTTP glue for {@code delete-account.feature}. The saga's edges that need other services are
@@ -33,8 +35,12 @@ public class HttpDeleteAccountSteps {
     private EmbeddedServer server;
     private BlockingHttpClient client;
 
+    private static final String ADMIN = "admin@example.com";
+
     private String email;
     private String accessToken;
+    /** The last admin-route response, for the scenarios that assert on its status alone. */
+    private HttpResponse<Map> adminResponse;
 
     @Before
     public void startServer() {
@@ -59,7 +65,11 @@ public class HttpDeleteAccountSteps {
 
     @Given("a registered USER {string} with password {string}")
     public void aRegisteredUser(String email, String password) {
-        this.email = email;
+        // the first one registered is "the USER" every later step talks about; the background also
+        // seeds the administrator, and adopting THAT address would point every step at the wrong person
+        if (this.email == null) {
+            this.email = email;
+        }
         HttpResponse<Map> seeded = exchange(HttpRequest.POST("/register", Map.of("email", email, "password", password)));
         assertEquals(HttpStatus.CREATED, seeded.getStatus(), "failed to seed the user");
         verifySeededUser(email);
@@ -75,7 +85,7 @@ public class HttpDeleteAccountSteps {
     @When("the USER requests account DELETION")
     public void theUserRequestsAccountDeletion() {
         stepUpForDeletion();
-        HttpResponse<Map> closed = exchange(HttpRequest.POST("/account/delete", null)
+        HttpResponse<Map> closed = exchange(HttpRequest.DELETE("/account/" + email, null)
                 .header("Authorization", "Bearer " + accessToken));
         assertEquals(HttpStatus.ACCEPTED, closed.getStatus());
     }
@@ -85,14 +95,80 @@ public class HttpDeleteAccountSteps {
         theUserRequestsAccountDeletion();
     }
 
-    @When("the USER requests account DELETION keeping content with at least {int} votes")
-    public void requestsDeletionKeepingPopularContent(int minScore) {
-        stepUpForDeletion();
+    @When("the ADMIN CLOSES {string} keeping content with at least {int} votes")
+    public void adminClosesKeepingPopularContent(String target, int minScore) {
         String rule = "KEEP_POPULAR_ANONYMIZED:" + minScore;
-        HttpResponse<Map> closed = exchange(HttpRequest.POST("/account/delete",
-                        Map.of("purge", Map.of("memes", rule, "comments", rule)))
+        adminResponse = closeAsAdmin(tokenFor(ADMIN), target,
+                Map.of("purge", Map.of("memes", rule, "comments", rule)));
+    }
+
+    @When("{string} tries to CLOSE {string}")
+    public void triesToClose(String caller, String target) {
+        adminResponse = closeAsAdmin(tokenFor(caller), target, null);
+    }
+
+    @Then("the request is forbidden")
+    public void theRequestIsForbidden() {
+        assertEquals(HttpStatus.FORBIDDEN, adminResponse.getStatus());
+    }
+
+    @Then("the request is not found")
+    public void theRequestIsNotFound() {
+        assertEquals(HttpStatus.NOT_FOUND, adminResponse.getStatus());
+    }
+
+    @Then("the announced deletion says the USER asked for it")
+    public void theAnnouncedDeletionSaysTheUserAskedForIt() {
+        assertTrue(announcedFact().contains("\"initiatedBy\":\"SELF\""),
+                "expected a self-requested closure in the announced fact, got: " + announcedFact());
+    }
+
+    @Then("the announced deletion says an ADMIN asked for it")
+    public void theAnnouncedDeletionSaysAnAdminAskedForIt() {
+        assertTrue(announcedFact().contains("\"initiatedBy\":\"ADMIN\""),
+                "expected an administrator's closure in the announced fact, got: " + announcedFact());
+    }
+
+    @When("the USER requests account DELETION spelling their address differently")
+    public void theUserRequestsDeletionWithADifferentSpelling() {
+        stepUpForDeletion();
+        // the DOMAIN shouted, which is the same account by the rule this estate already has
+        // (DomainPart lowercases; the local part stays case-sensitive, as the RFC has it). It must
+        // still be read as the owner's own request, and everything downstream must address the
+        // user by the exact string the account is stored under
+        int at = email.indexOf('@');
+        String shouted = email.substring(0, at) + "@" + email.substring(at + 1).toUpperCase();
+        HttpResponse<Map> closed = exchange(HttpRequest.DELETE("/account/" + shouted, null)
                 .header("Authorization", "Bearer " + accessToken));
         assertEquals(HttpStatus.ACCEPTED, closed.getStatus());
+    }
+
+    @Then("the announced deletion carries no conditions")
+    public void theAnnouncedDeletionCarriesNoConditions() {
+        assertFalse(announcedFact().contains("policy"),
+                "a self-requested closure must state no conditions, got: " + announcedFact());
+    }
+
+    /**
+     * The SAME route the person's own closure walks — only the address in it belongs to somebody
+     * else, which is what turns it into an administrator's act: the ADMIN role on top of the
+     * step-up. Every caller here has a password and no factors, so re-entering the password
+     * elevates at once, including the caller who is then refused on their ROLE.
+     */
+    private HttpResponse<Map> closeAsAdmin(String token, String target, Map<String, ?> body) {
+        HttpResponse<Map> elevated = exchange(HttpRequest.POST("/account/step-up",
+                        Map.of("action", "admin-delete-account", "password", "StrongPassword1!"))
+                .header("Authorization", "Bearer " + token));
+        assertEquals(HttpStatus.OK, elevated.getStatus());
+        return exchange(HttpRequest.DELETE("/account/" + target, body)
+                .header("Authorization", "Bearer " + token));
+    }
+
+    private String tokenFor(String who) {
+        HttpResponse<Map> authed = exchange(HttpRequest.POST("/authenticate",
+                Map.of("email", who, "password", "StrongPassword1!")));
+        assertEquals(HttpStatus.OK, authed.getStatus(), "could not authenticate " + who);
+        return (String) authed.getBody(Map.class).orElseThrow().get("accessToken");
     }
 
     /** Deleting is FULL_CHAIN step-up: this user has a password and no factors, so re-entering the
@@ -107,15 +183,18 @@ public class HttpDeleteAccountSteps {
 
     @Then("the announced deletion carries that choice")
     public void theAnnouncedDeletionCarriesTheChoice() {
+        assertTrue(announcedFact().contains("KEEP_POPULAR_ANONYMIZED:100"),
+                "expected the administrator's choice in the announced fact, got: " + announcedFact());
+    }
+
+    /** The last deletion fact announced for THE USER — the payload as it will reach the portal. */
+    private String announcedFact() {
         InMemoryOutboxAppender outbox = server.getApplicationContext().getBean(InMemoryOutboxAppender.class);
-        String fact = outbox.appended().stream()
+        return outbox.appended().stream()
                 .filter(event -> event.topic().equals("security-events") && event.key().equals(email))
                 .reduce((first, second) -> second)
                 .orElseThrow(() -> new AssertionError("no deletion fact in the outbox"))
                 .payload();
-        org.junit.jupiter.api.Assertions.assertTrue(
-                fact.contains("KEEP_POPULAR_ANONYMIZED:100"),
-                "expected the wizard's choice in the announced fact, got: " + fact);
     }
 
     @When("the portal confirms the content purge")

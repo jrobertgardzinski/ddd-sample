@@ -20,6 +20,10 @@ class MaskedEmailTest {
                 MaskedEmail.maskedPath("/admin/users/victim@example.com/factors/reset"));
         assertEquals("/admin/users/vi***@example.com/roles",
                 MaskedEmail.maskedPath("/admin/users/victim@example.com/roles"));
+        // closing an account puts the address in the path of an ordinary user's own request too,
+        // not only an admin's — every access-log line of a deletion would otherwise carry it
+        assertEquals("/account/le***@example.com",
+                MaskedEmail.maskedPath("/account/leaver@example.com"));
     }
 
     @Test
@@ -34,7 +38,7 @@ class MaskedEmailTest {
     @Test
     @DisplayName("a path without an address is returned untouched")
     void leavesOrdinaryPathsAlone() {
-        assertEquals("/account/delete", MaskedEmail.maskedPath("/account/delete"));
+        assertEquals("/account/password", MaskedEmail.maskedPath("/account/password"));
         assertEquals("/", MaskedEmail.maskedPath("/"));
         assertEquals(null, MaskedEmail.maskedPath(null));
     }

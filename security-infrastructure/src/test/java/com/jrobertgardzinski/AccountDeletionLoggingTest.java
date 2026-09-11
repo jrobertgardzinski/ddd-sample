@@ -74,7 +74,8 @@ class AccountDeletionLoggingTest {
         new AccountDeletionOrchestrator(latchedStore(true), (topic, key, payload) -> { },
                 mock(DeleteAccount.class), mock(UserRepository.class), JsonMapper.createDefault(),
                 CLOCK, Duration.ofMinutes(5), false)
-                .begin(com.jrobertgardzinski.email.domain.Email.of(EMAIL), new PurgeChoices(java.util.Map.of()));
+                .begin(com.jrobertgardzinski.security.domain.vo.AccountClosure.requestedByOwner(
+                        com.jrobertgardzinski.email.domain.Email.of(EMAIL)));
 
         assertMasked();
     }

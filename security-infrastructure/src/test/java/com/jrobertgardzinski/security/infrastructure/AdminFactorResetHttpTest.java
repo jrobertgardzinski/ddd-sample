@@ -76,7 +76,7 @@ class AdminFactorResetHttpTest {
         // and that admin-reset elevation must NOT unlock a different action — deleting the admin's own
         // account still demands its own step-up (the elevation is keyed by action, poz. 1). The failed
         // attempt consumes only the delete-account key, so the admin-reset elevation survives for the reset below.
-        assertEquals(HttpStatus.FORBIDDEN, exchange(HttpRequest.POST("/account/delete", null)
+        assertEquals(HttpStatus.FORBIDDEN, exchange(HttpRequest.DELETE("/account/" + ADMIN, null)
                 .header("Authorization", "Bearer " + adminToken)).getStatus());
 
         HttpResponse<Map> reset = exchange(HttpRequest.PUT("/admin/users/" + user + "/factors/reset", null)

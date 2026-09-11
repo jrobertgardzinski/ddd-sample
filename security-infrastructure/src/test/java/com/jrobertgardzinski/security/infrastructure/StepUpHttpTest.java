@@ -56,7 +56,7 @@ class StepUpHttpTest {
         String token = onboard(email);
 
         // straight to delete → refused, told to step up
-        HttpResponse<Map> refused = delete(token);
+        HttpResponse<Map> refused = delete(token, email);
         assertEquals(HttpStatus.FORBIDDEN, refused.getStatus());
         assertEquals("STEP_UP_REQUIRED", refused.getBody(Map.class).orElseThrow().get("status"));
 
@@ -65,7 +65,7 @@ class StepUpHttpTest {
                 Map.of("action", "delete-account", "password", "WrongButStrong1!"))
                 .header("Authorization", "Bearer " + token));
         assertEquals(HttpStatus.UNAUTHORIZED, wrong.getStatus());
-        assertEquals(HttpStatus.FORBIDDEN, delete(token).getStatus());
+        assertEquals(HttpStatus.FORBIDDEN, delete(token, email).getStatus());
 
         // the right password (no factors here) elevates at once; delete goes through
         HttpResponse<Map> elevated = exchange(HttpRequest.POST("/account/step-up",
@@ -73,7 +73,7 @@ class StepUpHttpTest {
                 .header("Authorization", "Bearer " + token));
         assertEquals(HttpStatus.OK, elevated.getStatus());
         assertEquals("ELEVATED", elevated.getBody(Map.class).orElseThrow().get("status"));
-        assertEquals(HttpStatus.ACCEPTED, delete(token).getStatus());
+        assertEquals(HttpStatus.ACCEPTED, delete(token, email).getStatus());
     }
 
     @Test
@@ -99,7 +99,7 @@ class StepUpHttpTest {
                 .header("Authorization", "Bearer " + token));
         assertEquals(HttpStatus.OK, done.getStatus());
         assertEquals("ELEVATED", done.getBody(Map.class).orElseThrow().get("status"));
-        assertEquals(HttpStatus.ACCEPTED, delete(token).getStatus());
+        assertEquals(HttpStatus.ACCEPTED, delete(token, email).getStatus());
     }
 
     @Test
@@ -129,7 +129,7 @@ class StepUpHttpTest {
         assertEquals(HttpStatus.OK, elevated.getStatus());
 
         // and it must NOT open delete-account - the delete still demands its own step-up
-        assertEquals(HttpStatus.FORBIDDEN, delete(token).getStatus());
+        assertEquals(HttpStatus.FORBIDDEN, delete(token, email).getStatus());
     }
 
     @Test
@@ -159,8 +159,10 @@ class StepUpHttpTest {
 
     // --- Helpers --------------------------------------------------------------
 
-    private HttpResponse<Map> delete(String token) {
-        return exchange(HttpRequest.POST("/account/delete", null).header("Authorization", "Bearer " + token));
+    /** Closing YOUR OWN account: the address in the path is the caller's, so no role is asked. */
+    private HttpResponse<Map> delete(String token, String email) {
+        return exchange(HttpRequest.DELETE("/account/" + email, null)
+                .header("Authorization", "Bearer " + token));
     }
 
     private String onboard(String email) {

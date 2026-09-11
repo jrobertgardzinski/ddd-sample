@@ -14,6 +14,8 @@ public enum StepUpAction {
     DELETE_ACCOUNT("delete-account", StepUpRequirement.FULL_CHAIN),
     /** Resetting another account's factors strips that person's second factor. */
     ADMIN_RESET("admin-reset", StepUpRequirement.FULL_CHAIN),
+    /** Closing SOMEBODY ELSE's account destroys their content on somebody else's say-so. */
+    ADMIN_DELETE_ACCOUNT("admin-delete-account", StepUpRequirement.FULL_CHAIN),
     /** A factor added here decides every future sign-in. */
     ENROL_FACTOR("enrol-factor", StepUpRequirement.SECOND_FACTORS),
     /** A factor removed weakens every future sign-in. */

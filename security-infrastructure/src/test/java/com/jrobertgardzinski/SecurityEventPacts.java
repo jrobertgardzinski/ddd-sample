@@ -5,6 +5,7 @@ import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.persistence.AccountDeletionSagaStore;
 import com.jrobertgardzinski.persistence.OutboxAppender;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
+import com.jrobertgardzinski.security.domain.vo.AccountClosure;
 import com.jrobertgardzinski.security.domain.vo.PurgeChoices;
 import com.jrobertgardzinski.security.domain.vo.token.PasswordResetToken;
 import com.jrobertgardzinski.security.domain.vo.token.VerificationToken;
@@ -88,15 +89,18 @@ public class SecurityEventPacts {
     @PactVerifyProvider("an account deletion requested fact")
     public String anAccountDeletionRequestedFact() {
         CapturingOutbox outbox = new CapturingOutbox();
-        orchestrator(outbox).begin(Email.of("leaver@example.com"), PurgeChoices.serviceDefaults());
+        orchestrator(outbox).begin(AccountClosure.requestedByOwner(Email.of("leaver@example.com")));
         return outbox.only("security-events");
     }
 
     @PactVerifyProvider("an account deletion requested fact with policy choices")
     public String anAccountDeletionRequestedFactWithPolicyChoices() {
         CapturingOutbox outbox = new CapturingOutbox();
-        orchestrator(outbox).begin(Email.of("leaver@example.com"),
-                new PurgeChoices(java.util.Map.of("memes", "DELETE", "comments", "ANONYMIZE_AUTHOR")));
+        // an ADMINISTRATOR's closure, because that is the only kind that may state choices at all:
+        // AccountClosure drops an owner's before anybody downstream can read them
+        orchestrator(outbox).begin(AccountClosure.requestedByAdministrator(
+                Email.of("leaver@example.com"),
+                new PurgeChoices(java.util.Map.of("memes", "DELETE", "comments", "ANONYMIZE_AUTHOR"))));
         return outbox.only("security-events");
     }
 

@@ -4,7 +4,7 @@ import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.security.domain.port.AccountDeletionSaga;
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.vo.PurgeChoices;
+import com.jrobertgardzinski.security.domain.vo.AccountClosure;
 
 /**
  * Opens the account-closure saga (GDPR right to be forgotten): the account locks at once — every
@@ -26,9 +26,10 @@ public class StartAccountDeletion {
         this.saga = saga;
     }
 
-    public void execute(Email email, PurgeChoices purgeChoices) {
+    public void execute(AccountClosure closure) {
+        Email email = closure.target();
         authorizationDataRepository.revokeAllSessions(email);
         userRepository.markPendingDeletion(email);
-        saga.begin(email, purgeChoices);
+        saga.begin(closure);
     }
 }

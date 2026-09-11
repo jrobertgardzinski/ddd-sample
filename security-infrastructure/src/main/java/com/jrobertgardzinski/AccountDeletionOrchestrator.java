@@ -5,7 +5,7 @@ import com.jrobertgardzinski.persistence.AccountDeletionSagaStore;
 import com.jrobertgardzinski.persistence.OutboxAppender;
 import com.jrobertgardzinski.security.domain.port.AccountDeletionSaga;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
-import com.jrobertgardzinski.security.domain.vo.PurgeChoices;
+import com.jrobertgardzinski.security.domain.vo.AccountClosure;
 import com.jrobertgardzinski.security.system.account.DeleteAccount;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.json.JsonMapper;
@@ -92,7 +92,8 @@ public class AccountDeletionOrchestrator implements AccountDeletionSaga {
     }
 
     @Override
-    public void begin(Email email, PurgeChoices purgeChoices) {
+    public void begin(AccountClosure closure) {
+        Email email = closure.target();
         if (!awaitPortalPurge) {
             // identity-only deployment: no portal, no content, nothing to wait for
             deleteAccount.execute(email);
@@ -114,9 +115,15 @@ public class AccountDeletionOrchestrator implements AccountDeletionSaga {
                 "sagaId", sagaId.toString(),
                 "type", "ACCOUNT_DELETION_REQUESTED",
                 "email", email.value(),
+                // the legal basis of the closure, and the only thing that tells the content
+                // services whether the policy beside it may be honoured at all. Additive within
+                // envelope version 1 (workspace ADR 0004); an older consumer that ignores it
+                // simply behaves as every consumer did before, which is why the field is stated
+                // ALWAYS rather than only for the interesting value
+                "initiatedBy", closure.requestedBy().wire(),
                 "version", 1));
-        if (!purgeChoices.rules().isEmpty()) {
-            fact.put("policy", purgeChoices.rules());
+        if (!closure.choices().rules().isEmpty()) {
+            fact.put("policy", closure.choices().rules());
         }
         outbox.append(FACTS_TOPIC, email.value(), write(fact));
     }
