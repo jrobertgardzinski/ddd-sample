@@ -19,6 +19,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * HTTP glue for {@code change-email.feature}. Black-box: authenticate, request the change, read back
@@ -40,7 +42,10 @@ public class HttpChangeEmailSteps {
 
     @Before
     public void startServer() {
-        server = ApplicationContext.run(EmbeddedServer.class);
+        // this deployment refuses disposable domains — the rule the policy example is about; every
+        // other address in the feature is @example.com and untouched by it
+        server = ApplicationContext.run(EmbeddedServer.class,
+                Map.of("security.email.disposable.domains", "mailinator.com"));
         client = server.getApplicationContext()
                 .createBean(HttpClient.class, server.getURL())
                 .toBlocking();
@@ -95,6 +100,26 @@ public class HttpChangeEmailSteps {
                 .header("Authorization", "Bearer " + accessToken));
         assertEquals(HttpStatus.OK, elevated.getStatus());
         assertEquals("ELEVATED", elevated.getBody(Map.class).orElseThrow().get("status"));
+    }
+
+    /** Same call as the step above, but with no verdict assumed: this one is expected to be refused. */
+    @When("the USER tries to CHANGE the EMAIL to {string}")
+    public void theUserTriesToChangeTheEmail(String newEmail) {
+        this.newEmail = newEmail;
+        stepUpForTheChange();
+        requestResponse = exchange(HttpRequest.POST("/account/email/request", Map.of("newEmail", newEmail))
+                .header("Authorization", "Bearer " + accessToken));
+    }
+
+    @Then("the CHANGE is refused because the domain is DISPOSABLE")
+    public void refusedAsDisposable() {
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, requestResponse.getStatus());
+        assertTrue(String.valueOf(requestResponse.getBody(Map.class).orElseThrow().get("emailErrors"))
+                        .contains("DISPOSABLE_DOMAIN"),
+                "the refusal must name the broken rule, the same shape /register answers with");
+        assertNull(server.getApplicationContext().getBean(CapturingEmailVerificationNotifier.class)
+                        .lastTokenFor(newEmail),
+                "no link may be sent to an address the deployment does not admit");
     }
 
     @When("the USER CONFIRMS the EMAIL CHANGE with the token from the link")

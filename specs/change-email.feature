@@ -65,3 +65,19 @@ Feature: Changing the email address
       When the USER requests to CHANGE the EMAIL to "moved@example.com"
       And the USER CONFIRMS the EMAIL CHANGE with the token from the link
       Then the SESSION held since before the CHANGE no longer authorizes
+
+  Rule: The EMAIL POLICY guards a CHANGE exactly as it guards REGISTRATION
+
+    An address a deployment refuses at the door must be refused here too, or the door decides
+    nothing: a CHANGE moves the whole ACCOUNT — its ROLES, its FACTORS, its FEDERATED LINKS go
+    with it — so an address that may not hold an ACCOUNT must not be able to receive one either.
+    A closed shop that only asks at REGISTRATION is open to everyone it ever let in.
+
+    # "mailinator.com" is a literal because it IS the rule under test: the deployment behind this
+    # suite refuses disposable domains (security.email.disposable.domains). The browser harness
+    # runs against the compose stack, which configures no lists, so this example is wire-level.
+    @http-only
+    Example:
+      Given the USER has AUTHENTICATED
+      When the USER tries to CHANGE the EMAIL to "user@mailinator.com"
+      Then the CHANGE is refused because the domain is DISPOSABLE

@@ -69,6 +69,12 @@ final class EmailChangeController {
         return switch (result) {
             case RequestEmailChangeResult.Requested ignored ->
                     HttpResponse.accepted().body(Map.of("status", "EMAIL_CHANGE_LINK_SENT"));
+            // the policy's refusal is NOT quiet: it is about the address the caller typed, not
+            // about who else holds it, so it says which rule was broken — exactly as /register does
+            case RequestEmailChangeResult.Rejected rejected ->
+                    HttpResponse.unprocessableEntity().body(Map.of(
+                            "emailErrors",
+                            SecurityController.emailErrors(rejected.emailErrors(), rejected.emailPolicy())));
             case RequestEmailChangeResult.EmailTaken ignored -> {
                 // quiet refusal: the wire looks like a fresh request; the address owner is told by mail
                 transactionBoundary.execute(() -> {

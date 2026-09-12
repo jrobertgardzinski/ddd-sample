@@ -105,6 +105,14 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   Wszystkie handlery lecą przez `run()`, dwa fetch-e z useEffect dostały `.catch`.
   Testy: `security-ui/src/App.tab.test.tsx` (6 przypadków, wszystkie padają na starym kodzie);
   vitest chodzi w CI (job `ui`). UWAGA: vitest wymaga Node 22 (lokalnie: nvm).
+- **ACC-2 — ZROBIONE 2026-09-12.** Polityka e-maili (blocked/disposable/company) obowiązywała
+  TYLKO przy rejestracji, więc zamknięty sklep był otwarty dla każdego, kogo raz wpuścił: zmiana
+  adresu wyprowadzała konto razem z rolami, czynnikami i linkami federacyjnymi. `RequestEmailChange`
+  dostał `CanRegisterConfig` i pyta pierwszy (`_NewEmailVerdict`, krok pakietowy wg ADR 0002),
+  nowy wynik `Rejected(codes, policy)`, `EmailChangeController` → 422 w kształcie `/register`
+  (`SecurityController.emailErrors`). Test jednostkowy + reguła w `change-email.feature`
+  (@http-only — compose nie konfiguruje żadnej listy, więc przeglądarkowa warstwa jej nie uruchomi;
+  glue HTTP startuje z `security.email.disposable.domains=mailinator.com`).
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.

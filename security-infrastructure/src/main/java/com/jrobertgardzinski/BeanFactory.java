@@ -579,8 +579,10 @@ public class BeanFactory {
     @Singleton
     RequestEmailChange requestEmailChange(UserRepository userRepository,
                                           EmailChangeRepository emailChangeRepository,
-                                          EmailVerificationNotifier notifier) {
-        return new RequestEmailChange(userRepository, emailChangeRepository, notifier);
+                                          EmailVerificationNotifier notifier, Environment environment) {
+        // the same policy Register is given: one deployment, one answer to "may this address hold
+        // an account here"
+        return new RequestEmailChange(userRepository, emailChangeRepository, notifier, emailPolicy(environment));
     }
 
     @Singleton
