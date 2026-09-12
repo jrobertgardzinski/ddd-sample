@@ -281,6 +281,48 @@ class JdbcAdaptersTest {
                 });
     }
 
+    /**
+     * Each of the three mailed tokens is single-use, and until now only the in-memory doubles said
+     * so. The claim is about a conditional statement against a real table: the reset is a DELETE
+     * that reports how many rows it removed, the verification an UPDATE that clears the hash, the
+     * change a DELETE of the ticket. Find-then-act would let two presentations of one link both be
+     * answered "yes" under READ COMMITTED — which for the reset means two callers setting one
+     * password, and for the change two accounts arriving at one address.
+     */
+    @Test
+    void a_mailed_token_works_exactly_once() {
+        PasswordResetRepository resets = context.getBean(PasswordResetRepository.class);
+        EmailChangeRepository changes = context.getBean(EmailChangeRepository.class);
+        EmailVerificationRepository verifications = context.getBean(EmailVerificationRepository.class);
+
+        Email resetting = Email.of("jdbc-once-reset@example.com");
+        resets.startReset(resetting, new PasswordResetToken("jdbc-once-reset-token"));
+        assertThat(resets.consumeReset(new PasswordResetToken("jdbc-once-reset-token"))).isPresent();
+        assertThat(resets.consumeReset(new PasswordResetToken("jdbc-once-reset-token")))
+                .as("the second presentation of a reset link must look exactly like an unknown one")
+                .isEmpty();
+
+        Email moving = Email.of("jdbc-once-from@example.com");
+        changes.startChange(new EmailChange(moving, Email.of("jdbc-once-to@example.com")),
+                new VerificationToken("jdbc-once-change-token"));
+        assertThat(changes.confirmChange(new VerificationToken("jdbc-once-change-token"))).isPresent();
+        assertThat(changes.confirmChange(new VerificationToken("jdbc-once-change-token")))
+                .as("confirming a move twice would move an account that is no longer there")
+                .isEmpty();
+
+        Email verifying = Email.of("jdbc-once-verify@example.com");
+        verifications.startVerification(verifying, new VerificationToken("jdbc-once-verify-token"));
+        assertThat(verifications.completeVerification(new VerificationToken("jdbc-once-verify-token")))
+                .get().extracting(EmailVerificationRepository.PendingVerification::email)
+                .isEqualTo(verifying);
+        assertThat(verifications.completeVerification(new VerificationToken("jdbc-once-verify-token")))
+                .as("the hash is cleared by the first use, so the second finds nothing")
+                .isEmpty();
+        assertThat(verifications.isVerified(verifying))
+                .as("and the address stays verified — spending the token is not undoing it")
+                .isTrue();
+    }
+
     /** Both pending-token tables forget an address on request, {@code email_changes} at either end. */
     @Test
     void pending_tokens_are_purged_by_address() {

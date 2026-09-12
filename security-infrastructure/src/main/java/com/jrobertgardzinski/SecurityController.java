@@ -94,36 +94,45 @@ public class SecurityController {
         String email = body.get("email");
         String password = body.get("password");
 
-        RegisterResult result = transactionBoundary.execute(
-                () -> register.execute(() -> Email.of(email), () -> PlaintextPassword.of(password)));
-
-        return switch (result) {
-            case RegisterResult.Registered registered -> {
+        // The account and the mail that makes it usable are written in ONE transaction. They used to
+        // be two: the account committed first, and anything that went wrong afterwards — the JVM
+        // being stopped between them, a failure appending to the outbox — left an account whose
+        // owner was never sent a link, while every sign-in demands a verified address. Nothing here
+        // talks to the mail service synchronously (the notifier appends to the transactional
+        // outbox), so there is no slow call to keep out of the transaction; the reason for the
+        // split was that the response is decided per branch, and that is a formatting concern which
+        // belongs after the commit, not a reason to commit twice.
+        RegisterResult result = transactionBoundary.execute(() -> {
+            RegisterResult outcome = register.execute(() -> Email.of(email), () -> PlaintextPassword.of(password));
+            switch (outcome) {
                 // sign-in requires a verified address, so onboarding starts the verification here
-                transactionBoundary.execute(() -> {
-                    requestEmailVerification.execute(Email.of(email));
-                    return null;
-                });
-                yield HttpResponse.<Map<String, Object>>created(CHECK_YOUR_MAILBOX);
-            }
-            case RegisterResult.Rejected rejected ->
-                    HttpResponse.<Map<String, Object>>status(HttpStatus.UNPROCESSABLE_ENTITY)
-                            .body(Map.of(
-                                    "emailErrors", emailErrors(rejected.emailErrors().codes(), rejected.emailPolicy()),
-                                    "passwordErrors", passwordErrors(rejected.passwordErrors().codes(), rejected.passwordPolicy())));
-            case RegisterResult.EmailAlreadyTaken alreadyTaken -> {
+                case RegisterResult.Registered registered -> requestEmailVerification.execute(Email.of(email));
                 // quiet refusal: the caller sees a fresh-looking registration; the address owner
                 // is told by mail — a lost-mail re-register gets a fresh link, a real account a notice
-                transactionBoundary.execute(() -> {
+                case RegisterResult.EmailAlreadyTaken alreadyTaken -> {
                     if (emailVerifications.isVerified(alreadyTaken.email())) {
                         registrationNoticeNotifier.sendAlreadyRegistered(alreadyTaken.email());
                     } else {
                         requestEmailVerification.execute(alreadyTaken.email());
                     }
-                    return null;
-                });
-                yield HttpResponse.<Map<String, Object>>created(CHECK_YOUR_MAILBOX);
+                }
+                case RegisterResult.Rejected rejected -> {
+                    // nothing was written, and nothing is mailed: the address may not even be one
+                }
             }
+            return outcome;
+        });
+
+        return switch (result) {
+            case RegisterResult.Registered registered ->
+                    HttpResponse.<Map<String, Object>>created(CHECK_YOUR_MAILBOX);
+            case RegisterResult.Rejected rejected ->
+                    HttpResponse.<Map<String, Object>>status(HttpStatus.UNPROCESSABLE_ENTITY)
+                            .body(Map.of(
+                                    "emailErrors", emailErrors(rejected.emailErrors().codes(), rejected.emailPolicy()),
+                                    "passwordErrors", passwordErrors(rejected.passwordErrors().codes(), rejected.passwordPolicy())));
+            case RegisterResult.EmailAlreadyTaken alreadyTaken ->
+                    HttpResponse.<Map<String, Object>>created(CHECK_YOUR_MAILBOX);
         };
     }
 

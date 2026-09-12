@@ -78,6 +78,39 @@ class AccountDeletionSagaLatchTest {
         insertSaga(UUID.randomUUID(), email, "COMPENSATED", at.plusSeconds(90));
     }
 
+    /**
+     * {@code compensateOverdue} is the only thing that ever unlocks an account whose portal outcome
+     * never arrived, and until now it was proved only against the in-memory double — the one place
+     * where "every STARTED row older than the cutoff" is a loop over a map rather than a query.
+     */
+    @Test
+    @DisplayName("overdue sagas are compensated on Postgres; a fresh one is left alone")
+    void overdue_sagas_are_compensated_and_fresh_ones_are_not() {
+        AccountDeletionSagaStore store = context.getBean(AccountDeletionSagaStore.class);
+        Instant now = Instant.parse("2026-07-30T10:00:00Z");
+        String stuck = "jdbc-overdue@example.com";
+        String justAsked = "jdbc-just-asked@example.com";
+
+        store.start(UUID.randomUUID(), stuck, now.minusSeconds(3600));
+        store.start(UUID.randomUUID(), justAsked, now.minusSeconds(5));
+
+        assertThat(store.compensateOverdue(now.minusSeconds(600), now))
+                .as("the address whose outcome never came is the one to unlock")
+                .containsExactly(stuck);
+        assertThat(store.lastSagaWasCompensated(stuck)).isTrue();
+        assertThat(store.lastSagaWasCompensated(justAsked))
+                .as("a deletion asked for five seconds ago is not overdue; compensating it would"
+                        + " restore content the user is still being told is going away")
+                .isFalse();
+
+        assertThat(store.compensateOverdue(now.minusSeconds(600), now))
+                .as("a second sweep finds nothing: the row is no longer STARTED")
+                .isEmpty();
+        assertThat(store.start(UUID.randomUUID(), stuck, now))
+                .as("and compensating released the address, so the user can ask again")
+                .isTrue();
+    }
+
     /** Writes the row straight through the Micronaut Data repository — no store, no pre-check. */
     private static void insertSaga(UUID id, String email, String state, Instant at) {
         context.getBean(AccountDeletionSagaJdbcRepository.class)

@@ -129,4 +129,63 @@ class SessionLineageRaceTest {
                 .as("and nothing of the lineage is left to list")
                 .isEmpty();
     }
+
+    @Test
+    @DisplayName("sign out everywhere takes the successor a concurrent rotation is still writing")
+    void revoking_every_session_takes_the_successor_being_written() throws Exception {
+        AuthorizationDataRepository sessions = context.getBean(AuthorizationDataRepository.class);
+        TransactionBoundary transactions = context.getBean(TransactionBoundary.class);
+        Clock clock = context.getBean(Clock.class);
+
+        // its own address: this test asserts that NOTHING of this user's is left, and the case above
+        // leaves rows for USER whichever order the two run in
+        Email user = Email.of("race-everywhere@example.com");
+        SessionFamily family = SessionFamily.start();
+        SessionTokens original = SessionTokens.createFor(user, CONFIG, clock);
+        transactions.execute(() -> sessions.create(original, family));
+
+        CountDownLatch rotationIsHalfDone = new CountDownLatch(1);
+        CountDownLatch revokeHasBeenAsked = new CountDownLatch(1);
+        AtomicReference<SessionTokens> successor = new AtomicReference<>();
+
+        Thread refreshing = new Thread(() -> transactions.execute(() ->
+                sessions.rotateAndCreate(original.refreshToken(), () -> {
+                    SessionTokens next = SessionTokens.createFor(user, CONFIG, clock);
+                    successor.set(next);
+                    rotationIsHalfDone.countDown();
+                    try {
+                        revokeHasBeenAsked.await(5, TimeUnit.SECONDS);
+                        Thread.sleep(300);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return next;
+                }, family)));
+        refreshing.start();
+
+        assertThat(rotationIsHalfDone.await(10, TimeUnit.SECONDS))
+                .as("the rotation never reached the window this test is about")
+                .isTrue();
+
+        // "Sign out everywhere" — asked by somebody who believes their password has leaked, or by
+        // the service itself after the address changed hands. It is a different statement from
+        // revokeFamily (by address, across every lineage) and so needs its own proof.
+        Thread revoking = new Thread(() -> transactions.execute(() -> {
+            revokeHasBeenAsked.countDown();
+            sessions.revokeAllSessions(user);
+            return null;
+        }));
+        revoking.start();
+
+        refreshing.join(30_000);
+        revoking.join(30_000);
+
+        assertThat(sessions.findByRefreshToken(successor.get().refreshToken()))
+                .as("a session written while 'sign out everywhere' ran is exactly the session the"
+                        + " user asked to be rid of — and the answer they were given was yes")
+                .isEmpty();
+        assertThat(sessions.listActiveSessions(user))
+                .as("everywhere means everywhere")
+                .isEmpty();
+    }
 }

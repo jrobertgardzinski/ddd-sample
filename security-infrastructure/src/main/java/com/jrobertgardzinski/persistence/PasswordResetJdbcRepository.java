@@ -27,4 +27,12 @@ interface PasswordResetJdbcRepository extends CrudRepository<PasswordResetEntity
      */
     @Query("DELETE FROM password_resets WHERE token_hash = :tokenHash")
     int consume(String tokenHash);
+
+    /**
+     * Retention: the row is removed when the link is USED, and by nothing else. Somebody who asked
+     * for a reset and then remembered their password left an address and a token hash behind for as
+     * long as the database lives — and asking costs one unauthenticated request, so the rows are not
+     * even bounded by the number of real users.
+     */
+    int deleteByRequestedAtBefore(java.time.LocalDateTime cutoff);
 }

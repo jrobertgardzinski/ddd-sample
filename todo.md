@@ -321,6 +321,25 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   UWAGA na drugą połowę DB-14: konta, których NIKT nigdy nie zweryfikował, wciąż żyją wiecznie —
   to decyzja PRODUKTOWA (po ilu dniach kasujemy niepotwierdzone konto?), nie sprzątanie, więc
   czeka na werdykt właściciela.
+- **LOW, paczka 10 — trwałość (DB-14 cz. 2, DB-15, DB-9, DB-10) — ZROBIONE 2026-09-12.**
+  `password_resets` miały retencję tylko PRZEZ PRZYPADEK: wiersz ginie, gdy link zostanie UŻYTY.
+  Kto poprosił o reset i sobie przypomniał hasło — i każdy adres, który skaner wpisał w publiczny
+  „forgot password" — zostawiał adres i hash na zawsze. `UnclaimedPasswordResetReaper` (7 dni) +
+  V29 (indeks po `requested_at`, bo tabela jest kluczowana adresem).
+  DB-15: dubler sagi liczył wiek do eksmisji od `createdAt`, a tabela od `updated_at` — kasowanie,
+  które szło miesiąc i skończyło się minutę temu, dubler ZAPOMINAŁ, a Postgres pamiętał; rekord
+  niesie teraz `updatedAt`, a `compensateOverdue` stempluje czas werdyktu.
+  DB-9 (testy, których nie było — wszystkie na PRAWDZIWYM Postgresie): jednorazowość TRZECH
+  mailowanych tokenów (reset, zmiana adresu, weryfikacja — dotąd twierdziły to tylko dublery),
+  wyścig „wyloguj wszędzie" kontra rotacja (`revokeAllSessions` to INNA instrukcja niż
+  `revokeFamily` i potrzebuje własnego dowodu — bez `lockSessionsOf` test jest czerwony), oraz
+  `compensateOverdue` na Postgresie (odblokowuje przeterminowane, świeżej sagi NIE rusza).
+  DB-10: rejestracja i mail weryfikacyjny to była JEDNA transakcja za mało — konto się commitowało,
+  a link nie; zatrzymanie serwisu między nimi zostawiało konto, którego właściciel nigdy nie dostał
+  linku, a logowanie żąda zweryfikowanego adresu. Teraz jeden `transactionBoundary.execute`
+  (powiadamiacz i tak pisze do outboxu, więc nie ma tu żadnego wolnego wywołania do trzymania poza
+  transakcją). Dowód: `RegistrationAtomicityTest` — wysyłka pada, po żądaniu NIE MA konta;
+  rozdzielenie transakcji z powrotem zapala go na czerwono.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

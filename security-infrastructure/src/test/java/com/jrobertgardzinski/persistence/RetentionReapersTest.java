@@ -18,7 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Retention for the four tables that had none (poz. 10, 24), against a real PostgreSQL — the
+ * Retention for the five tables that had none (poz. 10, 24), against a real PostgreSQL — the
  * predicates carry the whole weight here, so a fake store would prove nothing about them.
  *
  * <p>Each case pins the same two things: the row that is history goes, and the row that still has a
@@ -161,6 +161,28 @@ class RetentionReapersTest {
                 .isPresent();
         assertThat(verifications.findById("just-registered@example.com"))
                 .as("somebody who registered a minute ago still has a link to click")
+                .isPresent();
+    }
+
+    @Test
+    @DisplayName("password resets nobody redeemed are dropped; a fresh one still works")
+    void unclaimedPasswordResetRetention() {
+        PasswordResetJdbcRepository resets = context.getBean(PasswordResetJdbcRepository.class);
+        LocalDateTime now = LocalDateTime.now();
+
+        resets.save(new PasswordResetEntity(
+                "gave-up@example.com", "hash-of-a-link-never-redeemed", now.minus(ANCIENT)));
+        resets.save(new PasswordResetEntity(
+                "waiting-for-mail@example.com", "hash-of-a-fresh-link", now));
+
+        context.getBean(UnclaimedPasswordResetReaper.class).reap();
+
+        assertThat(resets.findById("gave-up@example.com"))
+                .as("asking for a reset costs one unauthenticated request; the address must not be"
+                        + " kept for ever because nobody clicked the link")
+                .isEmpty();
+        assertThat(resets.findById("waiting-for-mail@example.com"))
+                .as("somebody who just asked still has a link in their inbox")
                 .isPresent();
     }
 
