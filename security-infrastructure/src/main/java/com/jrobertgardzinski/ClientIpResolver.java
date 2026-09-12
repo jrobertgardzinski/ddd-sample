@@ -34,6 +34,12 @@ import java.util.stream.Collectors;
  * <p>Entries are compared as exact addresses: a CIDR block in {@code security.trusted-proxies}
  * matches nothing. A deployment behind Kubernetes must therefore name the ingress pod addresses,
  * not the pod network.
+ *
+ * <p>An address is also CANONICALISED before it becomes anybody's key: the IPv6 zone id (the
+ * {@code %eth0} part) is a hint about the local machine's interfaces, not about who is calling, and
+ * the domain's validator accepts one of any length — which then does not fit the {@code VARCHAR(64)}
+ * the failure log keys on. Two sources that differ only by zone id were also two different keys,
+ * which is one throttle bucket each.
  */
 @Singleton
 public class ClientIpResolver {
@@ -48,8 +54,11 @@ public class ClientIpResolver {
                         .collect(Collectors.toUnmodifiableSet());
     }
 
+    /** The width of every column an address is stored in ({@code VARCHAR(64)}, V1 and V9). */
+    private static final int ADDRESS_COLUMN_WIDTH = 64;
+
     public IpAddress resolve(HttpRequest<?> request) {
-        String remoteAddress = request.getRemoteAddress().getAddress().getHostAddress();
+        String remoteAddress = canonical(request.getRemoteAddress().getAddress().getHostAddress());
         if (!trustedProxies.contains(remoteAddress)) {
             return new IpAddress(remoteAddress);   // the peer spoke for itself
         }
@@ -59,7 +68,7 @@ public class ClientIpResolver {
         }
         String[] hops = forwardedFor.split(",");
         for (int hop = hops.length - 1; hop >= 0; hop--) {
-            String candidate = hops[hop].trim();
+            String candidate = canonical(hops[hop].trim());
             if (trustedProxies.contains(candidate)) {
                 continue;   // our own hop: keep walking left
             }
@@ -70,10 +79,24 @@ public class ClientIpResolver {
 
     /** The address, or empty when the element is not one — the caller writes this header. */
     private static Optional<IpAddress> parsed(String candidate) {
+        if (candidate.length() > ADDRESS_COLUMN_WIDTH) {
+            // it would not fit the column the brute-force log keys on, and a source that cannot be
+            // recorded cannot be limited either — so it is not allowed to become the key
+            return Optional.empty();
+        }
         try {
             return Optional.of(new IpAddress(candidate));
         } catch (IllegalArgumentException notAnAddress) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * The address without its IPv6 zone id — {@code fe80::1%eth0} is the same caller as
+     * {@code fe80::1}, and the suffix names an interface on THIS machine.
+     */
+    private static String canonical(String address) {
+        int zone = address.indexOf('%');
+        return zone < 0 ? address : address.substring(0, zone);
     }
 }

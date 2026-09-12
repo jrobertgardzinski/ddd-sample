@@ -237,6 +237,13 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `window.SECURITY_URL` (runtime, tak robi harness i tak może robić deployment przez `/ui-config.js`),
   `VITE_SECURITY_URL` (build) i dopiero potem compose'owy localhost:8080 — produkcyjny bundle
   wskazywał na localhost i nikt tego nie widział tylko dlatego, że `dist/` nikt jeszcze nie serwuje.
+- **LOW, paczka 4 — domena (DOM-3, DOM-5, DOM-7) — ZROBIONE 2026-09-12.** `AbstractToken.toString`
+  zwracał SUROWY sekret — pierwsza linijka logu, która wstawi token do napisu, wynosi żywy
+  credential do systemu z własną retencją; teraz zwraca nazwę klasy. `equals` był międzytypowy
+  (AccessToken == RefreshToken o tej samej wartości) — teraz typ jest połową tożsamości tokenu,
+  `hashCode` też. `TokenSecrecyTest` w domenie. DOM-3: `ClientIpResolver` kanonizuje adres (ucina
+  zone id `%eth0` — to nazwa interfejsu TEJ maszyny, nie dzwoniącego) i odrzuca kandydata dłuższego
+  niż kolumna `VARCHAR(64)`: źródła, którego nie da się ZAPISAĆ, nie da się też ograniczyć.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

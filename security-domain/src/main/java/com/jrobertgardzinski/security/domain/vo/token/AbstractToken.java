@@ -22,20 +22,35 @@ public abstract class AbstractToken {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * Same KIND of token, same value.
+     *
+     * <p>It used to be any token with the same string, so an {@code AccessToken} equalled a
+     * {@code RefreshToken} that happened to carry it — which is a comparison nobody wants to be
+     * right about. Nothing keys a collection by these today; the day something does, the type is
+     * half of what makes a token that token.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AbstractToken other)) return false;
-        return value.equals(other.value);
+        return o != null && getClass() == o.getClass() && value.equals(((AbstractToken) o).value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(value);
+        return Objects.hash(getClass(), value);
     }
 
+    /**
+     * The type and nothing else — never the secret.
+     *
+     * <p>It returned the raw value, which means the first log line, exception message or debugger
+     * dump that ever interpolated a token would have carried a live credential into a system with
+     * its own retention. There is no such sink today; there was no rule against one either, and
+     * this is the rule. Whoever genuinely needs the secret asks for {@link #value()}, which says so.
+     */
     @Override
     public String toString() {
-        return value;
+        return getClass().getSimpleName() + "(hidden)";
     }
 }

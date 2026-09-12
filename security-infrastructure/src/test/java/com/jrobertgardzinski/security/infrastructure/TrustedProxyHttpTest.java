@@ -77,6 +77,18 @@ class TrustedProxyHttpTest {
     }
 
     @Test
+    @DisplayName("an address too long for the column it is keyed in cannot become the key")
+    void an_overlong_address_falls_back_to_the_peer() {
+        // the domain's validator accepts an IPv6 zone id of any length; the columns are VARCHAR(64),
+        // so such a source could not be RECORDED — and a source that cannot be recorded cannot be
+        // limited. It falls back to the peer, and the zone id is dropped from the ones that do fit.
+        String overlong = "fe80::1%" + "e".repeat(200);
+        assertEquals(HttpStatus.CREATED, register("heidi@example.com", overlong).getStatus());
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, register("ivan@example.com", overlong).getStatus(),
+                "both fell back to the same peer, so they share its window");
+    }
+
+    @Test
     @DisplayName("two callers behind the same trusted proxy keep their own windows")
     void distinct_clients_are_distinct_sources() {
         assertEquals(HttpStatus.CREATED, register("frank@example.com", "9.9.9.9").getStatus());
