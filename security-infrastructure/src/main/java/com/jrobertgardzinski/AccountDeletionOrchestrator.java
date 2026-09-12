@@ -3,7 +3,7 @@ package com.jrobertgardzinski;
 import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.persistence.AccountDeletionSagaStore;
 import com.jrobertgardzinski.persistence.OutboxAppender;
-import com.jrobertgardzinski.security.domain.port.AccountDeletionSaga;
+import com.jrobertgardzinski.security.domain.port.ContentPurge;
 import com.jrobertgardzinski.security.domain.repository.UserRepository;
 import com.jrobertgardzinski.security.domain.vo.AccountClosure;
 import com.jrobertgardzinski.security.system.account.DeleteAccount;
@@ -25,8 +25,14 @@ import java.util.UUID;
 import static com.jrobertgardzinski.MaskedEmail.masked;
 
 /**
- * Identity's side of the account-deletion saga — the ORCHESTRATION itself lives in the portal
+ * The DISTRIBUTED answer to {@link ContentPurge}: the content lives in other services, so getting
+ * rid of it is a saga. Identity's side of it only — the orchestration itself lives in the portal
  * ({@code microservice-offboarding}), because the content being purged is the portal's domain.
+ *
+ * <p>Everything below exists because there is no shared transaction: the fact has to be announced
+ * durably (the outbox), the answer arrives minutes later on a topic, and a safety net has to
+ * assume the other side died. A one-process deployment would implement the same port with a
+ * transaction and need none of it.
  * {@link #begin} locks the account (saga STARTED) and announces the FACT that deletion was
  * requested — through the outbox, so the fact commits with the lock; the fact ferries the
  * leaver's purge choices without knowing their vocabulary. The portal answers with ONE outcome:
@@ -40,7 +46,7 @@ import static com.jrobertgardzinski.MaskedEmail.masked;
  * the account deletes immediately.
  */
 @Singleton
-public class AccountDeletionOrchestrator implements AccountDeletionSaga {
+public class AccountDeletionOrchestrator implements ContentPurge {
 
     static final String FACTS_TOPIC = "security-events";
     static final String MAIL_TOPIC = "mail-requests";

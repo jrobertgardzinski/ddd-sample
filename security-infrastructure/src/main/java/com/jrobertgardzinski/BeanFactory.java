@@ -62,7 +62,7 @@ import com.jrobertgardzinski.security.system.session.RefreshSession;
 import com.jrobertgardzinski.security.system.session.RevokeAllSessions;
 import com.jrobertgardzinski.security.system.account.ChangePassword;
 import com.jrobertgardzinski.security.system.account.ConfirmEmailChange;
-import com.jrobertgardzinski.security.domain.port.AccountDeletionSaga;
+import com.jrobertgardzinski.security.domain.port.ContentPurge;
 import com.jrobertgardzinski.security.system.account.DeleteAccount;
 import com.jrobertgardzinski.security.system.account.StartAccountDeletion;
 import com.jrobertgardzinski.security.system.account.RequestEmailChange;
@@ -616,7 +616,7 @@ public class BeanFactory {
     @Singleton
     StartAccountDeletion startAccountDeletion(UserRepository userRepository,
                                               AuthorizationDataRepository authorizationDataRepository,
-                                              AccountDeletionSaga saga) {
+                                              ContentPurge saga) {
         return new StartAccountDeletion(userRepository, authorizationDataRepository, saga);
     }
 }
