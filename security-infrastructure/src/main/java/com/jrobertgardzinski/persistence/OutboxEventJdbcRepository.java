@@ -15,7 +15,18 @@ import java.util.UUID;
 @Requires(beans = DataSource.class)
 interface OutboxEventJdbcRepository extends CrudRepository<OutboxEventEntity, UUID> {
 
-    List<OutboxEventEntity> findByPublishedAtIsNullAndFailedAtIsNullOrderByCreatedAt();
+    /**
+     * One tick's worth of backlog, oldest first.
+     *
+     * <p>The drain used to load EVERY unpublished row each second. On an ordinary day that is a
+     * handful; on the day the broker has been away for an hour it is the whole hour, in memory, on
+     * a scheduled thread — and again a second later, because the send that would clear it is what
+     * is failing. A batch keeps the order (it is the same query with a limit) and bounds what one
+     * tick can cost; the next tick continues where this one stopped.
+     */
+    @Query("SELECT * FROM outbox_events WHERE published_at IS NULL AND failed_at IS NULL"
+            + " ORDER BY created_at LIMIT :batchSize")
+    List<OutboxEventEntity> findUnpublishedBatch(int batchSize);
 
     @Query("UPDATE outbox_events SET published_at = :publishedAt WHERE id = :id")
     void markPublished(UUID id, Instant publishedAt);

@@ -45,16 +45,19 @@ class OutboxPublisher {
     private final OutboxEventJdbcRepository outbox;
     private final EventsProducer producer;
     private final Clock clock;
+    private final int batchSize;
 
-    OutboxPublisher(OutboxEventJdbcRepository outbox, EventsProducer producer, Clock clock) {
+    OutboxPublisher(OutboxEventJdbcRepository outbox, EventsProducer producer, Clock clock,
+                    @io.micronaut.context.annotation.Value("${security.outbox.drain-batch:500}") int batchSize) {
         this.outbox = outbox;
         this.producer = producer;
         this.clock = clock;
+        this.batchSize = batchSize;
     }
 
     @Scheduled(fixedDelay = "1s", initialDelay = "5s")
     void drain() {
-        for (OutboxEventEntity event : outbox.findByPublishedAtIsNullAndFailedAtIsNullOrderByCreatedAt()) {
+        for (OutboxEventEntity event : outbox.findUnpublishedBatch(batchSize)) {
             try {
                 if (event.cid() != null) {
                     MDC.put("cid", event.cid());   // the drain log carries the originating request's cid

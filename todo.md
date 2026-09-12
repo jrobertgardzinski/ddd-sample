@@ -215,6 +215,18 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `backTo` nie dokleja drugiego `#` — return-URL z własnym fragmentem gubił i stan appki, i token.
   NIE zrobione świadomie: MFA-4 (brak limitu prób przy potwierdzaniu enrolmentu) — wymaga pola
   w `PendingEnrolment`, czyli zmiany kształtu portu; okno i tak ogranicza TTL 15 min + elewacja.
+- **LOW, paczka 2 (AUTH-9, AUTH-12, DB-5, DB-7, DB-11) — ZROBIONE 2026-09-12.** `SourceThrottle`:
+  zamiatanie wolnych okien chodziło NA ŚCIEŻCE ŻĄDANIA przy każdym wywołaniu powyżej progu, a w
+  obrębie jednego okna nie ma czego zwolnić — czyli O(n) na żądanie, które nic nie daje; teraz raz
+  na przyrost + twardy sufit 100k (najstarsze okna lecą pierwsze). DB-5: `TimeZone.setDefault(UTC)`
+  w `App.main` — `Instant` idzie do JDBC przez `java.sql.Timestamp`, czyli przez strefę JVM-a, więc
+  serwis z IDE w Europe/Warsaw czytał sagi ze stacku o dwie godziny obok (a tak właśnie pracujemy).
+  DB-7: `V26` dodaje indeksy `sessions(email)` i `sessions(refresh_token_expiration)` — bez nich
+  każde „wyloguj wszędzie", lista sesji i reaper skanowały całą tabelę (i to brak indeksu na email
+  robił z dwóch blokujących zapytań różne plany → zakleszczenie opisane przy `lockFamily`).
+  DB-11: drain outboxu bierze partię (`security.outbox.drain-batch`, 500), nie CAŁEGO zaległego
+  backlogu co sekundę. AUTH-12: javadoc obiecywał nieprzewidywalną długość blokady, którą
+  `Retry-After` podaje co do sekundy — teraz mówi, po co naprawdę jest losowanie.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
