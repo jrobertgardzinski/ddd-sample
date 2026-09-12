@@ -43,7 +43,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `MfaHttpTest.webauthn_enrolment_envelope_does_not_sign_in` (po HTTP, logowanie i step-up),
   oba sprawdzone na czerwono przed poprawką. Reguła: `specs/mfa-passkey.feature`
   (warstwa przeglądarkowa — NIE chodzi w CI, tylko `run-e2e.sh`).
-- Następne wg raportu: ACC-1 → AUTH-3 (+ACC-4, DOM-2) → HTTP-1/HTTP-2 (przed PLAN-P12 K1) →
+- **ACC-1 (HIGH) — ZROBIONE 2026-09-12.** Anonimowy `POST /verify-email/request` odwerYfikowywał
+  dowolne konto (jedno żądanie na ofiarę = 403 `EMAIL_NOT_VERIFIED` przy logowaniu; wtórnie
+  otwierał przejęcie przez `FederatedSignIn.claimByEmail`). `RequestEmailVerification.execute`
+  wychodzi od razu, gdy `repository.isVerified(email)` — bez tokenu, bez maila; endpoint nadal
+  odpowiada tak samo dla każdego adresu (anty-enumeracja). Reguła w `specs/verify-email.feature`
+  („Requesting VERIFICATION for an already verified EMAIL changes nothing"), glue HTTP + UI;
+  wersja bez strażnika pada na 403 przy logowaniu właściciela. UWAGA: Background tego feature'a
+  zmieniony na wariant „whose EMAIL is not verified yet" — w harnessie przeglądarkowym „a
+  registered USER" kończy onboarding, więc reguła 1 musiała dostać własne zasianie.
+- Następne wg raportu: AUTH-3 (+ACC-4, DOM-2) → HTTP-1/HTTP-2 (przed PLAN-P12 K1) →
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.
 

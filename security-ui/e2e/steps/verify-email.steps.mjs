@@ -44,3 +44,42 @@ Then('a VERIFICATION link has been e-mailed to the USER', async function () {
   const token = await this.verificationTokenFor(credentials.email);
   if (!token) throw new Error('expected registration to e-mail a verification link automatically');
 });
+
+// --- Requesting a link for an already verified address ----------------------------------------
+// The request half is setup and attack alike: it is a public endpoint anybody can POST to, so the
+// glue posts it — a page would only ever aim it at the signed-in user's own address.
+
+Given('the USER has VERIFIED the EMAIL', async function () {
+  const token = await this.verificationTokenFor(credentials.email);
+  if (!token) throw new Error('no verification token was e-mailed at registration');
+  const response = await this.backdoor('/verify-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  if (response.status !== 200) throw new Error(`failed to seed a verified address: ${response.status}`);
+});
+
+When('EMAIL VERIFICATION is requested again for that EMAIL', async function () {
+  this.tokenBeforeTheRequest = await this.verificationTokenFor(credentials.email);
+  this.verificationRequest = await this.backdoor('/verify-email/request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: credentials.email }),
+  });
+});
+
+Then('the request is accepted as quietly as any other', async function () {
+  expect(this.verificationRequest.status).toBe(202);
+  expect((await this.verificationRequest.json()).status).toBe('VERIFICATION_LINK_SENT');
+});
+
+Then('the EMAIL is still verified', async function () {
+  // what the owner would notice: the account still signs in
+  await signInCompletingMfa(this);
+  await this.page.getByTestId('sign-out').click();
+});
+
+Then('no new VERIFICATION link was e-mailed', async function () {
+  expect(await this.verificationTokenFor(credentials.email)).toBe(this.tokenBeforeTheRequest);
+});

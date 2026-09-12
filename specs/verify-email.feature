@@ -6,7 +6,7 @@ Feature: Verifying an email address
   an unknown token is rejected.
 
   Background:
-    Given a registered USER "user@example.com" with password "StrongPassword1!"
+    Given a registered USER "user@example.com" with password "StrongPassword1!" whose EMAIL is not verified yet
 
   Rule: The VERIFICATION TOKEN from the link verifies the EMAIL
 
@@ -25,3 +25,18 @@ Feature: Verifying an email address
 
     Example:
       Then a VERIFICATION link has been e-mailed to the USER
+
+  Rule: Requesting VERIFICATION for an already verified EMAIL changes nothing
+
+    Anyone may ask for a link for any address — the endpoint is public and answers the same for
+    every address, so that nobody can probe who is registered here. That answer must cost the
+    owner nothing: a verified EMAIL stays verified and no new link goes out. Otherwise one
+    request per victim shuts them out of their own account, because signing in demands a
+    verified address.
+
+    Example:
+      Given the USER has VERIFIED the EMAIL
+      When EMAIL VERIFICATION is requested again for that EMAIL
+      Then the request is accepted as quietly as any other
+      And the EMAIL is still verified
+      And no new VERIFICATION link was e-mailed
