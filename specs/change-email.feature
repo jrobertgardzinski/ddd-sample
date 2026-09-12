@@ -48,3 +48,20 @@ Feature: Changing the email address
       When the USER requests to CHANGE the EMAIL to "fresh@example.com"
       And the USER CONFIRMS the EMAIL CHANGE with the token from the link
       Then the "google" identity "subject-7" opens the account "fresh@example.com"
+
+  Rule: SESSIONS do not follow the account — after a CHANGE the USER signs in again
+
+    A session remembers the address it was minted for and nothing else, so it cannot be moved.
+    One left alive keeps authorizing as the OLD address: "sign out everywhere" under the new
+    address never reaches it, and the moment somebody REGISTERS the freed address it starts
+    answering for THEIR account. So the CHANGE revokes them, the same price a password CHANGE
+    already charges.
+
+    # the browser signs in again on its own after the change, so the stale-token assertion is
+    # wire-level; the JVM glue drives this example
+    @http-only
+    Example:
+      Given the USER has AUTHENTICATED
+      When the USER requests to CHANGE the EMAIL to "moved@example.com"
+      And the USER CONFIRMS the EMAIL CHANGE with the token from the link
+      Then the SESSION held since before the CHANGE no longer authorizes

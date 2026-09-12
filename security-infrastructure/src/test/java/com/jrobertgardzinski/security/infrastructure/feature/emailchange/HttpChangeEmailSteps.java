@@ -153,6 +153,15 @@ public class HttpChangeEmailSteps {
         assertEquals(HttpStatus.UNAUTHORIZED, authenticate(asEmail).getStatus());
     }
 
+    @Then("the SESSION held since before the CHANGE no longer authorizes")
+    public void theOldSessionNoLongerAuthorizes() {
+        // the token is the one minted under the old address; it must not speak for the account any
+        // more — nor, once the freed address is registered again, for its next owner
+        HttpResponse<Map> me = exchange(HttpRequest.GET("/me").header("Authorization", "Bearer " + accessToken));
+        assertEquals(HttpStatus.UNAUTHORIZED, me.getStatus(),
+                "a session minted before the move still authorizes: " + me.getBody(Map.class).orElse(Map.of()));
+    }
+
     @Then("the EMAIL CHANGE is rejected")
     public void theEmailChangeIsRejected() {
         assertEquals(HttpStatus.BAD_REQUEST, confirmResponse.getStatus());

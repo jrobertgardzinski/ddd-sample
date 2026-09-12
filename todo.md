@@ -52,7 +52,17 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   wersja bez strażnika pada na 403 przy logowaniu właściciela. UWAGA: Background tego feature'a
   zmieniony na wariant „whose EMAIL is not verified yet" — w harnessie przeglądarkowym „a
   registered USER" kończy onboarding, więc reguła 1 musiała dostać własne zasianie.
-- Następne wg raportu: AUTH-3 (+ACC-4, DOM-2) → HTTP-1/HTTP-2 (przed PLAN-P12 K1) →
+- **AUTH-3 + ACC-4 — ZROBIONE 2026-09-12.** Sesje przeżywały zmianę adresu i po zarejestrowaniu
+  zwolnionego adresu zaczynały mówić w imieniu NOWEGO właściciela. `ConfirmEmailChange` dostał
+  `AuthorizationDataRepository` i woła `revokeAllSessions(stary)` zaraz po `updateEmail` (ta sama
+  cena, którą płaci zmiana hasła). ACC-4: potwierdzenie zmiany w trakcie sagi usuwania jest
+  odrzucane (`isPendingDeletion` → `InvalidToken`, jak wygasły bilet) — inaczej saga gubiła
+  użytkownika pod nowym adresem. `sessions` DOŁĄCZYŁY do rejestru w `AddressKeyedStoresTest`
+  (kategoria „nie idzie za kontem"), akapit „deliberately NOT in the registry" skasowany.
+  Reguła w `change-email.feature` (@http-only); bez poprawki pada, pokazując `/me` odpowiadające
+  starym adresem po przeprowadzce. DOM-2 (kontrakt `updateEmail` przy zajętym adresie) NIE ruszony
+  — zmienia kontrakt portu i kształt wyniku use-case'u, decyzja właściciela.
+- Następne wg raportu: HTTP-1/HTTP-2 (przed PLAN-P12 K1) →
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.
 

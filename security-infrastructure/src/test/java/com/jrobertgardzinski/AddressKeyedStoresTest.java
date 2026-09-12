@@ -7,6 +7,12 @@ import com.jrobertgardzinski.security.domain.entity.User;
 import com.jrobertgardzinski.security.domain.repository.PasswordResetRepository;
 import com.jrobertgardzinski.security.domain.vo.EmailChange;
 import com.jrobertgardzinski.security.domain.vo.FactorType;
+import com.jrobertgardzinski.security.domain.vo.SessionFamily;
+import com.jrobertgardzinski.security.domain.entity.SessionTokens;
+import com.jrobertgardzinski.security.domain.vo.token.AccessToken;
+import com.jrobertgardzinski.security.domain.vo.token.expiration.AuthorizationTokenExpiration;
+import com.jrobertgardzinski.security.domain.vo.token.RefreshToken;
+import com.jrobertgardzinski.security.domain.vo.token.expiration.RefreshTokenExpiration;
 import com.jrobertgardzinski.security.domain.vo.token.PasswordResetToken;
 import com.jrobertgardzinski.security.domain.vo.token.VerificationToken;
 import com.jrobertgardzinski.security.system.account.ConfirmEmailChange;
@@ -15,6 +21,7 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
 import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -48,10 +55,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * <p>A new address-keyed table joins the law by joining {@link #storesOf}; forgetting it there is the
  * one remaining failure mode, which is why the list sits next to nothing else.
  *
- * <p>Deliberately NOT in the registry: {@code sessions}. They are covered by the purge law through
- * {@code revokeAllSessions}, but the move path does not re-point them and revoking them on a move is
- * a UX decision (and touches the same use cases as P18 poz. 9), so it is reported rather than
- * silently asserted here.
+ * <p>{@code sessions} joined the registry in the 2026-09-08 review (AUTH-3): they are the one store
+ * that CANNOT follow the account, because a session remembers only the address it was minted for.
+ * Left alive after a move it keeps authorizing as the old address, and once somebody registers that
+ * freed address it resolves to THEIR account. So the move revokes them, exactly as the purge does —
+ * the same answer a password change and a password reset already give.
  */
 class AddressKeyedStoresTest {
 
@@ -69,8 +77,19 @@ class AddressKeyedStoresTest {
      * something afterwards, and whether its content belongs to the ACCOUNT (so it must follow a move)
      * or to the MAILBOX (so a move drops it).
      */
-    private record Store(String table, boolean followsTheAccount,
-                         Consumer<Email> seed, Supplier<List<Email>> heldUnder) {}
+    private record Store(String table, boolean followsTheAccount, String droppedBecause,
+                         Consumer<Email> seed, Supplier<List<Email>> heldUnder) {
+
+        /** A store that follows the account needs no reason for being dropped — it never is. */
+        static Store follows(String table, Consumer<Email> seed, Supplier<List<Email>> heldUnder) {
+            return new Store(table, true, "", seed, heldUnder);
+        }
+
+        static Store dropped(String table, String droppedBecause,
+                             Consumer<Email> seed, Supplier<List<Email>> heldUnder) {
+            return new Store(table, false, droppedBecause, seed, heldUnder);
+        }
+    }
 
     /** All the adapters and both use cases, freshly wired — one fixture per dynamic test. */
     private static final class Fixture {
@@ -86,7 +105,7 @@ class AddressKeyedStoresTest {
         final InMemoryEmailChangeRepository changes = new InMemoryEmailChangeRepository(Clock.systemUTC());
 
         final ConfirmEmailChange confirmEmailChange = new ConfirmEmailChange(changes, users, verifications,
-                federated, factors, codes, passwordless, resets,
+                federated, factors, codes, passwordless, resets, sessions,
                 java.time.Duration.ofMinutes(1440), Clock.systemUTC());
         final DeleteAccount deleteAccount = new DeleteAccount(users, sessions, factors, codes, federated,
                 verifications, resets, changes, passwordless);
@@ -98,37 +117,48 @@ class AddressKeyedStoresTest {
 
     private static List<Store> storesOf(Fixture f) {
         return List.of(
-                new Store("users", true,
+                Store.follows("users",
                         address -> { /* the account row is part of every fixture */ },
                         () -> heldWhere(address -> f.users.findBy(address).isPresent())),
-                new Store("enrolled_factors", true,
+                Store.follows("enrolled_factors",
                         address -> f.factors.enrol(new EnrolledFactor(address, FactorType.EMAIL_CODE,
                                 "e-mail code", 2, address.value())),
                         () -> heldWhere(address -> !f.factors.findByUser(address).isEmpty())),
-                new Store("recovery_codes", true,
+                Store.follows("recovery_codes",
                         address -> f.codes.replaceAll(address, List.of("code-hash")),
                         () -> heldWhere(address -> f.codes.unusedCount(address) > 0)),
-                new Store("passwordless_accounts", true,
+                Store.follows("passwordless_accounts",
                         address -> f.passwordless.setPasswordless(address, true),
                         () -> heldWhere(f.passwordless::isPasswordless)),
-                new Store("federated_identities", true,
+                Store.follows("federated_identities",
                         address -> f.federated.link("google", "durable-subject", address),
                         () -> f.federated.findUserBy("google", "durable-subject").stream().toList()),
                 // the move VERIFIES the new address (its own token was delivered there), so this row
                 // is expected under the new address as well — hence "follows"
-                new Store("email_verifications", true,
+                Store.follows("email_verifications",
                         f.verifications::markVerified,
                         () -> heldWhere(f.verifications::isVerified)),
                 // no find-by-address on these two ports by design (a token store is queried by token),
                 // so the probe consumes the seeded token once and reports whose address came back
-                new Store("password_resets", false,
+                Store.dropped("password_resets", "was e-mailed to the old address",
                         address -> f.resets.startReset(address, RESET_TOKEN),
                         () -> f.resets.consumeReset(RESET_TOKEN)
                                 .map(PasswordResetRepository.PendingReset::email).stream().toList()),
-                new Store("email_changes", false,
+                Store.dropped("email_changes", "was e-mailed to the old address",
                         address -> f.changes.startChange(new EmailChange(address, THIRD), OTHER_CHANGE_TOKEN),
                         () -> f.changes.confirmChange(OTHER_CHANGE_TOKEN)
-                                .map(pending -> pending.change().currentEmail()).stream().toList()));
+                                .map(pending -> pending.change().currentEmail()).stream().toList()),
+                // a session carries the address and nothing else, so it cannot be re-pointed: one
+                // left alive would keep authorizing as the old address — and as its next owner
+                Store.dropped("sessions", "remembers an address that is no longer the account's",
+                        address -> f.sessions.create(sessionFor(address), SessionFamily.start()),
+                        () -> heldWhere(address -> !f.sessions.listActiveSessions(address).isEmpty())));
+    }
+
+    private static SessionTokens sessionFor(Email address) {
+        LocalDateTime tomorrow = LocalDateTime.now(Clock.systemUTC()).plusDays(1);
+        return new SessionTokens(address, RefreshToken.random(), new AccessToken("access-" + address.value()),
+                new RefreshTokenExpiration(tomorrow), new AuthorizationTokenExpiration(tomorrow));
     }
 
     private static List<Email> heldWhere(Predicate<Email> holdsSomething) {
@@ -151,7 +181,7 @@ class AddressKeyedStoresTest {
                             store.heldUnder().get(),
                             store.followsTheAccount()
                                     ? table + " must follow the account to its new address"
-                                    : table + " was e-mailed to the old address and must be dropped");
+                                    : table + " " + store.droppedBecause() + " and must be dropped");
                 }));
     }
 

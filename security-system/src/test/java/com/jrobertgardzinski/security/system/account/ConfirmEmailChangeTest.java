@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.system.account;
 
 import com.jrobertgardzinski.email.domain.Email;
+import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.EmailChangeRepository;
 import com.jrobertgardzinski.security.domain.repository.EmailVerificationRepository;
 import com.jrobertgardzinski.security.domain.repository.EnrolledFactorRepository;
@@ -38,6 +39,7 @@ class ConfirmEmailChangeTest {
     private RecoveryCodeRepository recoveryCodeRepository;
     private PasswordlessAccountRepository passwordlessAccountRepository;
     private PasswordResetRepository passwordResetRepository;
+    private AuthorizationDataRepository authorizationDataRepository;
     private ConfirmEmailChange confirmEmailChange;
 
     private static final int TOKEN_TTL_MINUTES = 1440;
@@ -57,10 +59,11 @@ class ConfirmEmailChangeTest {
         recoveryCodeRepository = Mockito.mock(RecoveryCodeRepository.class);
         passwordlessAccountRepository = Mockito.mock(PasswordlessAccountRepository.class);
         passwordResetRepository = Mockito.mock(PasswordResetRepository.class);
+        authorizationDataRepository = Mockito.mock(AuthorizationDataRepository.class);
         confirmEmailChange = new ConfirmEmailChange(emailChangeRepository, userRepository,
                 emailVerificationRepository, federatedIdentityRepository, enrolledFactorRepository,
                 recoveryCodeRepository, passwordlessAccountRepository, passwordResetRepository,
-                java.time.Duration.ofMinutes(TOKEN_TTL_MINUTES), clock);
+                authorizationDataRepository, java.time.Duration.ofMinutes(TOKEN_TTL_MINUTES), clock);
     }
 
     @Example
@@ -71,6 +74,30 @@ class ConfirmEmailChangeTest {
         assertEquals(new ConfirmEmailChangeResult.EmailChanged(NEW), confirmEmailChange.execute(TOKEN));
         Mockito.verify(userRepository).updateEmail(OLD, NEW);
         Mockito.verify(emailVerificationRepository).markVerified(NEW);
+    }
+
+    @Example
+    @Label("Sessions minted for the old address are revoked: a session cannot follow the account")
+    void sessions_do_not_survive_the_move() {
+        Mockito.when(emailChangeRepository.confirmChange(TOKEN)).thenReturn(Optional.of(fresh(new EmailChange(OLD, NEW))));
+
+        assertInstanceOf(ConfirmEmailChangeResult.EmailChanged.class, confirmEmailChange.execute(TOKEN));
+        // a session remembers only the address, so one left alive keeps authorizing as OLD — and
+        // starts resolving to whoever registers OLD next
+        Mockito.verify(authorizationDataRepository).revokeAllSessions(OLD);
+    }
+
+    @Example
+    @Label("A change confirmed while the account is being deleted is refused, not applied")
+    void refuses_while_the_account_is_being_deleted() {
+        Mockito.when(emailChangeRepository.confirmChange(TOKEN)).thenReturn(Optional.of(fresh(new EmailChange(OLD, NEW))));
+        Mockito.when(userRepository.isPendingDeletion(OLD)).thenReturn(true);
+
+        assertInstanceOf(ConfirmEmailChangeResult.InvalidToken.class, confirmEmailChange.execute(TOKEN));
+        // moving a locked user would hide them from both ends of the saga: the compensation that
+        // unlocks them and the completion that deletes them both look under the old address
+        Mockito.verify(userRepository, Mockito.never()).updateEmail(OLD, NEW);
+        Mockito.verifyNoInteractions(enrolledFactorRepository, recoveryCodeRepository, federatedIdentityRepository);
     }
 
     @Example

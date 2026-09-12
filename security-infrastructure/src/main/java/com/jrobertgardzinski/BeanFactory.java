@@ -568,13 +568,14 @@ public class BeanFactory {
                                           com.jrobertgardzinski.security.domain.repository.PasswordlessAccountRepository
                                                   passwordlessAccountRepository,
                                           PasswordResetRepository passwordResetRepository,
+                                          AuthorizationDataRepository authorizationDataRepository,
                                           @io.micronaut.context.annotation.Value(
                                                   "${security.email-change.ttl-minutes:1440}")
                                           int changeTtlMinutes,
                                           Clock clock) {
         return new ConfirmEmailChange(emailChangeRepository, userRepository, emailVerificationRepository,
                 federatedIdentityRepository, enrolledFactorRepository, recoveryCodeRepository,
-                passwordlessAccountRepository, passwordResetRepository,
+                passwordlessAccountRepository, passwordResetRepository, authorizationDataRepository,
                 java.time.Duration.ofMinutes(changeTtlMinutes), clock);
     }
 

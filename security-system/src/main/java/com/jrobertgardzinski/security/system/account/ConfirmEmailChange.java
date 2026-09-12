@@ -1,5 +1,6 @@
 package com.jrobertgardzinski.security.system.account;
 
+import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
 import com.jrobertgardzinski.security.domain.repository.EmailChangeRepository;
 import com.jrobertgardzinski.security.domain.repository.EmailVerificationRepository;
 import com.jrobertgardzinski.security.domain.repository.EnrolledFactorRepository;
@@ -34,6 +35,18 @@ import com.jrobertgardzinski.security.domain.vo.token.VerificationToken;
  * E-MAILED TO THE OLD ADDRESS is dropped instead: a pending reset, a pending further change, the
  * verification row. The account no longer owns that mailbox, and a live token pointing at a freed
  * address sets the password of whoever registers it next.
+ *
+ * <p>SESSIONS are neither moved nor kept: they are revoked, the same price a password change and a
+ * password reset already charge. They cannot be moved, because a session remembers only the address
+ * it was minted for — so a surviving one keeps authorizing as the OLD address, "sign out everywhere"
+ * under the new address never reaches it, and the moment somebody registers the freed address that
+ * session starts resolving to THEIR account: their roles, their session list. The owner signs in
+ * again after moving; nobody inherits a session by taking over an abandoned address.
+ *
+ * <p>A ticket is also refused while the account is being DELETED. The deletion saga locks the
+ * account and then waits for other services; a change landing in that window moves the locked user
+ * to the new address, where the saga's compensation and its completion can no longer find them —
+ * an account locked forever under an address its owner never finished moving to.
  */
 public class ConfirmEmailChange {
 
@@ -45,6 +58,7 @@ public class ConfirmEmailChange {
     private final RecoveryCodeRepository recoveryCodeRepository;
     private final PasswordlessAccountRepository passwordlessAccountRepository;
     private final PasswordResetRepository passwordResetRepository;
+    private final AuthorizationDataRepository authorizationDataRepository;
     private final java.time.Duration tokenTtl;
     private final java.time.Clock clock;
 
@@ -55,6 +69,7 @@ public class ConfirmEmailChange {
                               RecoveryCodeRepository recoveryCodeRepository,
                               PasswordlessAccountRepository passwordlessAccountRepository,
                               PasswordResetRepository passwordResetRepository,
+                              AuthorizationDataRepository authorizationDataRepository,
                               java.time.Duration tokenTtl, java.time.Clock clock) {
         this.emailChangeRepository = emailChangeRepository;
         this.userRepository = userRepository;
@@ -64,6 +79,7 @@ public class ConfirmEmailChange {
         this.recoveryCodeRepository = recoveryCodeRepository;
         this.passwordlessAccountRepository = passwordlessAccountRepository;
         this.passwordResetRepository = passwordResetRepository;
+        this.authorizationDataRepository = authorizationDataRepository;
         this.tokenTtl = tokenTtl;
         this.clock = clock;
     }
@@ -72,6 +88,7 @@ public class ConfirmEmailChange {
         return emailChangeRepository.confirmChange(token)
                 .filter(this::stillFresh)
                 .map(EmailChangeRepository.PendingEmailChange::change)
+                .filter(change -> !userRepository.isPendingDeletion(change.currentEmail()))
                 .<ConfirmEmailChangeResult>map(change -> {
                     federatedIdentityRepository.relinkAll(change.currentEmail(), change.newEmail());
                     enrolledFactorRepository.reassign(change.currentEmail(), change.newEmail());
@@ -81,6 +98,7 @@ public class ConfirmEmailChange {
                     emailChangeRepository.purge(change.currentEmail());
                     emailVerificationRepository.purge(change.currentEmail());
                     userRepository.updateEmail(change.currentEmail(), change.newEmail());
+                    authorizationDataRepository.revokeAllSessions(change.currentEmail());
                     emailVerificationRepository.markVerified(change.newEmail());
                     return new ConfirmEmailChangeResult.EmailChanged(change.newEmail());
                 })
