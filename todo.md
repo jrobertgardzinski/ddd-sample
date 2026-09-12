@@ -340,13 +340,20 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   (powiadamiacz i tak pisze do outboxu, więc nie ma tu żadnego wolnego wywołania do trzymania poza
   transakcją). Dowód: `RegistrationAtomicityTest` — wysyłka pada, po żądaniu NIE MA konta;
   rozdzielenie transakcji z powrotem zapala go na czerwono.
-- Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
-  timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
-  DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
-  DOM-2 (kontrakt `updateEmail`), DOM-9 (`UserRegistration` martwy), DOM-12 (nazwy),
-  DB-8 (`NormalizedEmail` tylko dla 4 domen), `Source` w `PendingAuthentication` (AUTH-2).
-  throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
-  wyścigi → config na starcie → przegląd dokumentacji.
+- **Otwarte z raportu — stan na 2026-09-12 wieczorem.** Zamknięte: CRITICAL, wszystkie HIGH,
+  wszystkie MEDIUM (w tym DOM-2 i DB-8 po decyzji właściciela) oraz paczki LOW 1–10 (opisane
+  wyżej). Zostaje:
+  - **do DECYZJI właściciela (nie ruszam sam):** DB-14 cz. 2 — po ilu dniach kasujemy konto,
+    którego NIKT nigdy nie zweryfikował (to decyzja produktowa, nie sprzątanie); DOM-9 —
+    `UserRegistration` jest martwy, ale to Twój pakiet domeny; DOM-12 — nazwy (`AccessToken` vs
+    `AuthorizationTokenExpiration`/`AuthorizationDataRepository`); DOM-8 — `SessionTokens.createFor`
+    domyśla `AccessTokenMint.RANDOM`, używają tego tylko testy; DOM-13 — ważność tokenu w pełnych
+    godzinach, MIN = 1, bez MAX; DOM-14 — `User` przyjmuje niespójny `normalizedEmail` (dziś każde
+    miejsce konstrukcji jest spójne); AUTH-2 — `Source` w `PendingAuthentication`.
+  - **czysta robota, nikogo nie pytam (następna kolejka):** DOM-4 — reguły domeny mają JEDEN test
+    (`IpAddressValidator`, pusty token, MIN ważności, normalizacja roli USER, arytmetyka bloku);
+    MFA-4/7/9/10/14; AUTH-10/11/13/15; ACC-8/15; ATK-8; UI-9/10/11/13/14; TEST-2/5/6/7/11/12/13;
+    WIRE-7.
 
 ## ~~Otwarte — pilne (2026-08-08)~~ — ZAMKNIĘTE, sekcja była NIEAKTUALNA (sprostowane 2026-09-12)
 
