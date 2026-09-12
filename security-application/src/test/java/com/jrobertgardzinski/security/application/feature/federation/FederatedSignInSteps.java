@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -142,10 +143,14 @@ public class FederatedSignInSteps {
         assertFalse(sessions.listActiveSessions(Email.of(email)).isEmpty(), "failed to seed a session");
     }
 
+    /** The account as it stood after the FIRST contact — what "not a twin" is measured against. */
+    private UUID accountBefore;
+
     @Given("the USER already SIGNED IN with a PROVIDER identity vouching for {string}")
     public void alreadySignedInWith(String email) {
         signIn(email, true);
         assertInstanceOf(FederatedSignInResult.SignedIn.class, result, "failed to seed the first sign-in");
+        accountBefore = users.findBy(Email.of(email)).orElseThrow().id();
     }
 
     @When("the USER SIGNS IN with a PROVIDER identity vouching for {string}")
@@ -173,11 +178,22 @@ public class FederatedSignInSteps {
         assertTrue(users.findBy(Email.of(email)).isPresent(), "the account was not created");
         assertTrue(verifications.isVerified(Email.of(email)),
                 "the provider's word replaces our mail loop — the account must be born verified");
-        // the second Example pins that a repeat sign-in reuses this account: same user id
-        UUID first = users.findBy(Email.of(email)).orElseThrow().id();
-        signIn(email, true);
-        assertEquals(first, users.findBy(Email.of(email)).orElseThrow().id(),
-                "a repeat sign-in must reuse the account, not mint a twin");
+    }
+
+    /**
+     * The twin check, in the scenario that is about twins.
+     *
+     * <p>It used to live inside the step above — which belongs to a DIFFERENT example, and which
+     * performed a second sign-in of its own to have something to compare. So the scenario named
+     * "not a twin" asserted only that somebody was signed in, and the assertion that gave it its
+     * name ran somewhere else, on data that step had made up.
+     */
+    @Then("the ACCOUNT {string} is the one that already existed")
+    public void theSameAccountAsBefore(String email) {
+        assertNotNull(accountBefore, "nothing was signed in before this — the example is misread");
+        assertEquals(accountBefore, users.findBy(Email.of(email)).orElseThrow().id(),
+                "a repeat sign-in must reuse the account, not mint a twin: the address answers with"
+                        + " a different account than it did a moment ago");
     }
 
     @Then("no ACCOUNT {string} exists")

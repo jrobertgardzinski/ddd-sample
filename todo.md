@@ -244,6 +244,15 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `hashCode` też. `TokenSecrecyTest` w domenie. DOM-3: `ClientIpResolver` kanonizuje adres (ucina
   zone id `%eth0` — to nazwa interfejsu TEJ maszyny, nie dzwoniącego) i odrzuca kandydata dłuższego
   niż kolumna `VARCHAR(64)`: źródła, którego nie da się ZAPISAĆ, nie da się też ograniczyć.
+- **LOW, paczka 5 — testy, które nic nie twierdziły (TEST-8, TEST-9, TEST-14) — ZROBIONE 2026-09-12.**
+  `MalformedEmailHttpTest` sprawdzał tylko „< 500" — 301 na stronę logowania albo 200, które po
+  cichu ZROBIŁO rzecz, też by przeszły; teraz: drzwi odmawiające dają 4xx, dwoje cichych drzwi
+  (`/verify-email/request`, `/reset-password/request`) dają dokładnie to samo 202 co dla obcego
+  adresu, i żadne nie cytuje wnętrza serwisu. Scenariusz „not a twin" twierdził wyłącznie, że ktoś
+  jest zalogowany — asercja o bliźniaku siedziała w kroku INNEGO przykładu i sama robiła drugie
+  logowanie, żeby mieć co porównać; teraz ma własne „the ACCOUNT ... is the one that already
+  existed". Scenariusz enumeracji przy zmianie adresu nie sprawdzał, czy do zajętego adresu NIE
+  poszedł link (porównanie do stanu sprzed żądania, bo adres bywa zasiany rejestracją).
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

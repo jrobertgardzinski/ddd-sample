@@ -15,11 +15,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -84,31 +87,74 @@ class MalformedEmailHttpTest {
         assertSameAsForAValidAddress("/reset-password/request", email, "RESET_LINK_SENT");
     }
 
+    /** The doors that answer in their own vocabulary: a malformed request is REFUSED, 4xx. */
+    private static final List<String> REFUSING = List.of("/authenticate", "/verify-email", "/reset-password");
+
+    /**
+     * The two doors that answer the same thing to everybody — on purpose. An answer reserved for
+     * malformed input is still a different answer for SOME inputs, and these two exist precisely so
+     * that nobody can learn anything by asking: they accept, and the truth goes by mail or not at
+     * all. So what is pinned here is that the quiet answer stays quiet, not that it becomes a 400.
+     */
+    private static final List<String> QUIET = List.of("/verify-email/request", "/reset-password/request");
+
     @ParameterizedTest(name = "POST {0} with a number where text belongs")
-    @ValueSource(strings = {"/authenticate", "/verify-email", "/verify-email/request", "/reset-password", "/reset-password/request"})
-    @DisplayName("a field sent with the wrong JSON type is refused, never a 500")
+    @MethodSource("refusingDoors")
+    @DisplayName("a field sent with the wrong JSON type is refused in the endpoint's own words")
     void wrongJsonTypeIsRefused(String path) {
-        assertNotAnInternalError(path, NUMBER_INSTEAD_OF_TEXT);
+        assertRefused(path, NUMBER_INSTEAD_OF_TEXT);
     }
 
     @ParameterizedTest(name = "POST {0} with an empty body")
-    @ValueSource(strings = {"/authenticate", "/verify-email", "/verify-email/request", "/reset-password", "/reset-password/request"})
-    @DisplayName("a missing field is refused, never a 500")
+    @MethodSource("refusingDoors")
+    @DisplayName("a missing field is refused in the endpoint's own words")
     void missingFieldIsRefused(String path) {
-        assertNotAnInternalError(path, NOTHING_AT_ALL);
+        assertRefused(path, NOTHING_AT_ALL);
+    }
+
+    @ParameterizedTest(name = "POST {0} with a malformed body")
+    @MethodSource("quietDoors")
+    @DisplayName("the quiet doors stay quiet: the same 202 as for a perfectly good address")
+    void theQuietDoorsStayQuiet(String path) {
+        for (String body : List.of(NUMBER_INSTEAD_OF_TEXT, NOTHING_AT_ALL)) {
+            HttpResponse<?> response = exchange(
+                    HttpRequest.POST(path, body).contentType(MediaType.APPLICATION_JSON));
+            assertEquals(HttpStatus.ACCEPTED, response.getStatus(),
+                    path + " must answer malformed input exactly as it answers a stranger's address");
+            assertNoInternalSentence(path, response);
+        }
+    }
+
+    static java.util.stream.Stream<String> refusingDoors() {
+        return REFUSING.stream();
+    }
+
+    static java.util.stream.Stream<String> quietDoors() {
+        return QUIET.stream();
     }
 
     /**
-     * The value objects reject null and blank, and the boundary reads a non-text field as absent —
-     * so every one of these lands in an endpoint's own vocabulary. A 5xx here means an exception
-     * escaped again, and with it the class name of whatever broke.
+     * A malformed request is REFUSED — not redirected, not obeyed, and never answered with the
+     * inside of the service. "Not a 500" was the whole assertion until 2026-09-12, and a 301 to a
+     * login page or a 200 that quietly did the thing would both have passed it.
      */
-    private void assertNotAnInternalError(String path, String body) {
+    private void assertRefused(String path, String body) {
         HttpResponse<?> response = exchange(HttpRequest.POST(path, body).contentType(MediaType.APPLICATION_JSON));
 
-        assertTrue(response.getStatus().getCode() < 500,
-                () -> path + " answered " + response.getStatus() + " for " + body);
+        int status = response.getStatus().getCode();
+        assertTrue(status >= 400 && status < 500,
+                () -> path + " answered " + response.getStatus() + " for " + body
+                        + " — a malformed request is refused, not redirected and not obeyed");
+        assertNoInternalSentence(path, response);
     }
+
+    private void assertNoInternalSentence(String path, HttpResponse<?> response) {
+        String answered = String.valueOf(response.getBody(String.class).orElse(""));
+        assertFalse(answered.contains("Exception") || answered.contains("com.jrobertgardzinski")
+                        || answered.toLowerCase().contains("cannot invoke"),
+                () -> path + " quoted the inside of the service back at the caller: " + answered);
+    }
+
 
     /** The malformed attempt must be indistinguishable from one for a well-formed stranger. */
     private void assertSameAsForAValidAddress(String path, String malformed, String expectedStatus) {

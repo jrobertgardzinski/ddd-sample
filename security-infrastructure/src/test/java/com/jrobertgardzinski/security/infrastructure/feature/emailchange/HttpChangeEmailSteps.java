@@ -38,6 +38,8 @@ public class HttpChangeEmailSteps {
     private String accessToken;
     private String newEmail;
     private HttpResponse<Map> requestResponse;
+    /** What the target address had been mailed BEFORE the change was asked for (it may be seeded). */
+    private String targetTokenBefore;
     private HttpResponse<Map> confirmResponse;
 
     @Before
@@ -83,6 +85,7 @@ public class HttpChangeEmailSteps {
     @When("the USER requests to CHANGE the EMAIL to {string}")
     public void theUserRequestsToChangeTheEmail(String newEmail) {
         this.newEmail = newEmail;
+        this.targetTokenBefore = mailedTokenFor(newEmail);
         stepUpForTheChange();
         requestResponse = exchange(HttpRequest.POST("/account/email/request", Map.of("newEmail", newEmail))
                 .header("Authorization", "Bearer " + accessToken));
@@ -133,6 +136,13 @@ public class HttpChangeEmailSteps {
     @Then("the CHANGE request is quietly refused, indistinguishable from a fresh one")
     public void quietlyRefused() {
         assertEquals(HttpStatus.ACCEPTED, requestResponse.getStatus());
+        // "indistinguishable" is about the WIRE; the address itself must not be touched. Nothing
+        // asserted that until 2026-09-12, so a quiet 202 that had nevertheless started a change —
+        // mailing the occupant a confirmation link for somebody else's move — would have passed.
+        // The comparison is against what that address had been sent BEFORE (it was seeded by a
+        // registration of its own), because "no NEW link" is the claim, not "no link ever".
+        assertEquals(targetTokenBefore, mailedTokenFor(newEmail),
+                "no change link may go to an address that belongs to somebody else");
         assertEquals(Map.of("status", "EMAIL_CHANGE_LINK_SENT"), requestResponse.getBody(Map.class).orElseThrow(),
                 "a taken address must answer byte-for-byte like a fresh change request");
     }
@@ -194,6 +204,12 @@ public class HttpChangeEmailSteps {
 
     private HttpResponse<Map> authenticate(String asEmail) {
         return exchange(HttpRequest.POST("/authenticate", Map.of("email", asEmail, "password", PASSWORD)));
+    }
+
+    /** The last verification token this address was mailed, or null if it never was. */
+    private String mailedTokenFor(String address) {
+        return server.getApplicationContext()
+                .getBean(CapturingEmailVerificationNotifier.class).lastTokenFor(address);
     }
 
     @SuppressWarnings("unchecked")

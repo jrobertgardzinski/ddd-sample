@@ -16,6 +16,7 @@ Feature: Federated sign-in
       Given the USER already SIGNED IN with a PROVIDER identity vouching for "regular@example.com"
       When the USER SIGNS IN with a PROVIDER identity vouching for "regular@example.com"
       Then the USER is SIGNED IN
+      And the ACCOUNT "regular@example.com" is the one that already existed
 
   Rule: 2. A verified local ACCOUNT auto-links: the same inbox proved twice is the same person
 
