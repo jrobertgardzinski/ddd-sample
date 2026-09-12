@@ -25,4 +25,12 @@ interface EmailVerificationJdbcRepository extends CrudRepository<EmailVerificati
     @Query("UPDATE email_verifications SET verified = true, pending_token_hash = null "
             + "WHERE pending_token_hash = :hash")
     int markVerified(String hash);
+
+    /**
+     * Retention: an address that was typed once, never confirmed and never seen again keeps an
+     * e-mail address and a token hash for as long as the database lives. A VERIFIED row is the
+     * account's own state and is not touched here — it dies with the account.
+     */
+    @Query("DELETE FROM email_verifications WHERE verified = FALSE AND requested_at < :cutoff")
+    int deleteUnverifiedRequestedBefore(java.time.LocalDateTime cutoff);
 }

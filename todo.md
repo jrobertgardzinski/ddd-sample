@@ -306,6 +306,21 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   usuwa — dwa równoległe usunięcia czytały „jeden ponad podłogą" i oba usuwały. `RefreshCookies`
   mówi wprost, czego SameSite NIE obejmuje (inny port na localhoście i sąsiedni subdomain to ta sama
   witryna) i że uczciwą naprawą byłby double-submit, bo ostrzejszej flagi nie ma.
+- **LOW, paczka 9 — link, który nie wygasa, i wiersz, który nie znika (ACC-6, DB-14 cz. 1)
+  — ZROBIONE 2026-09-12.** Wiersz weryfikacji nie niósł ŻADNEJ daty, więc link z zeszłego roku
+  potwierdzał adres tak samo chętnie jak sprzed minuty — i nikt nigdy nie kasował wiersza, którego
+  nikt nie kliknął. V28 dokłada `requested_at` (jak V20 dla resetów hasła) + indeks częściowy;
+  `completeVerification` zwraca `PendingVerification(email, requestedAt)`, a `VerifyEmail` dostaje
+  `Duration` (`security.verification.ttl-hours`, 48) i `Clock` i odrzuca przeterminowany link
+  DOKŁADNIE tak jak nieznany (token i tak jest zużyty — przedstawiony token to zużyty token).
+  `AbandonedVerificationReaper` (30 dni, co godzinę) zamiata TYLKO niezweryfikowane wiersze:
+  zweryfikowany jest stanem KONTA i ginie z kontem, w sadze. Retencja jest celowo dłuższa niż TTL —
+  wygaśnięcie to decyzja i mieszka w use-case'ie, zamiatanie tylko sprząta to, co nie może już
+  znaczyć nic. Testy: dwa nowe w `VerifyEmailTest` (wygasły link, krawędź okna JEST w środku) i
+  przypadek w `RetentionReapersTest` na realnym Postgresie.
+  UWAGA na drugą połowę DB-14: konta, których NIKT nigdy nie zweryfikował, wciąż żyją wiecznie —
+  to decyzja PRODUKTOWA (po ilu dniach kasujemy niepotwierdzone konto?), nie sprzątanie, więc
+  czeka na werdykt właściciela.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

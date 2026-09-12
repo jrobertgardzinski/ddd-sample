@@ -18,7 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Retention for the three tables that had none (poz. 10, 24), against a real PostgreSQL — the
+ * Retention for the four tables that had none (poz. 10, 24), against a real PostgreSQL — the
  * predicates carry the whole weight here, so a fake store would prove nothing about them.
  *
  * <p>Each case pins the same two things: the row that is history goes, and the row that still has a
@@ -130,6 +130,38 @@ class RetentionReapersTest {
         assertThat(rejections.countByIpAddressAndOccurredAtAfter(ip, LocalDateTime.now().minusMinutes(15)))
                 .as("the surviving failure must still be countable inside the guard's window")
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("verification rows nobody followed are dropped; a verified row and a fresh one stay")
+    void abandonedVerificationRetention() {
+        EmailVerificationJdbcRepository verifications =
+                context.getBean(EmailVerificationJdbcRepository.class);
+        LocalDateTime now = LocalDateTime.now();
+        // this reaper's window is itself 30 days, so ANCIENT would sit exactly ON the edge and the
+        // answer would turn on the JVM's zone against the clock bean's; twice the window is past it
+        // under any zone
+        LocalDateTime ancient = now.minus(ANCIENT.multipliedBy(2));
+
+        verifications.save(new EmailVerificationEntity(
+                "abandoned@example.com", "hash-of-a-link-nobody-clicked", false, ancient));
+        verifications.save(new EmailVerificationEntity(
+                "long-verified@example.com", null, true, ancient));
+        verifications.save(new EmailVerificationEntity(
+                "just-registered@example.com", "hash-of-a-fresh-link", false, now));
+
+        context.getBean(AbandonedVerificationReaper.class).reap();
+
+        assertThat(verifications.findById("abandoned@example.com"))
+                .as("an address typed once and never confirmed is an address kept for nothing")
+                .isEmpty();
+        assertThat(verifications.findById("long-verified@example.com"))
+                .as("a verified row is the ACCOUNT's own state — sweeping it would quietly"
+                        + " un-verify a working account")
+                .isPresent();
+        assertThat(verifications.findById("just-registered@example.com"))
+                .as("somebody who registered a minute ago still has a link to click")
+                .isPresent();
     }
 
     private static UUID outboxRow(OutboxEventJdbcRepository events, Instant createdAt,

@@ -100,7 +100,7 @@ class AddressKeyedStoresTest {
         final InMemoryRecoveryCodeRepository codes = new InMemoryRecoveryCodeRepository();
         final InMemoryFederatedIdentityRepository federated = new InMemoryFederatedIdentityRepository();
         final InMemoryPasswordlessAccountRepository passwordless = new InMemoryPasswordlessAccountRepository();
-        final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository();
+        final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository(Clock.systemUTC());
         final InMemoryPasswordResetRepository resets = new InMemoryPasswordResetRepository(Clock.systemUTC());
         final InMemoryEmailChangeRepository changes = new InMemoryEmailChangeRepository(Clock.systemUTC());
 

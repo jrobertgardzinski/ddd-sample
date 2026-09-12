@@ -545,8 +545,16 @@ public class BeanFactory {
     }
 
     @Singleton
-    VerifyEmail verifyEmail(EmailVerificationRepository emailVerificationRepository) {
-        return new VerifyEmail(emailVerificationRepository);
+    VerifyEmail verifyEmail(EmailVerificationRepository emailVerificationRepository,
+                            @io.micronaut.context.annotation.Value(
+                                    "${security.verification.ttl-hours:48}") int verificationTtlHours,
+                            Clock clock) {
+        // Two days by default, and the number is a trade rather than a convention: shorter and a
+        // link read on Monday morning is dead, longer and an address somebody mistyped stays
+        // claimable for a week. The password reset (1 h) and the e-mail change (24 h) are shorter
+        // because what they open is bigger.
+        return new VerifyEmail(emailVerificationRepository,
+                java.time.Duration.ofHours(verificationTtlHours), clock);
     }
 
     @Singleton

@@ -13,5 +13,6 @@ import io.micronaut.data.annotation.MappedEntity;
 record EmailVerificationEntity(
         @Id String email,
         @Nullable String pendingTokenHash,
-        boolean verified) {
+        boolean verified,
+        java.time.LocalDateTime requestedAt) {
 }
