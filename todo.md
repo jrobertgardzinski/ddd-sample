@@ -62,7 +62,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   Reguła w `change-email.feature` (@http-only); bez poprawki pada, pokazując `/me` odpowiadające
   starym adresem po przeprowadzce. DOM-2 (kontrakt `updateEmail` przy zajętym adresie) NIE ruszony
   — zmienia kontrakt portu i kształt wyniku use-case'u, decyzja właściciela.
-- Następne wg raportu: HTTP-1/HTTP-2 (przed PLAN-P12 K1) →
+- **HTTP-1 + HTTP-2 — ZROBIONE 2026-09-12.** Za zaufanym proxy źródłem był LEWY element
+  `X-Forwarded-For`, czyli ten, który pisze klient (proxy DOKLEJA) — klucz throttle'ów i lockoutu
+  do wyboru przez atakującego (albo podstawiany ofierze). `ClientIpResolver` chodzi teraz od
+  PRAWEJ, pomija własne proxy i bierze pierwszy nie-nasz; element, który nie jest adresem
+  (`unknown`), leci na peera zamiast 500. `TrustedProxyHttpTest` (throttle rejestracji jako
+  przyrząd: „czy to samo źródło?"); na starym kodzie padają 2 z 4 przypadków.
+  **UWAGA do PLAN-P12 K1 (portal):** `security.trusted-proxies` porównuje DOKŁADNE adresy — CIDR
+  nie pasuje do niczego. K1 musi wymienić adresy podów ingressu, nie sieć podów. Zapisane też w
+  javadocu klasy.
+- Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.
 
