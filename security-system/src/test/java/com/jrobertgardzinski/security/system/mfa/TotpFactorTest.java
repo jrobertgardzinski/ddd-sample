@@ -32,7 +32,22 @@ class TotpFactorTest {
         public ZoneOffset getZone() { return ZoneOffset.UTC; }
         public Clock withZone(java.time.ZoneId zone) { return this; }
     };
-    private final TotpFactor factor = new TotpFactor(clock, "security");
+    /**
+     * The steps already spent, as the production adapter remembers them: the highest one wins and
+     * anything at or below it is refused. A test double rather than a mock, because the rule this
+     * pins IS the arithmetic.
+     */
+    private final java.util.Map<String, Long> spent = new java.util.HashMap<>();
+    private final SpentTotpSteps spentSteps = (enrolment, step) -> {
+        String key = enrolment.userEmail().value() + "|" + enrolment.type().value();
+        Long previous = spent.get(key);
+        if (previous != null && step <= previous) {
+            return false;
+        }
+        spent.put(key, step);
+        return true;
+    };
+    private final TotpFactor factor = new TotpFactor(clock, "security", spentSteps);
 
     private EnrolledFactor enrolmentWith(String secret) {
         return new EnrolledFactor(Email.of("u@example.com"), FactorType.TOTP, "authenticator app", 0, secret);
@@ -45,6 +60,23 @@ class TotpFactorTest {
         assertTrue(factor.verify(enrolment, Optional.empty(), CODE_AT_59S), "the RFC test vector must verify");
         assertFalse(factor.verify(enrolment, Optional.empty(), "000000"));
         assertFalse(factor.verify(enrolment, Optional.empty(), "not-a-code"));
+    }
+
+    @Test
+    @DisplayName("a code works ONCE: the same digits presented again are refused, window or no window")
+    void a_spent_code_is_not_a_proof_any_more() {
+        EnrolledFactor enrolment = enrolmentWith(RFC_SECRET_BASE32);
+        assertTrue(factor.verify(enrolment, Optional.empty(), CODE_AT_59S));
+
+        // same step, seconds later — this is the relay case: someone who saw the code has the rest
+        // of the window to use it beside the owner
+        assertFalse(factor.verify(enrolment, Optional.empty(), CODE_AT_59S),
+                "a possession factor that accepts the same proof twice proves possession once");
+
+        // and still refused a step later, where the ±1 skew window would otherwise re-admit it
+        now.set(Instant.ofEpochSecond(59 + 30));
+        assertFalse(factor.verify(enrolment, Optional.empty(), CODE_AT_59S),
+                "the skew window must not resurrect a code that has already been spent");
     }
 
     @Test

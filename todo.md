@@ -177,6 +177,15 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   liczy Argon2 także dla NIEZNANEGO adresu (hash policzony raz przy budowie kroku): dotąd nieznany
   adres wracał w milisekundę, a znany kosztował pełny hash — enumeracja kont z zegara na endpoincie,
   który słowami odmawia enumeracji. Stary test PINOWAŁ tę asymetrię (`verifyNoInteractions`).
+- **MFA-2 + MFA-3 — ZROBIONE 2026-09-12.** Kod TOTP działał przez całe okno ±1 krok, więc kto go
+  zobaczył (relay phishingowy, zrzut ekranu, ramię), miał jeszcze do 90 s, żeby wejść OBOK
+  właściciela. Nowy port `SpentTotpSteps` (+ `InMemorySpentTotpSteps`): krok jest do wydania RAZ,
+  `compute` zamiast get-then-put, wymiatanie po godzinie. Sweeper enrolmentów wywalał się NPE na
+  pierwszym oczekującym TOTP (`challenge()` = null) i zabijał zamiatanie DLA WSZYSTKICH —
+  porzucone sekrety TOTP żyły wiecznie i dawały się potwierdzić; każdy wpis ma teraz własny termin
+  (`security.mfa.enrolment.ttl-minutes`, domyślnie 15). `EnrolmentSweeperTest` na starym wyrażeniu
+  rzuca dokładnie tym NPE; prawo `StoresWithADeadlineEvictThemTest` samo złapało nowy store i
+  kazało go sklasyfikować (grepuje istnienie sweepera — dlatego NPE w środku przeszedł niezauważony).
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

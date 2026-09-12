@@ -20,7 +20,9 @@ import java.util.Optional;
  * plug-and-play (this factor plugs in beside the code factors with no change to the chain).
  *
  * <p>Codes are checked for the current 30-second step and one step either side, to tolerate clock
- * skew between the server and the authenticator app.
+ * skew between the server and the authenticator app — and each step is spendable ONCE
+ * ({@link SpentTotpSteps}), because a code that keeps working for the rest of its window is a code
+ * anyone who saw it can still use.
  */
 public class TotpFactor implements AuthenticationFactor {
 
@@ -31,10 +33,12 @@ public class TotpFactor implements AuthenticationFactor {
 
     private final Clock clock;
     private final String issuerLabel;
+    private final SpentTotpSteps spentSteps;
 
-    public TotpFactor(Clock clock, String issuerLabel) {
+    public TotpFactor(Clock clock, String issuerLabel, SpentTotpSteps spentSteps) {
         this.clock = clock;
         this.issuerLabel = issuerLabel;
+        this.spentSteps = spentSteps;
     }
 
     @Override
@@ -71,7 +75,8 @@ public class TotpFactor implements AuthenticationFactor {
         long step = clock.instant().getEpochSecond() / STEP_SECONDS;
         for (long window = -1; window <= 1; window++) {   // tolerate ±1 step of skew
             if (code(key, step + window).equals(normalised)) {
-                return true;
+                // the digits are right; they are only a PROOF the first time they are presented
+                return spentSteps.claim(enrolment, step + window);
             }
         }
         return false;

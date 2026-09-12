@@ -376,8 +376,9 @@ public class BeanFactory {
     /** The authenticator-app (TOTP) factor: self-contained, no channel. */
     @Singleton
     com.jrobertgardzinski.security.system.mfa.TotpFactor totpFactor(
-            Clock clock, @io.micronaut.context.annotation.Value("${security.mfa.totp.issuer:security}") String issuer) {
-        return new com.jrobertgardzinski.security.system.mfa.TotpFactor(clock, issuer);
+            Clock clock, @io.micronaut.context.annotation.Value("${security.mfa.totp.issuer:security}") String issuer,
+            com.jrobertgardzinski.security.system.mfa.SpentTotpSteps spentSteps) {
+        return new com.jrobertgardzinski.security.system.mfa.TotpFactor(clock, issuer, spentSteps);
     }
 
     /** The WebAuthn / passkey factor: pure-JDK signature verification, no library. The proof that

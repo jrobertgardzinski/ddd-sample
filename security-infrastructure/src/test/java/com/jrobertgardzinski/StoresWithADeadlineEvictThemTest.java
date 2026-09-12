@@ -55,7 +55,10 @@ class StoresWithADeadlineEvictThemTest {
             "InMemoryPendingAuthenticationStore", "a half-finished sign-in either finishes or it does not",
             "OauthFlowStore", "anyone may start a federated sign-in and walk away — P18 poz. 17",
             "InMemoryEnrolmentChallengeStore", "the same shape as the flow store: starting an enrolment"
-                    + " nobody finishes costs one request and is remembered for ever");
+                    + " nobody finishes costs one request and is remembered for ever",
+            "InMemorySpentTotpSteps", "a spent TOTP step stops mattering the moment it leaves the"
+                    + " factor's ±1-step window — what is kept after that is a number nobody will"
+                    + " ever ask about again");
 
     /** The database's stand-in; the table it mirrors is reaped, so this sweeps the same way. */
     private static final Map<String, String> MIRRORS_A_REAPED_TABLE = Map.of(
