@@ -174,7 +174,9 @@ public class BeanFactory {
         return email -> users.findBy(email).map(User::roles).orElse(Set.of());
     }
 
-    @Singleton
+    // at boot, like the e-mail policy: an address with a typo in security.bootstrap-admins must
+    // not wait for the first admin request to be noticed
+    @Context
     BootstrapAdmins bootstrapAdmins(@Value("${security.bootstrap-admins:}") List<String> addresses) {
         return BootstrapAdmins.of(addresses);
     }
@@ -194,6 +196,16 @@ public class BeanFactory {
      * password policy, so a client can say WHICH domains an employee may register from — not
      * merely that this one was not among them.
      */
+    @Context
+    CanRegisterConfig emailPolicyAtBoot(Environment environment) {
+        // @Context, not @Singleton: this is a VALUE read from properties, and the javadoc above has
+        // always claimed it is read "once at startup, so a misspelt domain fails the boot rather
+        // than the first registration". It was not: the policy was built inside the Register bean's
+        // factory method, which Micronaut creates on demand — so `company.domains=acme` (no dot)
+        // booted happily and the FIRST person to register met the failure.
+        return emailPolicy(environment);
+    }
+
     private static CanRegisterConfig emailPolicy(Environment environment) {
         return new CanRegisterConfig(
                 domains(environment, "security.email.blocked.domains", BlockedDomains::new),
@@ -213,8 +225,8 @@ public class BeanFactory {
 
     @Singleton
     Register register(UserRepository userRepository, HashAlgorithmPort hashAlgorithm,
-                      PasswordPolicyInForce passwordPolicy, Environment environment) {
-        return new Register(userRepository, emailPolicy(environment), hashAlgorithm, passwordPolicy);
+                      PasswordPolicyInForce passwordPolicy, CanRegisterConfig emailPolicy) {
+        return new Register(userRepository, emailPolicy, hashAlgorithm, passwordPolicy);
     }
 
     /**
@@ -323,8 +335,16 @@ public class BeanFactory {
         return new RandomBlockDurationPolicy(bruteForceConfig);
     }
 
-    /** Each bound social-login provider becomes the config layer's own type — the rest of the
-     *  code never sees the Micronaut binding shim. */
+    /**
+     * Each bound social-login provider becomes the config layer's own type — the rest of the code
+     * never sees the Micronaut binding shim.
+     *
+     * <p>{@code @Context} so the settings are BUILT at boot: their rules live in the record's
+     * constructor, and a provider that breaks one (a USERINFO provider with no userinfo-url) used
+     * to boot without complaint and then take {@code GET /oauth/providers} down with a 500 — which
+     * the browser reads as "no social buttons", for every provider at once.
+     */
+    @Context
     @io.micronaut.context.annotation.EachBean(OauthProviderConfig.class)
     com.jrobertgardzinski.security.config.oauth.OauthProviderSettings oauthProvider(
             OauthProviderConfig bound) {
@@ -375,16 +395,43 @@ public class BeanFactory {
     }
 
     /** Which factor methods this deployment offers = which factor beans are wired. */
-    @Singleton
+    @Context
     com.jrobertgardzinski.security.system.mfa.FactorRegistry factorRegistry(
             java.util.List<com.jrobertgardzinski.security.system.mfa.CodeFactor> codeFactors,
             com.jrobertgardzinski.security.system.mfa.TotpFactor totpFactor,
-            com.jrobertgardzinski.security.system.mfa.WebauthnFactor webauthnFactor) {
+            com.jrobertgardzinski.security.system.mfa.WebauthnFactor webauthnFactor,
+            com.jrobertgardzinski.security.config.mfa.MfaPolicy mfaPolicy) {
         java.util.List<com.jrobertgardzinski.security.system.mfa.AuthenticationFactor> factors =
                 new java.util.ArrayList<>(codeFactors);
         factors.add(totpFactor);
         factors.add(webauthnFactor);
-        return new com.jrobertgardzinski.security.system.mfa.FactorRegistry(factors);
+        com.jrobertgardzinski.security.system.mfa.FactorRegistry registry =
+                new com.jrobertgardzinski.security.system.mfa.FactorRegistry(factors);
+        refuseFloorsAboveWhatIsOffered(registry, mfaPolicy);
+        return registry;
+    }
+
+    /**
+     * A minimum nobody can reach is not a policy, it is a lock-out: each rule has a floor of 1 and
+     * no ceiling, so {@code security.mfa.min.factors.admin: 6} booted happily and then refused every
+     * ADMIN entry to {@code /admin/**} for ever — including the administrator who would have to
+     * change the number back. The ceiling is not a constant: it is how many factors this deployment
+     * actually offers, which is exactly what the registry knows and nothing else does.
+     */
+    private static void refuseFloorsAboveWhatIsOffered(
+            com.jrobertgardzinski.security.system.mfa.FactorRegistry registry,
+            com.jrobertgardzinski.security.config.mfa.MfaPolicy policy) {
+        int offered = registry.offered().size();
+        for (String role : java.util.List.of("USER", "MODERATOR", "ADMIN")) {
+            int required = policy.requiredFactorCount(java.util.Set.of(role));
+            if (required > offered) {
+                throw new IllegalStateException(("security.mfa.min.factors." + role.toLowerCase(java.util.Locale.ROOT)
+                        + " is " + required + ", but this deployment offers only " + offered
+                        + " factor" + (offered == 1 ? "" : "s") + " (" + registry.offered()
+                        + ") - a " + role + " could never comply, and would be locked out of every"
+                        + " guarded endpoint including the one that would put the number back"));
+            }
+        }
     }
 
     @Singleton
@@ -579,10 +626,10 @@ public class BeanFactory {
     @Singleton
     RequestEmailChange requestEmailChange(UserRepository userRepository,
                                           EmailChangeRepository emailChangeRepository,
-                                          EmailVerificationNotifier notifier, Environment environment) {
+                                          EmailVerificationNotifier notifier, CanRegisterConfig emailPolicy) {
         // the same policy Register is given: one deployment, one answer to "may this address hold
         // an account here"
-        return new RequestEmailChange(userRepository, emailChangeRepository, notifier, emailPolicy(environment));
+        return new RequestEmailChange(userRepository, emailChangeRepository, notifier, emailPolicy);
     }
 
     @Singleton

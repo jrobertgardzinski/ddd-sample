@@ -141,6 +141,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   ustawienie admina, start sagi usuwania — drugi „skasuj konto" dostawał 500 zamiast dołączyć).
   DB-3: `consumeReset`/`confirmChange`/`completeVerification` — decyduje ZAPIS (warunkowy DELETE/
   UPDATE i liczba wierszy), nie odczyt; dwie prezentacje tego samego linku nie mogą już obie wygrać.
+- **Config na starcie (WIRE-5/CFG-1, CFG-3, CFG-4) — ZROBIONE 2026-09-12.** Wartości ustalone na
+  całe życie serwisu czytane są teraz PRZY STARCIE (`@Context`): polityka e-maili (javadoc od
+  dawna to obiecywał, kod nie — `company.domains=acme` wstawał, a wywracała się pierwsza
+  rejestracja), bootstrap-admini i ustawienia providerów OAuth (provider USERINFO bez `userinfo-url`
+  wstawał, a `GET /oauth/providers` dawało 500 = zero przycisków social w UI).
+  CFG-3: sufit dla progu MFA — próg wyższy niż liczba czynników, które deployment OFERUJE, wywala
+  boot z nazwą klucza (`min.factors.admin: 6` zamykał każdego ADMINA poza `/admin/**` na zawsze,
+  łącznie z tym, kto miałby liczbę cofnąć). CFG-4: dwie reguły międzypolowe `BruteForceConfig` i
+  zakres `MaxFailuresPerSource` mają wreszcie testy. `ConfigAtBootTest` — 3 z 5 przypadków padają
+  na starym kodzie (czwarty to nowy sufit, piąty pilnuje, że pusty config nadal wstaje).
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.
