@@ -17,7 +17,16 @@ the code is exchanged — the `identity-source`:
 
 Common keys: `authorize-url` (browser-facing), `token-url` (server-side),
 `client-id`, `client-secret`, `redirect-uri`, `scope` (default `openid email`),
-`label` (button text, defaults to the capitalised name).
+`label` (button text, defaults to the capitalised name), and `issuer`.
+
+`issuer` was missing from this list while the code has always checked `iss` against it when it is
+set — so a deployment that never heard of the key got no issuer check at all, silently. Since
+2026-09-12 it is not optional in practice either: an id_token signed with anything but HS256 is
+accepted on the strength of the direct TLS channel to the token endpoint (OIDC Core 3.1.3.7), and
+that argument only holds for a provider whose claims can be checked against a declared issuer — so
+such a provider without one is refused at the callback rather than trusted for being unverifiable.
+The URLs are validated at boot as absolute http(s) URLs; `idp:8091/token` used to boot happily and
+answer 500 at the callback.
 
 USERINFO keys: `userinfo-url`, `subject-field` (default `sub`), `email-field`
 (default `email`), `email-verified-field` (default `email_verified`),

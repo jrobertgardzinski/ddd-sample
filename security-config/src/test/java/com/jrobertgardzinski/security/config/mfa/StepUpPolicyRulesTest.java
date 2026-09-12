@@ -19,12 +19,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class StepUpPolicyRulesTest {
 
     @Test
-    @DisplayName("a typo in a requirement is refused by the parser, never silently degraded (poz. 22)")
+    @DisplayName("a typo in a requirement is refused by the ladder's parser, never silently degraded (poz. 22)")
     void rejectsUnknownRequirementValue() {
-        // 'FULL_CHAN' is neither NONE, SECOND_FACTORS nor FULL_CHAIN - without the refusal it would
-        // read as "a live session is enough" and quietly drop the guard on delete-account
-        assertThrows(IllegalArgumentException.class, () -> StepUpRequirement.parse("FULL_CHAN"));
-        assertEquals(StepUpRequirement.FULL_CHAIN, StepUpRequirement.parse(" full_chain "));
+        // 'FULL_CHAN' is neither NONE, SECOND_FACTORS nor FULL_CHAIN — without the refusal it would
+        // read as "a live session is enough" and quietly drop the guard on delete-account.
+        //
+        // Through the ladder's own parser, which is what a property and a settings row go through;
+        // the domain used to carry a second parse() that nothing in main called, and this test was
+        // the only thing keeping it alive.
+        java.util.function.Function<String, StepUpRequirement> parser =
+                com.jrobertgardzinski.config.ladder.Parse.forType(StepUpRequirement.class);
+        assertThrows(IllegalArgumentException.class, () -> parser.apply("FULL_CHAN"));
+        assertEquals(StepUpRequirement.FULL_CHAIN, parser.apply(" full_chain "));
     }
 
     @Test

@@ -286,6 +286,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   (brute-force/mfa/session/step-up mają dwa), komentarz `RunCucumberTest` mówił o „trzech
   feature'ach" (jest pięć z dziewiętnastu), javadoc `FailuresCount` opisywał tylko sufit per adres,
   a port `AuthenticationBlockRepository.create` nie mówił, że to upsert.
+- **LOW, paczka 7 — konfiguracja (CFG-2, CFG-5, CFG-7, CFG-8, CFG-11, CFG-12, CFG-13)
+  — ZROBIONE 2026-09-12.** `CodeTtlMinutes` i `CodeMaxAttempts` mają wreszcie SUFIT (kod ważny
+  tydzień to hasło leżące w skrzynce; sto prób na bilet to nie drugi czynnik) — zakresy opisane
+  w `MfaValueRangesTest` razem z pozostałymi pięcioma VO MFA, które nie miały żadnego testu.
+  `OauthProviderSettings`: URL-e muszą być ABSOLUTNE http(s) (`idp:8091/token` wstawał i wywracał
+  callback 500-ką), a knobki USERINFO na providerze ID_TOKEN są ODRZUCANE zamiast cicho ignorowane;
+  pierwszy test tej klasy (`OauthProviderSettingsRulesTest`). `docs/oauth-providers.md` wymienia
+  `issuer` we wspólnych kluczach (kod sprawdzał `iss`, dokumentacja o kluczu milczała).
+  `StepUpRequirement.parse` SKASOWANY — drabinka parsuje enumy generycznie (`Parse.forType`),
+  a ten drugi parser miał tylko własny test i zero wywołań w main.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

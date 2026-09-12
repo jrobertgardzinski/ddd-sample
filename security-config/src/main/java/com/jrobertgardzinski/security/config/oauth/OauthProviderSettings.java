@@ -46,17 +46,31 @@ public record OauthProviderSettings(
 
     public OauthProviderSettings {
         require(name, "name");
-        require(authorizeUrl, "authorize-url");
-        require(tokenUrl, "token-url");
+        requireUrl(authorizeUrl, "authorize-url", name);
+        requireUrl(tokenUrl, "token-url", name);
         require(clientId, "client-id");
         require(clientSecret, "client-secret");
-        require(redirectUri, "redirect-uri");
+        requireUrl(redirectUri, "redirect-uri", name);
         if (identitySource == null) {
             identitySource = IdentitySource.ID_TOKEN;
         }
         if (identitySource == IdentitySource.USERINFO && isBlank(userinfoUrl)) {
             throw new IllegalArgumentException(
                     "a USERINFO provider needs a userinfo-url (provider '" + name + "')");
+        }
+        requireUrlIfPresent(userinfoUrl, "userinfo-url", name);
+        requireUrlIfPresent(emailsUrl, "emails-url", name);
+        // The knobs below only mean something to a provider whose identity comes from USERINFO:
+        // an ID_TOKEN provider reads its claims from the signed token, and a deployment that set
+        // `emails-url` or `assume-email-verified` on one has expressed an intention this service
+        // will silently not honour — which is the kind of thing that is noticed after a support
+        // ticket about somebody signing in as the wrong person, not at boot.
+        if (identitySource == IdentitySource.ID_TOKEN) {
+            if (!isBlank(userinfoUrl) || !isBlank(emailsUrl) || assumeEmailVerified) {
+                throw new IllegalArgumentException("provider '" + name + "' is an ID_TOKEN provider,"
+                        + " so userinfo-url, emails-url and assume-email-verified mean nothing to it"
+                        + " — set identity-source: USERINFO, or take them out");
+            }
         }
         // what the sign-in button should say; defaults to the capitalised provider name
         if (isBlank(label)) {
@@ -79,6 +93,35 @@ public record OauthProviderSettings(
     private static void require(String value, String key) {
         if (isBlank(value)) {
             throw new IllegalArgumentException("an OAuth provider needs a " + key);
+        }
+    }
+
+    /**
+     * Present AND an absolute http(s) URL.
+     *
+     * <p>"Not blank" was the whole check, so {@code idp:8091/token} passed the boot and failed at
+     * the callback instead — a 500 on the security origin, in the middle of somebody's sign-in, for
+     * a missing scheme somebody typed weeks earlier. The place to notice a URL that is not a URL is
+     * the start, where the deployment can still be corrected.
+     */
+    private static void requireUrl(String value, String key, String provider) {
+        require(value, key);
+        requireUrlIfPresent(value, key, provider);
+    }
+
+    private static void requireUrlIfPresent(String value, String key, String provider) {
+        if (isBlank(value)) {
+            return;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(value.strip());
+            if (uri.getScheme() == null || uri.getHost() == null
+                    || !(uri.getScheme().equals("http") || uri.getScheme().equals("https"))) {
+                throw new IllegalArgumentException("not an absolute http(s) URL");
+            }
+        } catch (RuntimeException notAUrl) {
+            throw new IllegalArgumentException("provider '" + provider + "': " + key + " must be an"
+                    + " absolute http(s) URL, not '" + value + "' (" + notAUrl.getMessage() + ")");
         }
     }
 
