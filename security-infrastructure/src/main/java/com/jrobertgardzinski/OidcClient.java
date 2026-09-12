@@ -114,11 +114,25 @@ final class OidcClient {
             throw new OauthDanceFailed("the id_token is not a compact JWS");
         }
         Map<String, Object> header = decodeJson(parts[0]);
-        if ("HS256".equals(header.get("alg"))) {
-            verifyHs256(provider.clientSecret(), parts);
+        String algorithm = String.valueOf(header.get("alg"));
+        // "none" is not an algorithm, it is the absence of one, and a token that names it has
+        // chosen its own verification — which is the oldest JWT defect there is. It is refused
+        // before anything else, whatever channel it came down.
+        if (algorithm == null || algorithm.isBlank() || "none".equalsIgnoreCase(algorithm)) {
+            throw new OauthDanceFailed("the id_token declares no signature algorithm");
         }
-        // other algs (e.g. Google's RS256): trusted because the token arrived straight from the
-        // token endpoint over TLS (OIDC Core 3.1.3.7) — the claims below are still checked hard
+        if ("HS256".equals(algorithm)) {
+            verifyHs256(provider.clientSecret(), parts);
+        } else if (provider.issuer() == null) {
+            // an ASYMMETRIC alg is accepted on the strength of the direct TLS channel to the token
+            // endpoint (OIDC Core 3.1.3.7) — and that argument only holds for a provider this
+            // deployment has named an issuer for. Without one there is nothing to check the claims
+            // against either, so a token that simply says "RS256" would be trusted for being
+            // unverifiable in a different way than a token that says "none".
+            throw new OauthDanceFailed("provider '" + provider.name() + "' sent a " + algorithm
+                    + " id_token but declares no issuer to check it against");
+        }
+        // the claims below are still checked hard, whichever branch was taken
         Map<String, Object> claims = decodeJson(parts[1]);
         if (provider.issuer() != null && !provider.issuer().equals(claims.get("iss"))) {
             throw new OauthDanceFailed("issuer mismatch: " + claims.get("iss"));

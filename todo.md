@@ -206,6 +206,15 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `DeletionInitiator` zostaje, a `ClosureVocabularyTest` pilnuje, że obie strony mówią to samo.
   **DO ZROBIENIA PRZEZ ROBERTA: repo nie istnieje na GitHubie** — trzeba je założyć i wypchnąć,
   zanim CI któregokolwiek z pięciu serwisów zobaczy zielone (checkout + install już dopisane).
+- **LOW, paczka 1 (MFA-11, MFA-12, MFA-15, WIRE-2, WIRE-9, WIRE-12) — ZROBIONE 2026-09-12.**
+  `WebauthnFactor` sprawdza WRESZCIE `Challenge.expiresAt` (TTL był konfigurowalny, udokumentowany
+  i martwy) oraz porównuje `credentialId` asercji z zapisanym; TOTP porównywany stałoczasowo
+  (higiena, nie dziura — 5 prób na bilet). `OidcClient`: `alg=none` odrzucany, a alg asymetryczny
+  przyjmowany tylko dla providera z zadeklarowanym `issuer` (inaczej „nieweryfikowalny" przechodził
+  jako zaufany). JWKS ma `Cache-Control: public, max-age=3600` (godzina = okno nakładki kluczy).
+  `backTo` nie dokleja drugiego `#` — return-URL z własnym fragmentem gubił i stan appki, i token.
+  NIE zrobione świadomie: MFA-4 (brak limitu prób przy potwierdzaniu enrolmentu) — wymaga pola
+  w `PendingEnrolment`, czyli zmiany kształtu portu; okno i tak ogranicza TTL 15 min + elewacja.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

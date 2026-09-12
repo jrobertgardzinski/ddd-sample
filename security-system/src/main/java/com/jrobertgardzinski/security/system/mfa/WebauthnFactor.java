@@ -97,6 +97,12 @@ public class WebauthnFactor implements AuthenticationFactor {
         if (proof == null || challenge.isEmpty()) {
             return false;
         }
+        // the challenge carries an expiry and nothing read it: the TTL property was configurable,
+        // documented, and dead. A nonce good for ever is a nonce a relayed assertion can be
+        // presented against long after the prompt the user actually answered.
+        if (challenge.get().isExpired(clock)) {
+            return false;
+        }
         try {
             String clientDataB64 = field(proof, "clientDataJSON");
             byte[] clientData = URL.decode(clientDataB64);
@@ -148,6 +154,15 @@ public class WebauthnFactor implements AuthenticationFactor {
 
     private boolean verifyAssertion(EnrolledFactor enrolment, String proof, byte[] clientData) {
         try {
+            // the assertion must come from the credential this account enrolled. The signature
+            // check alone already implies it (only that key verifies), but an id that disagrees
+            // with the stored one means the client is confused about which passkey it used — and
+            // the day this account holds more than one, the id is what picks the key.
+            String assertedId = field(proof, "credentialId");
+            String enrolledId = field(enrolment.secretMaterial(), "credentialId");
+            if (assertedId == null || enrolledId == null || !enrolledId.equals(assertedId)) {
+                return false;
+            }
             byte[] authenticatorData = URL.decode(field(proof, "authenticatorData"));
             byte[] signature = URL.decode(field(proof, "signature"));
             // authenticatorData is rpIdHash(32) + flags(1) + signCount(4) + ...

@@ -213,6 +213,32 @@ class OauthFlowHttpTest {
     }
 
     @Test
+    @DisplayName("a return URL that already carries a fragment gets ours appended, not a second '#'")
+    void a_second_hash_would_hide_the_token() {
+        // the app's own state rides through the provider on the return URL — it is allowed to, and
+        // it comes back
+        String withFragment = RETURN_URL + "#view=grid";
+        HttpResponse<?> redirect = exchange("/oauth/fake/start?return="
+                + java.net.URLEncoder.encode(withFragment, StandardCharsets.UTF_8));
+        assertEquals(HttpStatus.FOUND, redirect.getStatus());
+        stateCookie = redirect.getCookies().findCookie("oauth_state")
+                .map(io.micronaut.http.cookie.Cookie::getValue).orElseThrow();
+        Map<String, String> authorize = queryOf(redirect.getHeaders().get("Location"));
+        nextIdToken.set(idToken(Map.of("iss", issuer(), "aud", "test-client", "sub", "frag-1",
+                "email", "fragment@example.com", "email_verified", true, "nonce", authorize.get("nonce"),
+                "exp", Instant.now().plusSeconds(300).getEpochSecond())));
+
+        HttpResponse<?> back = callback("/oauth/callback?state=" + authorize.get("state") + "&code=c-frag");
+
+        String location = back.getHeaders().get("Location");
+        assertEquals(HttpStatus.FOUND, back.getStatus());
+        assertEquals(1, location.chars().filter(c -> c == '#').count(),
+                "two fragments mean the SPA reads neither: " + location);
+        assertTrue(location.contains("view=grid") && location.contains("accessToken="),
+                "both the app's state and the token must survive: " + location);
+    }
+
+    @Test
     @DisplayName("a callback handed to somebody else is refused: the dance belongs to the browser that started it")
     void a_callback_link_is_not_a_bearer_token() {
         Map<String, String> authorize = startFlow();   // the attacker starts a dance of their own
@@ -332,6 +358,13 @@ class OauthFlowHttpTest {
 
     /** The cookie /start sets to bind the dance to THIS browser; the callback needs it back. */
     private String stateCookie;
+
+    private Map<String, String> queryOf(String location) {
+        return URI.create(location).getQuery().lines()
+                .flatMap(q -> java.util.Arrays.stream(q.split("&")))
+                .map(pair -> pair.split("=", 2))
+                .collect(Collectors.toMap(kv -> kv[0], kv -> java.net.URLDecoder.decode(kv[1], StandardCharsets.UTF_8)));
+    }
 
     private Map<String, String> startFlow(String provider) {
         HttpResponse<?> redirect = exchange("/oauth/" + provider + "/start?return=" + RETURN_URL);

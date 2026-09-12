@@ -128,6 +128,49 @@ class WebauthnFactorTest {
     }
 
     @Test
+    @DisplayName("an expired challenge is refused, however good the signature is")
+    void refuses_an_expired_challenge() throws Exception {
+        EnrolledFactor enrolment = new EnrolledFactor(Email.of("alice@example.com"),
+                FactorType.WEBAUTHN, "passkey", 1,
+                "{\"credentialId\":\"cred-1\",\"publicKey\":\"" + b64(keyPair.getPublic().getEncoded()) + "\"}");
+        Challenge challenge = factor.issueChallenge(enrolment).orElseThrow();
+        String clientData = clientDataJson("webauthn.get", challenge.publicData());
+        byte[] authenticatorData = authenticatorData();
+        Signature ecdsa = Signature.getInstance("SHA256withECDSA");
+        ecdsa.initSign(keyPair.getPrivate());
+        ecdsa.update(concat(authenticatorData, sha256(clientData.getBytes(StandardCharsets.UTF_8))));
+        String assertion = assertionProof(authenticatorData, ecdsa.sign(), clientData);
+
+        assertTrue(factor.verify(enrolment, Optional.of(challenge), assertion), "it is good now");
+
+        // the TTL this factor is configured with was documented and read by nothing
+        WebauthnFactor later = new WebauthnFactor(
+                Clock.fixed(clock.instant().plusSeconds(6 * 60), ZoneOffset.UTC), RP_ID, "Security",
+                List.of(ORIGIN), 5);
+        assertFalse(later.verify(enrolment, Optional.of(challenge), assertion),
+                "a nonce good for ever is a nonce a relayed assertion can be presented against later");
+    }
+
+    @Test
+    @DisplayName("an assertion for a different credential is refused, whatever it carries")
+    void refuses_a_foreign_credential_id() throws Exception {
+        EnrolledFactor enrolment = new EnrolledFactor(Email.of("alice@example.com"),
+                FactorType.WEBAUTHN, "passkey", 1,
+                "{\"credentialId\":\"cred-1\",\"publicKey\":\"" + b64(keyPair.getPublic().getEncoded()) + "\"}");
+        Challenge challenge = factor.issueChallenge(enrolment).orElseThrow();
+        String clientData = clientDataJson("webauthn.get", challenge.publicData());
+        byte[] authenticatorData = authenticatorData();
+        Signature ecdsa = Signature.getInstance("SHA256withECDSA");
+        ecdsa.initSign(keyPair.getPrivate());
+        ecdsa.update(concat(authenticatorData, sha256(clientData.getBytes(StandardCharsets.UTF_8))));
+        String otherCredential = assertionProof(authenticatorData, ecdsa.sign(), clientData)
+                .replace("cred-1", "cred-2");
+
+        assertFalse(factor.verify(enrolment, Optional.of(challenge), otherCredential),
+                "the enrolled id is what will pick the key the day an account holds two passkeys");
+    }
+
+    @Test
     @DisplayName("an assertion without the User Present flag is refused, even correctly signed")
     void refuses_without_user_presence() throws Exception {
         EnrolledFactor enrolment = new EnrolledFactor(Email.of("alice@example.com"),

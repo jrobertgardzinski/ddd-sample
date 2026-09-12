@@ -74,12 +74,24 @@ public class TotpFactor implements AuthenticationFactor {
         byte[] key = base32Decode(enrolment.secretMaterial());
         long step = clock.instant().getEpochSecond() / STEP_SECONDS;
         for (long window = -1; window <= 1; window++) {   // tolerate ±1 step of skew
-            if (code(key, step + window).equals(normalised)) {
+            if (constantTimeEquals(code(key, step + window), normalised)) {
                 // the digits are right; they are only a PROOF the first time they are presented
                 return spentSteps.claim(enrolment, step + window);
             }
         }
         return false;
+    }
+
+    /**
+     * Compares the two codes without letting the clock answer first.
+     *
+     * <p>Unexploitable here — five attempts per ticket, and the window bounds the guessing anyway —
+     * so this is hygiene rather than a fix: a comparison of a secret that returns early is a habit
+     * worth not having, and the next thing compared this way may not be attempt-limited.
+     */
+    private static boolean constantTimeEquals(String expected, String presented) {
+        return java.security.MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8), presented.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String code(byte[] key, long counter) {

@@ -180,8 +180,21 @@ final class OauthController {
         };
     }
 
+    /**
+     * Back to the app, with what happened in the fragment.
+     *
+     * <p>A return URL may already carry one (it is the app's own state, and it survives the round
+     * trip through the provider), so appending {@code #accessToken=...} to it produced a location
+     * with two '#' — everything after the second one is part of the FIRST fragment's value, and the
+     * SPA read neither. When there is a fragment already, ours is appended to it with '&amp;', which
+     * is how a fragment carries more than one pair.
+     */
     private static io.micronaut.http.MutableHttpResponse<?> backTo(String returnUrl, String fragment) {
-        return HttpResponse.status(HttpStatus.FOUND).header("Location", returnUrl + fragment);
+        String separator = returnUrl.contains("#") ? "&" : "";
+        String location = separator.isEmpty()
+                ? returnUrl + fragment
+                : returnUrl + separator + fragment.substring(1);   // drop our own '#'
+        return HttpResponse.status(HttpStatus.FOUND).header("Location", location);
     }
 
     /** Lives as long as a flow may (the store's own TTL is ten minutes) and no longer. */
