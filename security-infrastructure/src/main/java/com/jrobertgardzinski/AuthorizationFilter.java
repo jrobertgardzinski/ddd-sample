@@ -21,7 +21,9 @@ import io.micronaut.http.annotation.ServerFilter;
  * enrolment endpoints and {@code /me} — everything else answers 403 {@code MFA_ENROLMENT_REQUIRED}
  * until they comply. The session is real; it is just boxed to becoming compliant.
  */
-@ServerFilter({"/me", "/sessions", "/sessions/**", "/account/**", "/admin/**"})
+// "/me" alone does not match "/me/" — the router strips the trailing slash on the way to the
+// controller, but the filter's pattern is matched before that, so GET /me/ ran unfiltered
+@ServerFilter({"/me", "/me/**", "/sessions", "/sessions/**", "/account/**", "/admin/**"})
 final class AuthorizationFilter {
 
     private final Authorize authorize;

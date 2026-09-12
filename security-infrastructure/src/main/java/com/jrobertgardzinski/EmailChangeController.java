@@ -56,8 +56,7 @@ final class EmailChangeController {
         if (stepUp.isPresent()) {
             return stepUp.get();
         }
-        Email currentEmail = Email.of(
-                request.getAttribute(Caller.ATTRIBUTE, String.class).orElseThrow());
+        Email currentEmail = Caller.of(request);
         Email newEmail;
         try {
             newEmail = Email.of(JsonBody.text(body, "newEmail"));

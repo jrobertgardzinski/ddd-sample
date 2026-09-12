@@ -39,6 +39,8 @@ import java.util.Map;
 @Controller("/oauth")
 final class OauthController {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OauthController.class);
+
     private final Map<String, OauthProviderSettings> providers;
     private final OauthFlowStore flows;
     private final OidcClient oidc;
@@ -59,7 +61,15 @@ final class OauthController {
         this.federatedSignIn = federatedSignIn;
         this.refreshCookies = refreshCookies;
         this.transactionBoundary = transactionBoundary;
-        this.allowedReturnPrefixes = allowedReturnPrefixes;
+        // A RAW startsWith on a prefix without a trailing slash is not a host check: the natural
+        // thing to configure ("http://app.example.com") also admits http://app.example.com.evil.net/
+        // and http://app.example.com@evil.net/ — both of which would then RECEIVE the access token
+        // in their fragment. Normalising every prefix to end in "/" makes the comparison stop at a
+        // path boundary, so a longer host can no longer wear a shorter one as its prefix.
+        this.allowedReturnPrefixes = allowedReturnPrefixes.stream()
+                .filter(prefix -> !prefix.isBlank())
+                .map(prefix -> prefix.endsWith("/") ? prefix : prefix + "/")
+                .toList();
     }
 
     /** The configured providers, for the UI to draw its sign-in buttons from — adding a provider
@@ -80,7 +90,10 @@ final class OauthController {
             return HttpResponse.notFound(Map.of("error", "UNKNOWN_PROVIDER"));
         }
         String destination = returnUrl != null ? returnUrl : allowedReturnPrefixes.get(0);
-        if (allowedReturnPrefixes.stream().noneMatch(destination::startsWith)) {
+        // the prefix itself, with no path after it, is the destination the default names — compare
+        // it with the trailing slash present, which is how the prefixes are held
+        String compared = destination.endsWith("/") ? destination : destination + "/";
+        if (allowedReturnPrefixes.stream().noneMatch(compared::startsWith)) {
             return HttpResponse.badRequest(Map.of("error", "RETURN_URL_NOT_ALLOWED"));
         }
         String codeVerifier = OauthFlowStore.randomToken();
@@ -113,7 +126,13 @@ final class OauthController {
         try {
             identity = oidc.identityFrom(providers.get(flow.provider()), code, flow.codeVerifier(),
                     flow.nonce());
-        } catch (OidcClient.OauthDanceFailed refused) {
+        } catch (RuntimeException refused) {
+            // RuntimeException too, and deliberately: what the provider sends is not ours to trust.
+            // An id_token with a dotless e-mail domain or a non-numeric exp threw out of here and
+            // answered 500 ON THE SECURITY ORIGIN, echoing the provider's data in the body — while
+            // the browser sat on a page that was supposed to redirect. The user's situation is the
+            // same in every one of those cases: the sign-in did not happen.
+            LOG.warn("federated sign-in through {} failed: {}", flow.provider(), refused.toString());
             return backTo(flow.returnUrl(), "#oauthError=SIGN_IN_FAILED");
         }
         FederatedSignInResult result = transactionBoundary.execute(() -> federatedSignIn.execute(identity));

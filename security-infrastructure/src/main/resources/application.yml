@@ -107,6 +107,12 @@ security:
   #                                       /authenticate/factor share this one window
   # change-password.max-per-window: 10  / change-password.window-minutes: 15
   #
+  # oauth.allowed-return-prefixes: http://localhost:8083/   # where a federated sign-in may send the
+  #   browser back to. The ACCESS TOKEN travels in that URL's fragment, so this list is what keeps
+  #   it from travelling somewhere else: every entry is compared as a path prefix and normalised to
+  #   end with "/", because "http://app.example" as a raw string prefix also matches
+  #   http://app.example.evil.net/ and http://app.example@evil.net/.
+  #
   # trusted-proxies: 10.42.0.7,10.42.0.8   # EXACT addresses (no CIDR): X-Forwarded-For is honoured
   #                                          only when the peer is one of these, and the source is
   #                                          then the rightmost element that is not one of them

@@ -111,7 +111,9 @@ class OauthFlowHttpTest {
                 Map.entry("security.oauth.providers.strict.client-id", "test-client"),
                 Map.entry("security.oauth.providers.strict.client-secret", CLIENT_SECRET),
                 Map.entry("security.oauth.providers.strict.redirect-uri", "http://security.example/oauth/callback"),
-                Map.entry("security.oauth.allowed-return-prefixes", "http://app.example/")), "test");
+                // WITHOUT a trailing slash on purpose: that is what a deployment naturally writes,
+                // and it is the shape in which a raw startsWith stops being a host check at all
+                Map.entry("security.oauth.allowed-return-prefixes", "http://app.example")), "test");
         DefaultHttpClientConfiguration noRedirects = new DefaultHttpClientConfiguration();
         noRedirects.setFollowRedirects(false);
         client = server.getApplicationContext()
@@ -214,6 +216,21 @@ class OauthFlowHttpTest {
     void foreign_return_urls_are_refused() {
         HttpResponse<?> refused = exchange("/oauth/fake/start?return=" + "http://evil.example/");
         assertEquals(HttpStatus.BAD_REQUEST, refused.getStatus());
+    }
+
+    @Test
+    @DisplayName("a host that merely BEGINS with an allowed one is not allowed: the token would land there")
+    void a_longer_host_cannot_wear_an_allowed_one_as_its_prefix() {
+        // the allow-list here is "http://app.example/" — and the access token travels in the
+        // fragment of whatever this redirects to, so a raw startsWith would hand it to either of
+        // these. The second is the nastier one: everything before the @ is a userinfo field.
+        assertEquals(HttpStatus.BAD_REQUEST,
+                exchange("/oauth/fake/start?return=" + "http://app.example.evil.net/").getStatus());
+        assertEquals(HttpStatus.BAD_REQUEST,
+                exchange("/oauth/fake/start?return=" + "http://app.example@evil.net/").getStatus());
+        // the allowed host itself still starts a dance, with and without a path
+        assertEquals(HttpStatus.FOUND, exchange("/oauth/fake/start?return=" + RETURN_URL).getStatus());
+        assertEquals(HttpStatus.FOUND, exchange("/oauth/fake/start?return=" + "http://app.example/").getStatus());
     }
 
     @Test

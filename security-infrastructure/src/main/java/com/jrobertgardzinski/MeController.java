@@ -36,7 +36,7 @@ final class MeController {
 
     @Get(produces = MediaType.APPLICATION_JSON)
     HttpResponse<Map<String, Object>> me(HttpRequest<?> request) {
-        Email email = Email.of(request.getAttribute(Caller.ATTRIBUTE, String.class).orElseThrow());
+        Email email = Caller.of(request);
         java.util.Set<Role> roleSet = users.findBy(email).map(user -> user.roles()).orElse(java.util.Set.of(Role.USER));
         List<String> roles = roleSet.stream().map(Role::name).sorted().toList();
         // the MFA role floor, so consumers and the UI can nudge an under-protected privileged account

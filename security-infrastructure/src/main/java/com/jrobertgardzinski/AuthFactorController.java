@@ -56,6 +56,9 @@ final class AuthFactorController {
                     .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
                     .body(Map.of("status", "TOO_MANY_ATTEMPTS"));
         }
+        if (JsonBody.missing(body, "mfaTicket") || JsonBody.missing(body, "proof")) {
+            return HttpResponse.<Map<String, Object>>badRequest().body(Map.of("status", "BAD_REQUEST"));
+        }
         String ticket = body.get("mfaTicket");
         String proof = body.get("proof");
         ContinueAuthenticationResult result =

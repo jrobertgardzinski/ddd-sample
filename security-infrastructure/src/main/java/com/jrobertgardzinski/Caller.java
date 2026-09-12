@@ -14,10 +14,15 @@ public final class Caller {
     private Caller() {
     }
 
-    /** Only meaningful behind the authorization filter; a request that never passed it has no caller. */
+    /**
+     * Only meaningful behind the authorization filter; a request that never passed it has no
+     * caller — and is answered 401, not 500. {@code GET /me/} (one trailing slash) used to miss the
+     * filter's Ant pattern and land here, so a protected route executed unfiltered and answered
+     * "No value present" with an Internal Server Error.
+     */
     public static Email of(HttpRequest<?> request) {
-        return Email.of(request.getAttribute(ATTRIBUTE, String.class).orElseThrow(
-                () -> new IllegalStateException("no authenticated caller on this request - is the path filtered?")));
+        return Email.of(request.getAttribute(ATTRIBUTE, String.class)
+                .orElseThrow(NotAuthenticatedException::new));
     }
 
     /** The bearer token as sent, or null when the header is missing or empty. */

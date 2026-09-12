@@ -23,4 +23,14 @@ final class JsonBody {
         Object value = body == null ? null : body.get(field);
         return value instanceof String text ? text : null;
     }
+
+    /**
+     * Whether a field the endpoint cannot work without is absent — missing, not text, or blank.
+     * A blank ticket used to reach {@code ConcurrentHashMap.get(null)} and a blank password the
+     * value object's own rule, each answering 500 with the internal sentence.
+     */
+    static boolean missing(Map<String, ?> body, String field) {
+        String value = text(body, field);
+        return value == null || value.isBlank();
+    }
 }

@@ -113,6 +113,18 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   (`SecurityController.emailErrors`). Test jednostkowy + reguła w `change-email.feature`
   (@http-only — compose nie konfiguruje żadnej listy, więc przeglądarkowa warstwa jej nie uruchomi;
   glue HTTP startuje z `security.email.disposable.domains=mailinator.com`).
+- **Obsługa błędów brzegowych (HTTP-5 z rodziną, HTTP-8, HTTP-9, HTTP-4, HTTP-16, WIRE-3, WIRE-4)
+  — ZROBIONE 2026-09-12.** Moduł nie miał ŻADNEGO `ExceptionHandler`, więc zdanie value objectu
+  wracało do klienta jako 500. Teraz: `EdgeErrors` (IllegalArgumentException → 400 stały kształt,
+  `NotAuthenticatedException` → 401, prawdziwa przyczyna do logu), puste/białe pola odrzucane w
+  trzech adapterach (bilety MFA i step-upu, hasła), puste hasło w step-upie = brak hasła (401, jak
+  dotąd), `/me/**` w filtrze (`/me/` szło NIEfiltrowane), pusty cookie `refresh_token` = brak
+  cookie, adres z literówki w ścieżce admina parsowany PRZED strażnikiem step-upu (jednorazowa
+  elewacja nie przepada), `UNKNOWN_ROLE` podaje listę ról zamiast nazwy klasy enuma, allow-lista
+  return-URL normalizowana do „/" (inaczej `http://app.example` wpuszczało
+  `http://app.example.evil.net/` z tokenem we fragmencie), a bzdura od providera OAuth to
+  `#oauthError`, nie 500 na origin security. `EdgeErrorsHttpTest` (5 przypadków, wszystkie padają
+  na starym kodzie — z dokładnie tymi 500-kami z raportu) + przypadek WIRE-3 w `OauthFlowHttpTest`.
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.

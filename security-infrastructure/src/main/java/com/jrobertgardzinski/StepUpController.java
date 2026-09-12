@@ -48,7 +48,7 @@ final class StepUpController {
         if (throttled != null) {
             return throttled;
         }
-        Email email = Email.of(request.getAttribute(Caller.ATTRIBUTE, String.class).orElseThrow());
+        Email email = Caller.of(request);
         String token = StepUpGuard.bearerToken(request);
         // the action must be one of the catalogue: an unknown name is a client error, not an
         // elevation minted for something nobody would ever consume
@@ -56,7 +56,11 @@ final class StepUpController {
         if (action.isEmpty()) {
             return HttpResponse.badRequest(Map.of("status", "UNKNOWN_ACTION"));
         }
-        return respond(stepUp.start(email, action.get(), token, body.get("password")));
+        // a BLANK password is no password: it used to reach the value object and answer 500 with
+        // its rule, where an absent one has always answered "wrong password" — one situation, one
+        // answer, and the use case already knows what to do with nothing
+        String password = JsonBody.missing(body, "password") ? null : body.get("password");
+        return respond(stepUp.start(email, action.get(), token, password));
     }
 
     @Post(value = "/factor", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
@@ -64,6 +68,9 @@ final class StepUpController {
         HttpResponse<Map<String, Object>> throttled = throttled(request);
         if (throttled != null) {
             return throttled;
+        }
+        if (JsonBody.missing(body, "stepUpTicket") || JsonBody.missing(body, "proof")) {
+            return HttpResponse.badRequest(Map.of("status", "BAD_REQUEST"));
         }
         return respond(stepUp.submitFactor(body.get("stepUpTicket"), body.get("proof")));
     }

@@ -48,6 +48,23 @@ final class AdminRolesController {
         if (notAnAdmin.isPresent()) {
             return notAnAdmin.get();
         }
+        // BEFORE the step-up guard, which CONSUMES a one-shot elevation: an address with a typo in
+        // it used to be parsed after, so the request died on the address (a 500, at that) with the
+        // elevation already spent — and the retry needed the whole chain walked again.
+        Email target;
+        try {
+            target = Email.of(email);
+        } catch (IllegalArgumentException notAnAddress) {
+            return HttpResponse.badRequest(Map.of("status", "INVALID_EMAIL"));
+        }
+        Set<Role> roles;
+        try {
+            roles = parseRoles(body.get("roles"));
+        } catch (IllegalArgumentException unknownRole) {
+            // the roles that exist, not the exception's sentence — which named the enum's class
+            return HttpResponse.badRequest(Map.of("status", "UNKNOWN_ROLE",
+                    "roles", java.util.Arrays.stream(Role.values()).map(Role::name).sorted().toList()));
+        }
         // AFTER the role check, so a non-admin still learns only that they are not an admin. A
         // granted role is a permanent widening of what a session may do, so a stolen admin session
         // must prove itself again before handing that out — the same rule the factor reset next
@@ -57,13 +74,7 @@ final class AdminRolesController {
         if (stepUp.isPresent()) {
             return stepUp.get();
         }
-        Set<Role> roles;
-        try {
-            roles = parseRoles(body.get("roles"));
-        } catch (IllegalArgumentException unknownRole) {
-            return HttpResponse.badRequest(Map.of("status", "UNKNOWN_ROLE", "detail", unknownRole.getMessage()));
-        }
-        SetUserRoles.Result result = setUserRoles.execute(Email.of(email), roles);
+        SetUserRoles.Result result = setUserRoles.execute(target, roles);
         if (result.status() == SetUserRoles.Status.NO_SUCH_USER) {
             return HttpResponse.notFound(Map.of("status", "NO_SUCH_USER"));
         }

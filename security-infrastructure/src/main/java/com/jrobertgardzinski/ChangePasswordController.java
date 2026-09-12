@@ -56,7 +56,10 @@ final class ChangePasswordController {
                     .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
                     .body(Map.of("status", "TOO_MANY_ATTEMPTS"));
         }
-        Email email = Email.of(request.getAttribute(Caller.ATTRIBUTE, String.class).orElseThrow());
+        if (JsonBody.missing(body, "currentPassword") || JsonBody.missing(body, "newPassword")) {
+            return HttpResponse.badRequest(Map.of("status", "BAD_REQUEST"));
+        }
+        Email email = Caller.of(request);
         String current = JsonBody.text(body, "currentPassword");
         String next = JsonBody.text(body, "newPassword");
         ChangePasswordResult result = transactionBoundary.execute(() -> changePassword.execute(

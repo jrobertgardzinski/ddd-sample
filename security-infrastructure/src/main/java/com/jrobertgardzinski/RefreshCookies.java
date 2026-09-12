@@ -41,7 +41,10 @@ public class RefreshCookies {
     }
 
     public Optional<String> read(HttpRequest<?> request) {
-        return request.getCookies().findCookie(NAME).map(Cookie::getValue);
+        // an EMPTY cookie is the shape logout itself leaves behind, and a token that cannot be
+        // constructed is not a token: without this filter /refresh and /logout answered 500 to a
+        // browser that had merely signed out
+        return request.getCookies().findCookie(NAME).map(Cookie::getValue).filter(value -> !value.isBlank());
     }
 
     /** An immediately-expiring cookie that clears the refresh token from the browser (logout). */
