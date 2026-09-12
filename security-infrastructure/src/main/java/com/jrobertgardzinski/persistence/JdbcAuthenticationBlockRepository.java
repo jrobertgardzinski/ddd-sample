@@ -26,9 +26,8 @@ final class JdbcAuthenticationBlockRepository implements AuthenticationBlockRepo
 
     @Override
     public AuthenticationBlock create(AuthenticationBlock authenticationBlock) {
-        String ip = authenticationBlock.source().ipAddress().value();
-        repository.deleteById(ip); // upsert: drop any prior block for this source first
-        repository.save(new AuthenticationBlockEntity(ip, authenticationBlock.expiryDate()));
+        // one statement, so two requests tripping the limit together cannot collide on the key
+        repository.upsert(authenticationBlock.source().ipAddress().value(), authenticationBlock.expiryDate());
         return authenticationBlock;
     }
 
@@ -39,6 +38,8 @@ final class JdbcAuthenticationBlockRepository implements AuthenticationBlockRepo
 
     @Override
     public Optional<AuthenticationBlock> findBy(Source source) {
+        // the guard asks this first, so this is where one source's attempts start taking their turn
+        repository.lockSource(source.ipAddress().value());
         // only the identity is stored for blocks; the reloaded Source carries no observed context
         return repository.findById(source.ipAddress().value())
                 .map(entity -> new AuthenticationBlock(

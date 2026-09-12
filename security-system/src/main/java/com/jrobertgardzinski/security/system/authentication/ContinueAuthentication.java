@@ -39,13 +39,15 @@ public class ContinueAuthentication {
         PendingAuthentication pending = found.get();
 
         if (!chain.verify(pending, proof)) {
-            PendingAuthentication afterWrong = pending.afterWrongProof();
-            if (afterWrong.attemptsLeft() <= 0) {
+            // spend the attempt as one step and decide on what is NOW stored: reading the count,
+            // subtracting one and writing it back as three calls let concurrent proofs share the
+            // same attempt, so a ticket worth five guesses answered as many as were sent at once
+            Optional<PendingAuthentication> afterWrong = store.update(ticket, PendingAuthentication::afterWrongProof);
+            if (afterWrong.isEmpty() || afterWrong.get().attemptsLeft() <= 0) {
                 store.close(ticket);
                 return new ContinueAuthenticationResult.TooManyAttempts();
             }
-            store.replace(ticket, afterWrong);
-            return new ContinueAuthenticationResult.WrongProof(afterWrong.attemptsLeft());
+            return new ContinueAuthenticationResult.WrongProof(afterWrong.get().attemptsLeft());
         }
 
         List<EnrolledFactor> tail = pending.tail();

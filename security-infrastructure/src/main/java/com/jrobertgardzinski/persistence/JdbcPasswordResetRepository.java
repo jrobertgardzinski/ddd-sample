@@ -38,10 +38,12 @@ final class JdbcPasswordResetRepository implements PasswordResetRepository {
 
     @Override
     public Optional<PendingReset> consumeReset(PasswordResetToken token) {
-        return repository.findByTokenHash(TokenHashing.hash(token)).map(entity -> {
-            repository.deleteById(entity.email());
-            return new PendingReset(Email.of(entity.email()), entity.requestedAt());
-        });
+        String hash = TokenHashing.hash(token);
+        // the DELETE decides, not the read: whoever removes the row consumed the link, and a second
+        // presentation of it removes nothing and is told nothing
+        return repository.findByTokenHash(hash)
+                .filter(entity -> repository.consume(hash) > 0)
+                .map(entity -> new PendingReset(Email.of(entity.email()), entity.requestedAt()));
     }
 
     @Override

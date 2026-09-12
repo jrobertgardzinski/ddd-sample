@@ -37,12 +37,12 @@ final class JdbcEmailChangeRepository implements EmailChangeRepository {
 
     @Override
     public Optional<PendingEmailChange> confirmChange(VerificationToken token) {
-        return repository.findById(TokenHashing.hash(token)).map(entity -> {
-            repository.deleteById(entity.tokenHash());
-            return new PendingEmailChange(
-                    new EmailChange(Email.of(entity.currentEmail()), Email.of(entity.newEmail())),
-                    entity.startedAt());
-        });
+        String hash = TokenHashing.hash(token);
+        return repository.findById(hash)
+                .filter(entity -> repository.consume(hash) > 0)   // the DELETE decides, not the read
+                .map(entity -> new PendingEmailChange(
+                        new EmailChange(Email.of(entity.currentEmail()), Email.of(entity.newEmail())),
+                        entity.startedAt()));
     }
 
     /** Both ends of a move: the address can appear as the source of one change and the target of another. */

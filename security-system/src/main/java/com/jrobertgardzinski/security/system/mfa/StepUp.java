@@ -96,13 +96,15 @@ public class StepUp {
         }
         StepUpStore.StepUpPending pending = found.get();
         if (!chain.verify(pending.chain(), proof)) {
-            PendingAuthentication afterWrong = pending.chain().afterWrongProof();
-            if (afterWrong.attemptsLeft() <= 0) {
+            // one step, and the verdict comes from what is now stored — see StepUpStore#update
+            Optional<StepUpStore.StepUpPending> afterWrong = store.update(ticket, current ->
+                    new StepUpStore.StepUpPending(current.email(), current.accessToken(), current.action(),
+                            current.chain().afterWrongProof()));
+            if (afterWrong.isEmpty() || afterWrong.get().chain().attemptsLeft() <= 0) {
                 store.close(ticket);
                 return new Result.TooManyAttempts();
             }
-            store.replace(ticket, new StepUpStore.StepUpPending(pending.email(), pending.accessToken(), pending.action(), afterWrong));
-            return new Result.WrongProof(afterWrong.attemptsLeft());
+            return new Result.WrongProof(afterWrong.get().chain().attemptsLeft());
         }
         List<EnrolledFactor> tail = pending.chain().tail();
         if (tail.isEmpty()) {

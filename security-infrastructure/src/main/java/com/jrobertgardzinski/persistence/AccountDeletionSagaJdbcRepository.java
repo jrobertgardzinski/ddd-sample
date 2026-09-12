@@ -30,6 +30,23 @@ interface AccountDeletionSagaJdbcRepository extends CrudRepository<AccountDeleti
     long compensateStarted(String email, Instant at);
 
     /** Is a saga for this address in this state? Asked before opening one — see V22. */
+    /**
+     * Claim the right to run a deletion for this address, in one statement: the partial unique
+     * index {@code uq_deletion_sagas_running_email} (V22) decides, and the loser writes nothing
+     * instead of raising a unique violation.
+     *
+     * <p>It used to be a read followed by an insert. The read is right nearly always, and when it
+     * is not — two clicks on "delete my account", a retried request — the loser got a 23505 that
+     * aborted its whole transaction: a 500, where the truthful answer was that the deletion this
+     * caller asked for is already under way.
+     *
+     * @return 1 if this caller started the saga, 0 if one was already running for the address
+     */
+    @Query("INSERT INTO account_deletion_sagas (id, email, state, created_at, updated_at)"
+            + " VALUES (:id, :email, 'STARTED', :at, :at)"
+            + " ON CONFLICT (email) WHERE state = 'STARTED' DO NOTHING")
+    int claimStart(java.util.UUID id, String email, java.time.Instant at);
+
     boolean existsByEmailAndState(String email, String state);
 
     List<AccountDeletionSagaEntity> findByStateAndCreatedAtBefore(String state, Instant cutoff);

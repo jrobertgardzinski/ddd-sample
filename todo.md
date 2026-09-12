@@ -125,6 +125,22 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `http://app.example.evil.net/` z tokenem we fragmencie), a bzdura od providera OAuth to
   `#oauthError`, nie 500 na origin security. `EdgeErrorsHttpTest` (5 przypadków, wszystkie padają
   na starym kodzie — z dokładnie tymi 500-kami z raportu) + przypadek WIRE-3 w `OauthFlowHttpTest`.
+- **Wyścigi (AUTH-1, AUTH-5/MFA-6, DB-6, DB-17, ACC-11, DB-3) — ZROBIONE 2026-09-12.**
+  AUTH-1: strażnik brute-force był check-then-act — 20 równoległych prób z jednego adresu
+  przechodziło przy limicie 3, a próba, która w końcu trafiła limit, KASOWAŁA nadmiarowe wiersze,
+  więc sufit per źródło też ich nie widział. Blokada doradcza `pg_advisory_xact_lock(hashtext(ip))`
+  w transakcji żądania. WAŻNE: raport kazał ją wziąć w `countFailuresOnAccount`, ale to ZA PÓŹNO —
+  strażnik najpierw pyta o istniejącą blokadę; blokada jest brana także w
+  `JdbcAuthenticationBlockRepository.findBy` (pierwsze pytanie strażnika). `BruteForceRaceTest`:
+  bez tego przechodzi 10 z 20, z tym ≤ 3.
+  AUTH-5: licznik prób przy drugim czynniku był read-modify-write na trzy wywołania store'a →
+  20 proofów naraz zużywało jedną próbę. Porty `PendingAuthenticationStore` i `StepUpStore` mają
+  `update(ticket, fn)` (domyślnie stara sekwencja, atomowo w adapterach in-memory = produkcja);
+  `PendingStoreAtomicityTest` pokazuje -6 zamiast -15 bez poprawki.
+  DB-6/DB-17/ACC-11: `ON CONFLICT` zamiast delete+save / exists+save / check+insert (blokada źródła,
+  ustawienie admina, start sagi usuwania — drugi „skasuj konto" dostawał 500 zamiast dołączyć).
+  DB-3: `consumeReset`/`confirmChange`/`completeVerification` — decyduje ZAPIS (warunkowy DELETE/
+  UPDATE i liczba wierszy), nie odczyt; dwie prezentacje tego samego linku nie mogą już obie wygrać.
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.

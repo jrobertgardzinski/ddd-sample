@@ -37,11 +37,7 @@ final class JdbcSecuritySettings implements SecuritySettingsTable {
 
     @Override
     public void put(String name, String value) {
-        var row = new SecuritySettingEntity(name, value, LocalDateTime.now(clock));
-        if (repository.existsById(name)) {
-            repository.update(row);
-        } else {
-            repository.save(row);
-        }
+        // one statement: two admins first-writing the same key no longer collide on the key
+        repository.upsert(name, value, LocalDateTime.now(clock));
     }
 }

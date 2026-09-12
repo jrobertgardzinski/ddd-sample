@@ -48,6 +48,14 @@ final class InMemoryPendingAuthenticationStore implements PendingAuthenticationS
     }
 
     @Override
+    public Optional<PendingAuthentication> update(String ticket,
+                                                  java.util.function.UnaryOperator<PendingAuthentication> change) {
+        // ConcurrentHashMap.compute holds the bin's lock across the whole function, so two proofs
+        // arriving together spend two attempts rather than the same one twice
+        return Optional.ofNullable(byTicket.computeIfPresent(ticket, (key, pending) -> change.apply(pending)));
+    }
+
+    @Override
     public void close(String ticket) {
         byTicket.remove(ticket);
     }

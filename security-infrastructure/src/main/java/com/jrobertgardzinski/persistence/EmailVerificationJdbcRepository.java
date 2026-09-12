@@ -15,7 +15,14 @@ interface EmailVerificationJdbcRepository extends CrudRepository<EmailVerificati
 
     Optional<EmailVerificationEntity> findByPendingTokenHash(String pendingTokenHash);
 
+    /**
+     * Consume the pending token and mark the address verified — conditional on the token still
+     * being there, and reporting whether THIS caller was the one who consumed it, so two
+     * presentations of one single-use link cannot both be answered "verified".
+     *
+     * @return 1 if this call consumed the token, 0 if it was already gone
+     */
     @Query("UPDATE email_verifications SET verified = true, pending_token_hash = null "
             + "WHERE pending_token_hash = :hash")
-    void markVerified(String hash);
+    int markVerified(String hash);
 }

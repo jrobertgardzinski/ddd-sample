@@ -44,6 +44,14 @@ final class InMemoryStepUpStore implements StepUpStore {
     }
 
     @Override
+    public java.util.Optional<StepUpPending> update(String ticket,
+                                                    java.util.function.UnaryOperator<StepUpPending> change) {
+        // atomic per ticket, like the sign-in store: two proofs in flight spend two attempts
+        return java.util.Optional.ofNullable(
+                byTicket.computeIfPresent(ticket, (key, pending) -> change.apply(pending)));
+    }
+
+    @Override
     public void close(String ticket) {
         byTicket.remove(ticket);
     }

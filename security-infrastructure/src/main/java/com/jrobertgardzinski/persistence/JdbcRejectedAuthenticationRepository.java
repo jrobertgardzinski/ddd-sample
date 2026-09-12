@@ -63,6 +63,11 @@ final class JdbcRejectedAuthenticationRepository implements RejectedAuthenticati
 
     @Override
     public FailuresCount countFailuresOnAccount(LockoutSubject subject, LocalDateTime since) {
+        // the guard's first question, and therefore the place to serialise it: everything the guard
+        // does after this — the ceiling count, the block it may write — happens inside the same
+        // request transaction, so one address's attempts can no longer all read "under the limit"
+        // at once and be admitted together
+        repository.lockSource(subject.source().ipAddress().value());
         return new FailuresCount((int) repository.countByIpAddressAndAccountFingerprintAndOccurredAtAfter(
                 subject.source().ipAddress().value(), fingerprint.of(subject.account()), since));
     }

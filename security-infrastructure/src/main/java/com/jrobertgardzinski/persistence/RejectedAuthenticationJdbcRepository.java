@@ -13,6 +13,23 @@ import java.time.LocalDateTime;
 @Requires(beans = DataSource.class)
 interface RejectedAuthenticationJdbcRepository extends CrudRepository<RejectedAuthenticationEntity, Long> {
 
+    /**
+     * Take the source's lock for the rest of THIS transaction — the serialisation point of the
+     * brute-force guard.
+     *
+     * <p>The guard is check-then-act: it counts the failures in the window and, if the count has
+     * reached the limit, writes a block. Twenty attempts arriving together all counted before any
+     * of them wrote, so all twenty were admitted against a limit of three, and the one that finally
+     * tripped WIPED the overshoot rows — so the per-source ceiling never saw them either. Counting
+     * behind this lock makes the attempts from one address take their turn, which is the only thing
+     * the limit can mean.
+     *
+     * <p>{@code hashtext} maps the address onto the bigint the advisory-lock API speaks; a
+     * collision between two addresses costs a little serialisation and nothing else.
+     */
+    @Query("SELECT CAST(pg_advisory_xact_lock(hashtext(:ipAddress)) AS text)")
+    String lockSource(String ipAddress);
+
     /** The ceiling: this address against anything at all — the shape of spraying. */
     long countByIpAddressAndOccurredAtAfter(String ipAddress, LocalDateTime since);
 

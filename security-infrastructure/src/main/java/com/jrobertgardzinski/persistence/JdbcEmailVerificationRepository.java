@@ -34,10 +34,9 @@ final class JdbcEmailVerificationRepository implements EmailVerificationReposito
     @Override
     public Optional<Email> completeVerification(VerificationToken token) {
         String hash = TokenHashing.hash(token);
-        return repository.findByPendingTokenHash(hash).map(entity -> {
-            repository.markVerified(hash);
-            return Email.of(entity.email());
-        });
+        return repository.findByPendingTokenHash(hash)
+                .filter(entity -> repository.markVerified(hash) > 0)   // the UPDATE decides
+                .map(entity -> Email.of(entity.email()));
     }
 
     @Override
