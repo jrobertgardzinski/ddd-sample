@@ -65,4 +65,27 @@ class CorrelationIdFilterTest {
                 .reduce((a, b) -> a + " | " + b)
                 .orElseThrow(() -> new AssertionError("the filter logged no access line at all"));
     }
+
+    @Test
+    @DisplayName("an inbound correlation id is kept only while it is one: short, and id-shaped")
+    void a_caller_cannot_write_its_own_essay_into_every_log_line() {
+        String essay = "x".repeat(4096);
+        new CorrelationIdFilter().onRequest(
+                HttpRequest.GET("/me").header(CorrelationIdFilter.HEADER, essay));
+
+        String line = onlyLine();
+        assertFalse(line.contains(essay),
+                "this id is echoed and logged on every line of the request — unbounded, it is a"
+                        + " kilobyte of somebody else's text in every aggregator the estate has");
+        assertTrue(line.startsWith("cid=") && line.length() < 200, line);
+    }
+
+    @Test
+    @DisplayName("an ordinary inbound id is honoured, because following one request across services is the point")
+    void a_real_correlation_id_is_kept() {
+        new CorrelationIdFilter().onRequest(
+                HttpRequest.GET("/me").header(CorrelationIdFilter.HEADER, "portal-7f3a9c2e"));
+
+        assertTrue(onlyLine().contains("portal-7f3a9c2e"), onlyLine());
+    }
 }

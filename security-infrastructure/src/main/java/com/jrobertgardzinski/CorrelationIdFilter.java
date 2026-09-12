@@ -32,10 +32,23 @@ final class CorrelationIdFilter {
     private static final String ATTR = "cid";
     private static final Logger log = LoggerFactory.getLogger(CorrelationIdFilter.class);
 
+    /**
+     * How much of an inbound correlation id is kept, and which characters.
+     *
+     * <p>It is a caller-supplied string that this service then LOGS on every line of the request and
+     * ECHOES in the response — so unbounded, it is a kilobyte of somebody else's text in every log
+     * aggregator the estate has, repeated per line, chosen by whoever is calling. CR and LF cannot
+     * enter a header value in the first place, so this is not about forging log lines; it is about
+     * an id being an id. Anything outside the shape below is not one, and gets a fresh one instead.
+     */
+    private static final int MAX_LENGTH = 64;
+    private static final java.util.regex.Pattern SHAPED =
+            java.util.regex.Pattern.compile("[A-Za-z0-9._:-]{1,64}");
+
     @RequestFilter
     void onRequest(HttpRequest<?> request) {
         String cid = request.getHeaders().get(HEADER);
-        if (cid == null || cid.isBlank()) {
+        if (cid == null || cid.isBlank() || cid.length() > MAX_LENGTH || !SHAPED.matcher(cid).matches()) {
             cid = UUID.randomUUID().toString().substring(0, 8);
         }
         request.setAttribute(ATTR, cid);

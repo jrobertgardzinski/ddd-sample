@@ -105,14 +105,14 @@ final class OauthController {
                           @Nullable @QueryValue("return") String returnUrl) {
         OauthProviderSettings config = providers.get(provider);
         if (config == null) {
-            return HttpResponse.notFound(Map.of("error", "UNKNOWN_PROVIDER"));
+            return HttpResponse.notFound(Refusal.alsoAsError("UNKNOWN_PROVIDER"));
         }
         String destination = returnUrl != null ? returnUrl : allowedReturnPrefixes.get(0);
         // the prefix itself, with no path after it, is the destination the default names — compare
         // it with the trailing slash present, which is how the prefixes are held
         String compared = destination.endsWith("/") ? destination : destination + "/";
         if (allowedReturnPrefixes.stream().noneMatch(compared::startsWith)) {
-            return HttpResponse.badRequest(Map.of("error", "RETURN_URL_NOT_ALLOWED"));
+            return HttpResponse.badRequest(Refusal.alsoAsError("RETURN_URL_NOT_ALLOWED"));
         }
         String codeVerifier = OauthFlowStore.randomToken();
         String nonce = OauthFlowStore.randomToken();
@@ -139,13 +139,13 @@ final class OauthController {
                 bound.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
             // no flow is consumed: a callback handed to somebody else must not spend the attacker's
             // state either, and there is no return URL here that can be trusted
-            return HttpResponse.badRequest(Map.of("error", "STATE_NOT_BOUND_TO_THIS_BROWSER"))
+            return HttpResponse.badRequest(Refusal.alsoAsError("STATE_NOT_BOUND_TO_THIS_BROWSER"))
                     .cookie(clearedStateCookie());
         }
         OauthFlowStore.PendingFlow flow = flows.consume(state).orElse(null);
         if (flow == null) {
             // no flow, no return URL to trust — a bare refusal is all this callback can say
-            return HttpResponse.badRequest(Map.of("error", "UNKNOWN_OR_EXPIRED_STATE"));
+            return HttpResponse.badRequest(Refusal.alsoAsError("UNKNOWN_OR_EXPIRED_STATE"));
         }
         if (error != null || code == null) {
             return backTo(flow.returnUrl(), "#oauthError=" + encode(error != null ? error : "missing_code"))

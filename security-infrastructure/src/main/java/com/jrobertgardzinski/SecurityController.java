@@ -88,7 +88,7 @@ public class SecurityController {
         if (!decision.allowed()) {
             return HttpResponse.<Map<String, Object>>status(HttpStatus.TOO_MANY_REQUESTS)
                     .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
-                    .body(Map.of("error", "TOO_MANY_REGISTRATIONS"));
+                    .body(Refusal.alsoAsError("TOO_MANY_REGISTRATIONS"));
         }
 
         String email = body.get("email");

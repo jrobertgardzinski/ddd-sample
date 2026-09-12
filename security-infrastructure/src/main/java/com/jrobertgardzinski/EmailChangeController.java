@@ -51,17 +51,19 @@ final class EmailChangeController {
         // a thief with a live session could walk off with the whole account and the owner would
         // learn about it from a notice. Guarded where the change STARTS; the confirmation itself
         // still needs the token mailed to that new address.
-        java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
-                stepUpGuard.requireElevation(request, StepUpAction.CHANGE_EMAIL);
-        if (stepUp.isPresent()) {
-            return stepUp.get();
-        }
+        // the body is read BEFORE the guard, which SPENDS a one-shot elevation: a typo in the new
+        // address used to cost the whole step-up chain and then answer 400 (HTTP-10)
         Email currentEmail = Caller.of(request);
         Email newEmail;
         try {
             newEmail = Email.of(JsonBody.text(body, "newEmail"));
         } catch (IllegalArgumentException invalid) {
             return HttpResponse.badRequest().body(Map.of("status", "INVALID_EMAIL"));
+        }
+        java.util.Optional<HttpResponse<Map<String, Object>>> stepUp =
+                stepUpGuard.requireElevation(request, StepUpAction.CHANGE_EMAIL);
+        if (stepUp.isPresent()) {
+            return stepUp.get();
         }
         RequestEmailChangeResult result = transactionBoundary.execute(
                 () -> requestEmailChange.execute(currentEmail, newEmail));

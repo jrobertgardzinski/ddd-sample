@@ -57,7 +57,7 @@ final class VerifyEmailController {
         if (!decision.allowed()) {
             return HttpResponse.status(HttpStatus.TOO_MANY_REQUESTS)
                     .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
-                    .body(Map.of("error", "TOO_MANY_VERIFICATION_REQUESTS"));
+                    .body(Refusal.alsoAsError("TOO_MANY_VERIFICATION_REQUESTS"));
         }
         Email email;
         try {

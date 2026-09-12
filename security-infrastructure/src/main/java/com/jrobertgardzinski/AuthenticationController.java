@@ -80,7 +80,7 @@ public class AuthenticationController {
         if (!decision.allowed()) {
             return HttpResponse.<Map<String, Object>>status(HttpStatus.TOO_MANY_REQUESTS)
                     .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
-                    .body(Map.of("error", "TOO_MANY_ATTEMPTS"));
+                    .body(Refusal.alsoAsError("TOO_MANY_ATTEMPTS"));
         }
         AuthenticationRequest authenticationRequest;
         try {
@@ -102,14 +102,15 @@ public class AuthenticationController {
                     HttpResponse.ok(Map.<String, Object>of("accessToken", authenticated.session().plainAccessToken()))
                             .cookie(refreshCookies.issue(authenticated.session().plainRefreshToken()));
             case AuthenticationResult.Rejected rejected ->
-                    HttpResponse.<Map<String, Object>>status(HttpStatus.UNAUTHORIZED);
+                    HttpResponse.<Map<String, Object>>status(HttpStatus.UNAUTHORIZED)
+                            .body(Refusal.of("WRONG_CREDENTIALS"));
             case AuthenticationResult.EmailNotVerified notVerified ->
                     HttpResponse.<Map<String, Object>>status(HttpStatus.FORBIDDEN)
-                            .body(Map.of("error", "EMAIL_NOT_VERIFIED"));
+                            .body(Refusal.alsoAsError("EMAIL_NOT_VERIFIED"));
             case AuthenticationResult.Blocked blocked ->
                     HttpResponse.<Map<String, Object>>status(HttpStatus.TOO_MANY_REQUESTS)
                             .header("Retry-After", Long.toString(secondsUntil(blocked.authenticationBlock().expiryDate())))
-                            .body(Map.of("error", "TOO_MANY_ATTEMPTS"));
+                            .body(Refusal.alsoAsError("TOO_MANY_ATTEMPTS"));
             // password was right, but the user has factors — no session yet; the first challenge is out.
             // The refresh token is withheld until the chain completes (see AuthFactorController).
             case AuthenticationResult.MfaRequired mfa ->

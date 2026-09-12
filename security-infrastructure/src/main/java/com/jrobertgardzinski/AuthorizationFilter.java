@@ -43,15 +43,15 @@ final class AuthorizationFilter {
     HttpResponse<?> authorize(HttpRequest<?> request) {
         String token = Caller.bearerToken(request);
         if (token == null) {
-            return HttpResponse.unauthorized();
+            return HttpResponse.unauthorized().body(Refusal.of("NOT_AUTHENTICATED"));
         }
         if (!(authorize.execute(new AccessToken(token)) instanceof AuthorizationResult.Authorized authorized)) {
-            return HttpResponse.unauthorized();
+            return HttpResponse.unauthorized().body(Refusal.of("NOT_AUTHENTICATED"));
         }
         request.setAttribute(Caller.ATTRIBUTE, authorized.email().value());
         if (!enrolmentExempt(request.getPath()) && !isCompliant(authorized.email())) {
             return HttpResponse.status(io.micronaut.http.HttpStatus.FORBIDDEN)
-                    .body(java.util.Map.of("error", "MFA_ENROLMENT_REQUIRED"));
+                    .body(Refusal.alsoAsError("MFA_ENROLMENT_REQUIRED"));
         }
         return null; // proceed to the resource
     }

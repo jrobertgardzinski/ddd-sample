@@ -70,6 +70,10 @@ final class FactorsController {
     @Post(value = "/{type}/enroll/start", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
     HttpResponse<Map<String, Object>> start(HttpRequest<?> request, @PathVariable String type,
                                             @Nullable @Body Map<String, String> body) {
+        // the path is read BEFORE the guard, because the guard SPENDS a one-shot elevation: a typo
+        // in the factor type used to cost the whole step-up chain and answer 400 afterwards
+        Email caller = caller(request);
+        FactorType factorType = FactorType.of(type);
         // enrolling a factor rewrites the sign-in chain, so a merely-live (possibly stolen) session
         // must step up first — otherwise a thief adds an attacker-held factor and locks the owner out.
         // Guarding start alone is enough: confirm needs a pending enrolment only a guarded start mints.
@@ -78,8 +82,6 @@ final class FactorsController {
         if (stepUp.isPresent()) {
             return stepUp.get();
         }
-        Email caller = caller(request);
-        FactorType factorType = FactorType.of(type);
         // the e-mail factor's code always goes to the caller's OWN already-verified address — never a
         // target from the body, or a thief would point the codes at their own inbox
         String target = "EMAIL_CODE".equals(factorType.value()) || body == null || body.get("target") == null
@@ -98,10 +100,15 @@ final class FactorsController {
 
     @Delete(value = "/{type}", produces = MediaType.APPLICATION_JSON)
     HttpResponse<Map<String, Object>> remove(HttpRequest<?> request, @PathVariable String type) {
+        // read the path first: the guard below spends a one-shot elevation, and a factor type that
+        // does not exist must not cost it (HTTP-10)
         Email caller = caller(request);
+        FactorType factorType = FactorType.of(type);
         java.util.Set<com.jrobertgardzinski.security.domain.vo.Role> roles = users.findBy(caller)
                 .map(u -> u.roles()).orElse(java.util.Set.of(com.jrobertgardzinski.security.domain.vo.Role.USER));
-        // you can swap a factor (enrol the new, then drop the old), never fall through the floor
+        // the floor is answered BEFORE the step-up as well as inside it: "you cannot do this at
+        // all" is a better answer than "prove yourself again, and then you still cannot" — and it
+        // costs no elevation to say
         if (compliance.removalWouldBreakFloor(caller, roles)) {
             return HttpResponse.<Map<String, Object>>status(io.micronaut.http.HttpStatus.CONFLICT)
                     .body(Map.of("status", "WOULD_BREAK_MFA_FLOOR"));
@@ -112,11 +119,19 @@ final class FactorsController {
         if (stepUp.isPresent()) {
             return stepUp.get();
         }
-        transactionBoundary.execute(() -> {
-            enrolledFactors.remove(caller, FactorType.of(type));
-            return null;
+        // and again INSIDE the transaction that removes. The check used to happen only outside it,
+        // so two removals racing each other both read "one left over the floor" and both removed;
+        // here the second sees what the first wrote. (Two transactions that START together can
+        // still both read the old count under READ COMMITTED — closing that needs the account's own
+        // lock, as the brute-force guard takes one: the same shape of race, far less reachable.)
+        return transactionBoundary.execute(() -> {
+            if (compliance.removalWouldBreakFloor(caller, roles)) {
+                return HttpResponse.<Map<String, Object>>status(io.micronaut.http.HttpStatus.CONFLICT)
+                        .body(Map.of("status", "WOULD_BREAK_MFA_FLOOR"));
+            }
+            enrolledFactors.remove(caller, factorType);
+            return HttpResponse.ok(Map.of("status", "REMOVED"));
         });
-        return HttpResponse.ok(Map.of("status", "REMOVED"));
     }
 
     private static HttpResponse<Map<String, Object>> respond(EnrolFactor.Result result) {

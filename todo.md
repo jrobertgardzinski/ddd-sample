@@ -296,6 +296,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   `issuer` we wspólnych kluczach (kod sprawdzał `iss`, dokumentacja o kluczu milczała).
   `StepUpRequirement.parse` SKASOWANY — drabinka parsuje enumy generycznie (`Parse.forType`),
   a ten drugi parser miał tylko własny test i zero wywołań w main.
+- **LOW, paczka 8 — brzeg HTTP (HTTP-10, HTTP-14, HTTP-15, HTTP-17, HTTP-21) — ZROBIONE 2026-09-12.**
+  Jeden kształt odmowy: `Refusal` — `{"status": KOD}` wszędzie, `error` zostaje OBOK tam, gdzie był
+  (addytywnie wg ADR 0004), a bezciałowe 401 dostały ciało. `X-Correlation-Id` od klienta jest
+  przycinany do 64 znaków i kształtu id (echo + log w każdej linii żądania = kilobajt cudzego tekstu
+  w każdym agregatorze). Jednorazowa elewacja nie jest już wydawana PRZED walidacją: typ czynnika i
+  nowy adres czytane są przed strażnikiem (literówka kosztowała cały łańcuch step-upu). Usuwanie
+  czynnika: podłoga odpowiada NAJPIERW (409 bez wydawania elewacji) i PONOWNIE w transakcji, która
+  usuwa — dwa równoległe usunięcia czytały „jeden ponad podłogą" i oba usuwały. `RefreshCookies`
+  mówi wprost, czego SameSite NIE obejmuje (inny port na localhoście i sąsiedni subdomain to ta sama
+  witryna) i że uczciwą naprawą byłby double-submit, bo ostrzejszej flagi nie ma.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
