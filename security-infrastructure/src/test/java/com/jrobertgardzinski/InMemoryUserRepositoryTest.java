@@ -46,4 +46,20 @@ class InMemoryUserRepositoryTest {
                 new User(Email.of("lea.ver+portal@gmail.com"), new HashedPassword("the-intruder-hash"))))
                 .isInstanceOf(EmailAlreadyTakenException.class);
     }
+
+    @Test
+    @DisplayName("moving onto a taken address is refused here too — the same law, no database")
+    void moving_onto_a_taken_address_is_refused() {
+        Email mover = Email.of("mover@example.com");
+        Email occupied = Email.of("occupied@example.com");
+        users.save(new User(mover, new HashedPassword("hash-1")));
+        users.save(new User(occupied, new HashedPassword("hash-2")));
+
+        assertThatThrownBy(() -> users.updateEmail(mover, occupied))
+                .as("without this the other person's account was simply replaced — and this adapter"
+                        + " is the production wiring wherever no datasource is configured")
+                .isInstanceOf(EmailAlreadyTakenException.class);
+        assertThat(users.findBy(occupied).orElseThrow().passwordHash().value()).isEqualTo("hash-2");
+        assertThat(users.findBy(mover)).isPresent();
+    }
 }

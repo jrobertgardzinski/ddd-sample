@@ -77,6 +77,30 @@ class ConfirmEmailChangeTest {
     }
 
     @Example
+    @Label("An address taken while the link sat in the mailbox is refused, and nothing is moved")
+    void refuses_an_address_taken_in_the_meantime() {
+        Mockito.when(emailChangeRepository.confirmChange(TOKEN)).thenReturn(Optional.of(fresh(new EmailChange(OLD, NEW))));
+        Mockito.when(userRepository.existsBy(com.jrobertgardzinski.email.domain.NormalizedEmail.of(NEW)))
+                .thenReturn(true);
+
+        assertInstanceOf(ConfirmEmailChangeResult.EmailTaken.class, confirmEmailChange.execute(TOKEN));
+        // the stores that follow the account are touched only once the move is known to be possible
+        Mockito.verify(userRepository, Mockito.never()).updateEmail(Mockito.any(), Mockito.any());
+        Mockito.verifyNoInteractions(enrolledFactorRepository, recoveryCodeRepository,
+                federatedIdentityRepository, authorizationDataRepository);
+    }
+
+    @Example
+    @Label("A registration that wins the race is still answered honestly, not as a broken database")
+    void refuses_when_the_repository_loses_the_race() {
+        Mockito.when(emailChangeRepository.confirmChange(TOKEN)).thenReturn(Optional.of(fresh(new EmailChange(OLD, NEW))));
+        Mockito.doThrow(new com.jrobertgardzinski.security.domain.repository.EmailAlreadyTakenException())
+                .when(userRepository).updateEmail(OLD, NEW);
+
+        assertInstanceOf(ConfirmEmailChangeResult.EmailTaken.class, confirmEmailChange.execute(TOKEN));
+    }
+
+    @Example
     @Label("Sessions minted for the old address are revoked: a session cannot follow the account")
     void sessions_do_not_survive_the_move() {
         Mockito.when(emailChangeRepository.confirmChange(TOKEN)).thenReturn(Optional.of(fresh(new EmailChange(OLD, NEW))));

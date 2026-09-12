@@ -40,6 +40,14 @@ public class HttpChangeEmailSteps {
     private HttpResponse<Map> requestResponse;
     /** What the target address had been mailed BEFORE the change was asked for (it may be seeded). */
     private String targetTokenBefore;
+    /**
+     * The change link, captured when it is sent.
+     *
+     * <p>Not read back at confirm time, because the target address can be mailed something ELSE in
+     * between — a registration of its own is exactly the scenario this feature now has — and the
+     * mailbox only remembers the last one. A person confirming has the link they were sent.
+     */
+    private String changeLinkToken;
     private HttpResponse<Map> confirmResponse;
 
     @Before
@@ -90,6 +98,7 @@ public class HttpChangeEmailSteps {
         requestResponse = exchange(HttpRequest.POST("/account/email/request", Map.of("newEmail", newEmail))
                 .header("Authorization", "Bearer " + accessToken));
         assertEquals(HttpStatus.ACCEPTED, requestResponse.getStatus());
+        changeLinkToken = mailedTokenFor(newEmail);
     }
 
     /**
@@ -127,8 +136,7 @@ public class HttpChangeEmailSteps {
 
     @When("the USER CONFIRMS the EMAIL CHANGE with the token from the link")
     public void confirmsWithTheLinkToken() {
-        String linkToken = server.getApplicationContext()
-                .getBean(CapturingEmailVerificationNotifier.class).lastTokenFor(newEmail);
+        String linkToken = changeLinkToken != null ? changeLinkToken : mailedTokenFor(newEmail);
         assertNotNull(linkToken, "no verification token was e-mailed to the new address");
         confirmResponse = exchange(HttpRequest.POST("/confirm-email-change", Map.of("token", linkToken)));
     }
@@ -195,6 +203,19 @@ public class HttpChangeEmailSteps {
         HttpResponse<Map> me = exchange(HttpRequest.GET("/me").header("Authorization", "Bearer " + accessToken));
         assertEquals(HttpStatus.UNAUTHORIZED, me.getStatus(),
                 "a session minted before the move still authorizes: " + me.getBody(Map.class).orElse(Map.of()));
+    }
+
+    @When("another ACCOUNT registers {string} before the link is followed")
+    public void somebodyElseRegistersItFirst(String address) {
+        assertEquals(HttpStatus.CREATED,
+                exchange(HttpRequest.POST("/register", Map.of("email", address, "password", PASSWORD))).getStatus(),
+                "the address was free when the change was requested — that is the whole window");
+    }
+
+    @Then("the CHANGE is refused because the address is taken")
+    public void refusedBecauseTaken() {
+        assertEquals(HttpStatus.CONFLICT, confirmResponse.getStatus());
+        assertEquals("EMAIL_TAKEN", confirmResponse.getBody(Map.class).orElseThrow().get("status"));
     }
 
     @Then("the EMAIL CHANGE is rejected")

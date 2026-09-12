@@ -19,7 +19,20 @@ public interface UserRepository {
     /** Replace an existing user's password hash (e.g. after a password reset); a no-op if absent. */
     void updatePassword(Email email, HashedPassword passwordHash);
 
-    /** Move an existing user to a new email (and its normalized form); a no-op if absent. */
+    /**
+     * Move an existing user to a new email (and its normalized form); a no-op if absent.
+     *
+     * <p>The new address is UNIQUE here exactly as it is in {@link #save}, and an attempt to move
+     * onto one that is already taken throws {@link EmailAlreadyTakenException} — it never
+     * overwrites the account sitting there.
+     *
+     * <p>Said out loud because the two adapters disagreed, and a change token lives for a day: the
+     * address is free when the change is REQUESTED and can be registered by somebody else before
+     * the link is followed. With a database the unique index refused and the raw violation escaped
+     * as a 500 (the same link then answering 500 until it expired); without one, the in-memory
+     * adapter quietly replaced the other person's account with this one. Same call, same input,
+     * one answer.
+     */
     void updateEmail(Email currentEmail, Email newEmail);
 
     /** Delete a user by email (close account); a no-op if absent. */

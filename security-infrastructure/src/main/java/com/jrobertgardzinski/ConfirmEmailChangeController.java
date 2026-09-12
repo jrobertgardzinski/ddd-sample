@@ -42,6 +42,12 @@ final class ConfirmEmailChangeController {
         return switch (result) {
             case ConfirmEmailChangeResult.EmailChanged changed ->
                     HttpResponse.ok(Map.of("status", "EMAIL_CHANGED", "email", changed.newEmail().value()));
+            // 409: the request was well formed and the token was good — the world moved. Its own
+            // status, because "invalid token" would send the owner to fetch another one that fails
+            // exactly the same way.
+            case ConfirmEmailChangeResult.EmailTaken ignored ->
+                    HttpResponse.status(io.micronaut.http.HttpStatus.CONFLICT)
+                            .body(Map.of("status", "EMAIL_TAKEN"));
             case ConfirmEmailChangeResult.InvalidToken ignored ->
                     HttpResponse.badRequest().body(Map.of("status", "INVALID_TOKEN"));
         };

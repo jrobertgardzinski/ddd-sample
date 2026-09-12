@@ -50,7 +50,16 @@ final class JdbcUserRepository implements UserRepository {
 
     @Override
     public void updateEmail(Email currentEmail, Email newEmail) {
-        repository.updateEmail(currentEmail.value(), newEmail.value(), NormalizedEmail.of(newEmail).value());
+        try {
+            repository.updateEmail(currentEmail.value(), newEmail.value(), NormalizedEmail.of(newEmail).value());
+        } catch (DataAccessException e) {
+            if (isUniqueViolation(e)) {
+                // the same translation save does: the index is what decides, and what it decided
+                // is "somebody else holds this address" — not "the database broke"
+                throw new EmailAlreadyTakenException();
+            }
+            throw e;
+        }
     }
 
     @Override

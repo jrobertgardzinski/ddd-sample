@@ -253,6 +253,15 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   logowanie, żeby mieć co porównać; teraz ma własne „the ACCOUNT ... is the one that already
   existed". Scenariusz enumeracji przy zmianie adresu nie sprawdzał, czy do zajętego adresu NIE
   poszedł link (porównanie do stanu sprzed żądania, bo adres bywa zasiany rejestracją).
+- **DOM-2 — ZROBIONE 2026-09-12 (decyzja Roberta: pełna naprawa).** Port `UserRepository.updateEmail`
+  ma wreszcie kontrakt na zajęty adres (jak `save`): rzuca `EmailAlreadyTakenException`, NIGDY nie
+  nadpisuje. JDBC tłumaczy 23505 (było: 500 i ten sam link dawał 500 aż do wygaśnięcia), in-memory
+  sprawdza zajętość po formie znormalizowanej (było: CICHE nadpisanie cudzego konta).
+  `ConfirmEmailChange` pyta przed ruszeniem czegokolwiek i łapie wyścig → nowy wynik
+  `EmailTaken`, HTTP 409 `EMAIL_TAKEN`, UI mówi „adres zajęty, poproś o zmianę na inny".
+  Reguła w `change-email.feature` + testy obu adapterów. PRZY OKAZJI: glue confirm-u zapamiętuje
+  token W MOMENCIE WYSŁANIA — skrzynka pamięta tylko ostatni, a w tym scenariuszu adres dostaje
+  własny link rejestracyjny.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

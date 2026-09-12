@@ -1,6 +1,7 @@
 package com.jrobertgardzinski.security.system.account;
 
 import com.jrobertgardzinski.security.domain.repository.AuthorizationDataRepository;
+import com.jrobertgardzinski.security.domain.repository.EmailAlreadyTakenException;
 import com.jrobertgardzinski.security.domain.repository.EmailChangeRepository;
 import com.jrobertgardzinski.security.domain.repository.EmailVerificationRepository;
 import com.jrobertgardzinski.security.domain.repository.EnrolledFactorRepository;
@@ -42,6 +43,12 @@ import com.jrobertgardzinski.security.domain.vo.token.VerificationToken;
  * under the new address never reaches it, and the moment somebody registers the freed address that
  * session starts resolving to THEIR account: their roles, their session list. The owner signs in
  * again after moving; nobody inherits a session by taking over an abandoned address.
+ *
+ * <p>The address is checked for an occupant before anything moves, and the move itself is still
+ * allowed to refuse: the window between requesting a change and following the link is up to a day
+ * wide and nothing reserves the target, so somebody may register it in the meantime. Either way the
+ * answer is {@link ConfirmEmailChangeResult.EmailTaken} and nothing has been moved — the stores
+ * that follow the account are touched only once the move is known to be possible.
  *
  * <p>A ticket is also refused while the account is being DELETED. The deletion saga locks the
  * account and then waits for other services; a change landing in that window moves the locked user
@@ -90,6 +97,10 @@ public class ConfirmEmailChange {
                 .map(EmailChangeRepository.PendingEmailChange::change)
                 .filter(change -> !userRepository.isPendingDeletion(change.currentEmail()))
                 .<ConfirmEmailChangeResult>map(change -> {
+                    if (userRepository.existsBy(com.jrobertgardzinski.email.domain.NormalizedEmail
+                            .of(change.newEmail()))) {
+                        return new ConfirmEmailChangeResult.EmailTaken();
+                    }
                     federatedIdentityRepository.relinkAll(change.currentEmail(), change.newEmail());
                     enrolledFactorRepository.reassign(change.currentEmail(), change.newEmail());
                     recoveryCodeRepository.reassign(change.currentEmail(), change.newEmail());
@@ -97,7 +108,13 @@ public class ConfirmEmailChange {
                     passwordResetRepository.purge(change.currentEmail());
                     emailChangeRepository.purge(change.currentEmail());
                     emailVerificationRepository.purge(change.currentEmail());
-                    userRepository.updateEmail(change.currentEmail(), change.newEmail());
+                    try {
+                        userRepository.updateEmail(change.currentEmail(), change.newEmail());
+                    } catch (EmailAlreadyTakenException takenSinceWeLooked) {
+                        // the read above lost a race with a registration; the port's contract is
+                        // what settles it, and the same answer is owed either way
+                        return new ConfirmEmailChangeResult.EmailTaken();
+                    }
                     authorizationDataRepository.revokeAllSessions(change.currentEmail());
                     emailVerificationRepository.markVerified(change.newEmail());
                     return new ConfirmEmailChangeResult.EmailChanged(change.newEmail());

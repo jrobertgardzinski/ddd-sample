@@ -80,6 +80,14 @@ public final class InMemoryUserRepository implements UserRepository {
 
     @Override
     public void updateEmail(Email currentEmail, Email newEmail) {
+        // the index the database has, kept by hand: moving onto a taken address must refuse rather
+        // than replace whoever is there — the adapter without a datasource is production wiring too.
+        // Uniqueness is by the NORMALIZED form, the same rule save is held to; moving an account
+        // onto an address it already holds is not a collision with anybody.
+        User occupant = byNormalizedEmail.get(NormalizedEmail.of(newEmail).value());
+        if (occupant != null && !occupant.email().value().equals(currentEmail.value())) {
+            throw new EmailAlreadyTakenException();
+        }
         User existing = byEmail.remove(currentEmail.value());
         if (existing != null) {
             byNormalizedEmail.remove(existing.normalizedEmail().value());

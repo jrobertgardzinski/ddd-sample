@@ -132,6 +132,24 @@ class JdbcAdaptersTest {
     }
 
     @Test
+    void moving_onto_a_taken_address_is_refused_not_obeyed() {
+        UserRepository users = context.getBean(UserRepository.class);
+        Email mover = Email.of("mover@example.com");
+        Email occupied = Email.of("occupied@example.com");
+        users.save(new User(mover, new HashedPassword("hash-1")));
+        users.save(new User(occupied, new HashedPassword("hash-2")));
+
+        // a change token is requested against a FREE address and followed up to a day later; the
+        // address can be registered in between, and the answer must be the one save gives
+        assertThatThrownBy(() -> users.updateEmail(mover, occupied))
+                .isInstanceOf(EmailAlreadyTakenException.class);
+        assertThat(users.findBy(occupied).orElseThrow().passwordHash().value())
+                .as("the occupant's account must survive somebody else's change")
+                .isEqualTo("hash-2");
+        assertThat(users.findBy(mover)).as("and the mover stays where they were").isPresent();
+    }
+
+    @Test
     void an_over_long_user_agent_still_records_the_failure() {
         RejectedAuthenticationRepository rejected = context.getBean(RejectedAuthenticationRepository.class);
         // the header is the caller's to write, and user_agent is VARCHAR(400): unclamped, Postgres

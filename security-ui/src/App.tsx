@@ -105,7 +105,12 @@ export function App() {
       }).then((r) =>
         setNotice(r.ok
           ? 'E-mail changed — sign in with your new address.'
-          : 'This change link was already used or has expired.'),
+          // 409: the link was good, the address was taken by somebody else while it sat in the
+          // mailbox. Telling this person "already used or expired" would send them to ask for
+          // another link that fails the same way.
+          : r.status === 409
+            ? 'That address has been taken since you asked — request the change again with another one.'
+            : 'This change link was already used or has expired.'),
       ).catch(() => setNotice('Security service unreachable.'));
       return;
     }

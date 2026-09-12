@@ -81,3 +81,20 @@ Feature: Changing the email address
       Given the USER has AUTHENTICATED
       When the USER tries to CHANGE the EMAIL to "user@mailinator.com"
       Then the CHANGE is refused because the domain is DISPOSABLE
+
+  Rule: An address taken while the LINK was in the mailbox is refused, and nothing moves
+
+    The CHANGE is asked for against a FREE address and confirmed up to a day later, and nothing
+    reserves it in between — so somebody may REGISTER it while the link sits unread. Then the
+    CHANGE cannot happen, and the answer says so: the TOKEN was good, and calling it invalid would
+    send its owner to ask for another one that fails the same way. The ACCOUNT that holds the
+    address is untouched, and so is the one that wanted to move.
+
+    @http-only
+    Example:
+      Given the USER has AUTHENTICATED
+      When the USER requests to CHANGE the EMAIL to "latecomer@example.com"
+      And another ACCOUNT registers "latecomer@example.com" before the link is followed
+      And the USER CONFIRMS the EMAIL CHANGE with the token from the link
+      Then the CHANGE is refused because the address is taken
+      And the USER can AUTHENTICATE as "user@example.com"
