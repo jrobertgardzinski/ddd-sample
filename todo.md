@@ -227,6 +227,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   DB-11: drain outboxu bierze partię (`security.outbox.drain-batch`, 500), nie CAŁEGO zaległego
   backlogu co sekundę. AUTH-12: javadoc obiecywał nieprzewidywalną długość blokady, którą
   `Retry-After` podaje co do sekundy — teraz mówi, po co naprawdę jest losowanie.
+- **LOW, paczka 3 — UI (UI-6, UI-8, UI-17, UI-18) — ZROBIONE 2026-09-12.** Panel step-upu mówił
+  „Wrong code." także na TOO_MANY_ATTEMPTS i wygasły bilet — czyli odsyłał człowieka do pola, które
+  już nigdy nie zadziała; teraz rozróżnia i zamyka panel, gdy nie ma czego wpisywać. Podwójny klik
+  liczył się jako DWIE nieudane próby w liczniku brute-force (kto ma wolne łącze, blokował się w
+  połowie limitu) — strażnik `once()` na ref (stan re-renderuje się o rundę za późno); test w
+  `App.tab.test.tsx` pokazuje 3 żądania bez poprawki. Skasowany martwy `src/index.html` z
+  `<app-root>` po Angularze i `.angular/` z `.gitignore`. `SECURITY` czyta teraz kolejno
+  `window.SECURITY_URL` (runtime, tak robi harness i tak może robić deployment przez `/ui-config.js`),
+  `VITE_SECURITY_URL` (build) i dopiero potem compose'owy localhost:8080 — produkcyjny bundle
+  wskazywał na localhost i nikt tego nie widział tylko dlatego, że `dist/` nikt jeszcze nie serwuje.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

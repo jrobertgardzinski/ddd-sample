@@ -166,6 +166,30 @@ describe('what a tab keeps between sessions', () => {
     expect(present('enrol-stepup')).toBe(false);
   });
 
+  it('counts one failed sign-in per submit, however many times the button is clicked (UI-8)', async () => {
+    // two wrong passwords are two failures against the brute-force limit, so an impatient person
+    // on a slow connection reaches the lockout in half the attempts the policy gives them
+    const attempts: string[] = [];
+    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === `${SECURITY}/authenticate`) {
+        attempts.push(url);
+        return new Promise<Response>((resolve) => setTimeout(() => resolve(json({}, 401)), 20));
+      }
+      return Promise.resolve(answer(url, init));
+    });
+
+    await typeInto(byTestId('email'), 'alice@example.com');
+    await typeInto(byTestId('password'), 'wrong password');
+    await submitFormOf(byTestId('submit'));
+    await submitFormOf(byTestId('submit'));
+    await submitFormOf(byTestId('submit'));
+    await until('the refusal', () => attempts.length > 0);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+
+    expect(attempts.length).toBe(1);
+  });
+
   it('calls an expired session what it is, instead of blaming the password (UI-3)', async () => {
     await signIn('alice@example.com', 'correct horse');
     // the hour is up: every call carrying the token now answers 401

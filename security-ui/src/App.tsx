@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { bodyOf, HttpError, messageFor, request } from './api';
 import { assertPasskey, enrolPasskey } from './webauthn';
 import { Factor, Mode, SECURITY, Session, factorLabel, prettify } from './lib';
@@ -170,6 +170,22 @@ export function App() {
    */
   const run = (work: Promise<unknown>) => {
     void work.catch((failure) => setNotice(messageFor(failure, {})));
+  };
+
+  /**
+   * One submit at a time.
+   *
+   * <p>Nothing stopped a second click while the first was in flight, and the cost is not a double
+   * request: two wrong passwords are counted as TWO failures against the brute-force limit, so an
+   * impatient person with a slow connection locks themselves out in half the attempts the policy
+   * says they have. The guard is a ref rather than state because it must be read and set in the
+   * same tick — a re-render is one round trip too late.
+   */
+  const inFlight = useRef(false);
+  const once = (work: () => Promise<unknown>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    run(work().finally(() => { inFlight.current = false; }));
   };
 
   const enterSession = async (accessToken: string) => {
@@ -480,7 +496,15 @@ export function App() {
     } else if (sessionHasExpired(r)) {
       return;
     } else {
-      setNotice('Wrong code.');
+      // not every refusal here is about the code: the ticket can be spent or expired, and the
+      // attempts can run out. Telling someone "Wrong code." when their code was right — or when
+      // there is nothing left to try — sends them back to a panel that will never open.
+      setEnrolStepUpType(body.status === 'WRONG_CODE' ? enrolStepUpType : '');
+      setNotice(body.status === 'TOO_MANY_ATTEMPTS'
+        ? 'Too many tries — start again.'
+        : body.status === 'INVALID_OR_EXPIRED_TICKET' || body.status === 'INVALID_TICKET'
+          ? 'That confirmation expired — start again.'
+          : 'Wrong code.');
     }
   };
 
@@ -716,8 +740,8 @@ export function App() {
             stepUpTicket: enrolStepUpTicket,
             stepUpCode: enrolStepUpCode, setStepUpCode: setEnrolStepUpCode,
             stepUpFactor: enrolStepUpFactor,
-            prove: () => run(proveForEnrol()),
-            proveFactor: () => run(proveFactorForEnrol()),
+            prove: () => once(proveForEnrol),
+            proveFactor: () => once(() => proveFactorForEnrol()),
             provePasskey: () => run(provePasskeyForEnrol()),
           }}
           recovery={{
@@ -728,13 +752,13 @@ export function App() {
           emailChange={{ newEmail, setNewEmail, request: () => run(requestEmailChange()) }}
           passwordChange={{
             currentPassword, newPassword, setCurrentPassword, setNewPassword,
-            change: () => run(changePassword()),
+            change: () => once(changePassword),
           }}
           deletion={{
             deleting, password: deletePassword, ticket: deleteTicket, code: deleteCode,
             setDeleting, setPassword: setDeletePassword, setCode: setDeleteCode,
-            start: () => run(startDelete()),
-            submitCode: () => run(submitDeleteCode()),
+            start: () => once(startDelete),
+            submitCode: () => once(submitDeleteCode),
           }}
           onSignOut={signOut}
         />
@@ -745,7 +769,7 @@ export function App() {
           nextFactor={nextFactor}
           code={code}
           setCode={setCode}
-          submitFactor={(proof) => run(submitFactor(proof))}
+          submitFactor={(proof) => once(() => submitFactor(proof))}
           submitPasskey={() => run(submitPasskey())}
         />
       )}
@@ -765,7 +789,7 @@ export function App() {
       {(mode === 'signin' || mode === 'signup') && (
         <SignInUpScreen mode={mode} email={email} password={password}
                         setEmail={setEmail} setPassword={setPassword} switchTo={switchTo}
-                        signIn={() => run(signIn())} signUp={() => run(signUp())} />
+                        signIn={() => once(signIn)} signUp={() => once(signUp)} />
       )}
 
       {notice && <p data-testid="notice" className="notice">{notice}</p>}
