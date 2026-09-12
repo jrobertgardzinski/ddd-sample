@@ -11,7 +11,11 @@ import { credentials } from '../support/account.mjs';
 let deletedWithToken = '';
 
 When('the USER requests account DELETION', async function () {
-  const deleteRequest = this.page.waitForRequest((r) => r.url().endsWith('/account/delete'));
+  // DELETE /account/{the caller's own address} since 2026-09-11 — one route for both ways of
+  // closing an account, and the address in the path is what says whose closure this is. The glue
+  // waited for the old /account/delete and timed out for thirty seconds on a request nobody makes.
+  const deleteRequest = this.page.waitForRequest(
+      (r) => r.method() === 'DELETE' && r.url().includes('/account/'));
   await this.page.getByTestId('delete-account').click();
   await this.page.getByTestId('delete-password').fill(credentials.password);
   await this.page.getByTestId('delete-start').click();
