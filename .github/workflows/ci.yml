@@ -81,6 +81,11 @@ jobs:
         with:
           repository: jrobertgardzinski/offline-jwt
           path: shared/offline-jwt
+      # the closure vocabulary this service shares with the portal's orchestrator and participants
+      - uses: actions/checkout@v7
+        with:
+          repository: jrobertgardzinski/account-closure
+          path: shared/account-closure
 
       # offline-jwt is also a consumer (the JWKS pact) and a test dependency (the round-trip);
       # the other consumers are checkout only, no build
@@ -115,7 +120,7 @@ jobs:
 
       - name: Install the shared libraries (dependency order)
         run: |
-          for lib in test-starter constraint config adjustable-clock email password infrastructure-micronaut-clock offline-jwt; do
+          for lib in test-starter constraint config adjustable-clock email password infrastructure-micronaut-clock offline-jwt account-closure; do
             mvn -B -q --no-transfer-progress -f "shared/$lib/pom.xml" install -DskipTests
           done
 

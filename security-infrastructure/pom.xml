@@ -272,6 +272,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <!-- the words this service shares with the portal's orchestrator and its participants
+                 when an account closes: the fact's name, the verdicts' names, and the initiator.
+                 A WIRE vocabulary, so it is held here at the edge and never below it -->
+            <groupId>com.jrobertgardzinski</groupId>
+            <artifactId>account-closure</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <!-- ObjectMapper handed to the offline-jwt verifier in tests. Deliberately NOT
                  test-scoped: Flyway's plugin registry needs jackson-databind at runtime and used
                  to get it transitively — a direct test-scope declaration would out-rank that and

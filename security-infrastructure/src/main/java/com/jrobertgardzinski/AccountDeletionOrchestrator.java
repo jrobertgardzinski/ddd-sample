@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.closure.ClosureMessages;
 import com.jrobertgardzinski.email.domain.Email;
 import com.jrobertgardzinski.persistence.AccountDeletionSagaStore;
 import com.jrobertgardzinski.persistence.OutboxAppender;
@@ -119,7 +120,7 @@ public class AccountDeletionOrchestrator implements ContentPurge {
         Map<String, Object> fact = new LinkedHashMap<>(Map.of(
                 "id", UUID.randomUUID().toString(),
                 "sagaId", sagaId.toString(),
-                "type", "ACCOUNT_DELETION_REQUESTED",
+                "type", ClosureMessages.ACCOUNT_DELETION_REQUESTED,
                 "email", email.value(),
                 // the legal basis of the closure, and the only thing that tells the content
                 // services whether the policy beside it may be honoured at all. Additive within

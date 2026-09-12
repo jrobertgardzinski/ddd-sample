@@ -198,6 +198,14 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   się przez WYSZUKANIE hasha. Pod profilem `prod` brak pieprzu wywala boot po nazwie klucza.
   **UWAGA MIGRACYJNA: kody wydane wcześniej (stary SHA-256) przestają pasować — użytkownicy muszą
   wygenerować nowe.** To samo przy każdej zmianie pieprzu.
+- **Biblioteka `account-closure` — 2026-09-12.** Słownik zamknięcia konta (7 nazw komunikatów +
+  SELF/ADMIN z asymetrycznym odczytem) był rozpisany w PIĘCIU miejscach: enum w security, `final
+  class RequestedBy` w offboardingu i `private static final String BY_ADMIN` w memes/comments/
+  collections. Nowe repo `shared/account-closure` (czysta Java, zero zależności), wpięte we
+  wszystkie pięć serwisów; tu trzymane W INFRASTRUKTURZE (to słownik DRUTU), domena nietknięta —
+  `DeletionInitiator` zostaje, a `ClosureVocabularyTest` pilnuje, że obie strony mówią to samo.
+  **DO ZROBIENIA PRZEZ ROBERTA: repo nie istnieje na GitHubie** — trzeba je założyć i wypchnąć,
+  zanim CI któregokolwiek z pięciu serwisów zobaczy zielone (checkout + install już dopisane).
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

@@ -1,5 +1,6 @@
 package com.jrobertgardzinski;
 
+import com.jrobertgardzinski.closure.ClosureMessages;
 import io.micronaut.configuration.kafka.annotation.ErrorStrategy;
 import io.micronaut.configuration.kafka.annotation.ErrorStrategyValue;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
@@ -114,7 +115,8 @@ class OffboardingOutcomeListener {
             return;
         }
         String type = String.valueOf(event.get("type"));
-        if (!"PORTAL_CONTENT_PURGED".equals(type) && !"PORTAL_PURGE_FAILED".equals(type)) {
+        if (!ClosureMessages.PORTAL_CONTENT_PURGED.equals(type)
+                && !ClosureMessages.PORTAL_PURGE_FAILED.equals(type)) {
             return;
         }
         String email = String.valueOf(event.get("email"));
@@ -138,7 +140,7 @@ class OffboardingOutcomeListener {
                         + " re-announcement", outcomeId, type);
                 return null;
             }
-            if ("PORTAL_CONTENT_PURGED".equals(type)) {
+            if (ClosureMessages.PORTAL_CONTENT_PURGED.equals(type)) {
                 orchestrator.completePurge(email);
             } else {
                 // the partial-purge disclosure the portal has always sent and nobody read
