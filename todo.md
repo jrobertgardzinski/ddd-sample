@@ -29,6 +29,24 @@ potwierdzenie `memes-events`), dopiero potwierdzenie kasuje usera i wysyła mail
 brak potwierdzenia w limicie (`account-deletion.purge-timeout`, domyślnie 2 min) = kompensacja
 (odblokowanie + mail z przeprosinami).
 
+## Przegląd 2026-09-08 — naprawy (raport: `docs/review-2026-09-08.md`)
+
+Kolejność pracy = sekcja „Suggested order of work" w raporcie. Jedna paczka = jeden commit
++ reguła w `specs/`. Pozycje zmieniające kształt domeny/use-case'ów (DOM-2, DOM-9, DOM-12,
+DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko wypisane, nie robione.
+
+- **MFA-1 (CRITICAL) — ZROBIONE 2026-09-12.** Koperta `webauthn.create` przyjmowana przy
+  logowaniu i step-upie (obejście passkeya samym hasłem). `WebauthnFactor.verify` akceptuje
+  gałąź `create` wyłącznie dla zapisu PENDING (puste `secretMaterial`); zapisany czynnik
+  zawsze niesie `{credentialId,publicKey}`, więc przy logowaniu i step-upie zostaje tylko
+  podpisana asercja `webauthn.get`. Dowód: `WebauthnFactorTest` (jednostkowo) +
+  `MfaHttpTest.webauthn_enrolment_envelope_does_not_sign_in` (po HTTP, logowanie i step-up),
+  oba sprawdzone na czerwono przed poprawką. Reguła: `specs/mfa-passkey.feature`
+  (warstwa przeglądarkowa — NIE chodzi w CI, tylko `run-e2e.sh`).
+- Następne wg raportu: ACC-1 → AUTH-3 (+ACC-4, DOM-2) → HTTP-1/HTTP-2 (przed PLAN-P12 K1) →
+  throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
+  wyścigi → config na starcie → przegląd dokumentacji.
+
 ## Otwarte — pilne (2026-08-08)
 
 - **~~Cztery scenariusze przeglądarkowe MFA są czerwone~~ — COFNIĘTE 2026-08-08.** Sprostowanie:

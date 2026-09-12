@@ -17,3 +17,15 @@ Feature: Passkey sign-in
       Given the USER has ENROLLED a PASSKEY
       When the USER AUTHENTICATES with the correct password
       Then the USER is signed in by the PASSKEY
+
+  Rule: Only the device signs the USER in — an ENROLMENT answer never does
+
+    The PASSKEY step hands out a fresh CHALLENGE for the device to sign, and that CHALLENGE is
+    public: it travels to whoever passed the password step. Sending it back as if a NEW PASSKEY
+    were being ENROLLED proves possession of nothing, so a stolen password stays one step short
+    of a session — at sign-in and at every STEP-UP the PASSKEY guards.
+
+    Example:
+      Given the USER has ENROLLED a PASSKEY
+      When the correct password is answered with an ENROLMENT instead of the PASSKEY
+      Then the sign-in is refused and no session is issued

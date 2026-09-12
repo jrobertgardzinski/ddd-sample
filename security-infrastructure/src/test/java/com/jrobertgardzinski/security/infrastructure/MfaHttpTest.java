@@ -240,6 +240,46 @@ class MfaHttpTest {
         assertEquals("STEP_UP_REQUIRED", removeRefused.getBody(Map.class).orElseThrow().get("status"));
     }
 
+    @Test
+    @DisplayName("an enrolment envelope is not a sign-in: the passkey cannot be answered with the password alone")
+    void webauthn_enrolment_envelope_does_not_sign_in() throws Exception {
+        String email = "passkey-bypass@example.com";
+        String token = registerVerifyAuthenticate(email);
+        java.security.KeyPair key = p256();
+        enrolWebauthnFactor(token, key);
+
+        // the attacker holds the password and nothing else: the 202 hands out the challenge nonce,
+        // which is public by design, and they echo it back inside an ENROLMENT envelope
+        Map<?, ?> first = exchange(HttpRequest.POST("/authenticate",
+                Map.of("email", email, "password", PASSWORD))).getBody(Map.class).orElseThrow();
+        assertEquals("WEBAUTHN", first.get("nextFactor"));
+        String envelope = enrolmentEnvelope((String) first.get("challengeData"));
+
+        HttpResponse<Map> refused = exchange(HttpRequest.POST("/authenticate/factor",
+                Map.of("mfaTicket", first.get("mfaTicket"), "proof", envelope)));
+        assertEquals(HttpStatus.UNAUTHORIZED, refused.getStatus(),
+                "a create envelope proves possession of nothing — the passkey must be signed");
+        assertEquals("WRONG_CODE", refused.getBody(Map.class).orElseThrow().get("status"));
+
+        // the same envelope at the step-up gate, where the caller already holds a live session
+        Map<?, ?> started = exchange(HttpRequest.POST("/account/step-up",
+                        Map.of("action", "enrol-factor", "password", PASSWORD))
+                .header("Authorization", "Bearer " + token)).getBody(Map.class).orElseThrow();
+        assertEquals("WEBAUTHN", started.get("nextFactor"), "the enrolled passkey guards the step-up too");
+        HttpResponse<Map> notElevated = exchange(HttpRequest.POST("/account/step-up/factor",
+                        Map.of("stepUpTicket", started.get("stepUpTicket"),
+                                "proof", enrolmentEnvelope((String) started.get("challengeData"))))
+                .header("Authorization", "Bearer " + token));
+        assertEquals(HttpStatus.UNAUTHORIZED, notElevated.getStatus());
+
+        // and the honest assertion still signs in, so the refusal is about the envelope, not the flow
+        Map<?, ?> again = exchange(HttpRequest.POST("/authenticate",
+                Map.of("email", email, "password", PASSWORD))).getBody(Map.class).orElseThrow();
+        assertEquals(HttpStatus.OK, exchange(HttpRequest.POST("/authenticate/factor",
+                Map.of("mfaTicket", again.get("mfaTicket"),
+                        "proof", webauthnAssertion(key, (String) again.get("challengeData"))))).getStatus());
+    }
+
     // --- WebAuthn test helpers: this test plays the browser (build + sign), the server verifies ---
 
     private static final java.util.Base64.Encoder B64URL = java.util.Base64.getUrlEncoder().withoutPadding();
@@ -271,6 +311,26 @@ class MfaHttpTest {
         return "{\"type\":\"webauthn.get\",\"credentialId\":\"passkey-1\",\"authenticatorData\":\""
                 + b64url(authData) + "\",\"signature\":\"" + b64url(ecdsa.sign())
                 + "\",\"clientDataJSON\":\"" + b64url(cd) + "\"}";
+    }
+
+    /** Enrol a passkey honestly: start, then confirm with an attestation carrying the public key. */
+    private void enrolWebauthnFactor(String token, java.security.KeyPair key) {
+        stepUpToEnrol(token);
+        HttpResponse<Map> start = exchange(HttpRequest.POST("/account/factors/WEBAUTHN/enroll/start", Map.of())
+                .header("Authorization", "Bearer " + token));
+        assertEquals(HttpStatus.ACCEPTED, start.getStatus());
+        String nonce = webauthnField((String) start.getBody(Map.class).orElseThrow().get("display"), "challenge");
+        String attestation = "{\"type\":\"webauthn.create\",\"credentialId\":\"passkey-1\",\"publicKey\":\""
+                + b64url(key.getPublic().getEncoded()) + "\",\"clientDataJSON\":\""
+                + b64url(clientData("webauthn.create", nonce)) + "\"}";
+        assertEquals(HttpStatus.OK, exchange(HttpRequest.POST("/account/factors/WEBAUTHN/enroll/confirm",
+                Map.of("code", attestation)).header("Authorization", "Bearer " + token)).getStatus());
+    }
+
+    /** What an attacker can build from the password alone: an enrolment envelope with no signature. */
+    private static String enrolmentEnvelope(String challengeNonce) {
+        return "{\"type\":\"webauthn.create\",\"credentialId\":\"forged\",\"publicKey\":\"forged\","
+                + "\"clientDataJSON\":\"" + b64url(clientData("webauthn.create", challengeNonce)) + "\"}";
     }
 
     /** Read a flat string field from the enrol display JSON (challenge nonce). */

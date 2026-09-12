@@ -30,6 +30,11 @@ import java.util.Optional;
  * against that stored key. Both check the challenge (against the issued {@link Challenge}), the
  * relying-party id and an allow-listed origin.
  *
+ * <p>The two envelopes are not interchangeable, and the enrolment state decides which one is even
+ * looked at: a {@code create} envelope is only ever accepted against a PENDING enrolment (blank
+ * secret material). An enrolled factor is proven by a signature and nothing else — otherwise the
+ * password alone would sign in, since the challenge nonce is public by design.
+ *
  * <p>Proof envelopes (the UI sends flat JSON, all binary base64url):
  * <ul>
  *   <li>enrolment: {@code {"type":"webauthn.create","credentialId":..,"publicKey":..(SPKI),
@@ -108,8 +113,12 @@ public class WebauthnFactor implements AuthenticationFactor {
                 return false;
             }
             if ("webauthn.create".equals(type)) {
-                // enrolment: the public key is distilled by enrolledMaterial after this passes
-                return field(proof, "publicKey") != null && field(proof, "credentialId") != null;
+                // enrolment only, and only while the enrolment is still pending: the public key is
+                // distilled by enrolledMaterial after this passes. A stored factor always carries
+                // {credentialId,publicKey}, so at sign-in and step-up this branch is refused and
+                // the proof has to be a signed webauthn.get assertion against the enrolled key.
+                return isPending(enrolment)
+                        && field(proof, "publicKey") != null && field(proof, "credentialId") != null;
             }
             if ("webauthn.get".equals(type)) {
                 return verifyAssertion(enrolment, proof, clientData);
@@ -125,6 +134,16 @@ public class WebauthnFactor implements AuthenticationFactor {
         // store exactly what a sign-in assertion needs to be checked against
         return "{\"credentialId\":\"" + field(proof, "credentialId") + "\","
                 + "\"publicKey\":\"" + field(proof, "publicKey") + "\"}";
+    }
+
+    /**
+     * Whether this is the candidate {@link EnrolFactor#confirm} builds from the pending material —
+     * blank, the sentinel {@link #beginEnrolment} stores, because the real secret (the public key)
+     * only arrives with the confirming attestation. Anything read back from the factor repository
+     * carries that key, so it is not pending.
+     */
+    private static boolean isPending(EnrolledFactor enrolment) {
+        return enrolment.secretMaterial() == null || enrolment.secretMaterial().isBlank();
     }
 
     private boolean verifyAssertion(EnrolledFactor enrolment, String proof, byte[] clientData) {

@@ -90,6 +90,26 @@ class WebauthnFactorTest {
     }
 
     @Test
+    @DisplayName("an enrolment envelope does not sign in: a create proof against a stored passkey is refused")
+    void refuses_a_create_envelope_against_an_enrolled_factor() {
+        // the enrolled factor carries the credential — this is what sign-in and step-up verify against
+        EnrolledFactor enrolment = new EnrolledFactor(Email.of("alice@example.com"),
+                FactorType.WEBAUTHN, "passkey", 1,
+                "{\"credentialId\":\"cred-1\",\"publicKey\":\"" + b64(keyPair.getPublic().getEncoded()) + "\"}");
+        Challenge challenge = factor.issueChallenge(enrolment).orElseThrow();
+
+        // the nonce is public by design (it is handed to the client in the 202), so echoing it back
+        // inside an enrolment envelope proves nothing about possessing the passkey
+        String clientData = clientDataJson("webauthn.create", challenge.publicData());
+        String enrolmentEnvelope = "{\"type\":\"webauthn.create\",\"credentialId\":\"anything\","
+                + "\"publicKey\":\"whatever\",\"clientDataJSON\":\""
+                + b64(clientData.getBytes(StandardCharsets.UTF_8)) + "\"}";
+
+        assertFalse(factor.verify(enrolment, Optional.of(challenge), enrolmentEnvelope),
+                "only a pending enrolment may be proven by a create envelope");
+    }
+
+    @Test
     @DisplayName("a foreign origin is refused even with a valid signature")
     void refuses_a_foreign_origin() throws Exception {
         EnrolledFactor enrolment = new EnrolledFactor(Email.of("alice@example.com"),
