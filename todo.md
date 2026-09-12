@@ -82,6 +82,18 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   NIE jest pod step-upem (`docs/mfa-design.md`, `docs/opus-playbook.md`).
   NIE robione (decyzja właściciela): `Source` w `PendingAuthentication` i liczenie złych proofów
   przez `_UpdateBruteForceRecords` — to zmiana kształtu use-case'u.
+- **DOM-1 — ZROBIONE 2026-09-12.** User-Agent dłuższy niż 400 znaków wywracał INSERT (22001):
+  500 z SQL-em w ciele i — co gorsza — ŻADNEGO wiersza porażki, więc blokada nigdy nie wskakiwała
+  i hasło można było zgadywać bez końca. `JdbcRejectedAuthenticationRepository` przycina nagłówek
+  do szerokości kolumny (`USER_AGENT_COLUMN_WIDTH = 400`, V9) — `Source` nietknięty, bo to adapter
+  zna kształt tabeli. Przypadek w `JdbcAdaptersTest` (Testcontainers, Postgres 18); bez przycięcia
+  pada z „value too long for type character varying(400)".
+- **OPS-1 — ZROBIONE 2026-09-12.** Auto-merge Dependabota bramkował po SAMEJ NAZWIE gałęzi: PR z
+  forka nazwany `dependabot/*/patches-*` wjeżdżał na main bez udziału człowieka (repo publiczne,
+  brak branch protection, job działa tokenem repo bazowego). Do `if` doszły `actor.login ==
+  'dependabot[bot]'` i `head_repository.full_name == github.repository`; krok dodatkowo pyta API
+  (`--author app/dependabot`, `gh pr view --json author,isCrossRepository`) i odmawia, gdy PR nie
+  jest Dependabota albo jest z forka.
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.

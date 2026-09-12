@@ -132,6 +132,23 @@ class JdbcAdaptersTest {
     }
 
     @Test
+    void an_over_long_user_agent_still_records_the_failure() {
+        RejectedAuthenticationRepository rejected = context.getBean(RejectedAuthenticationRepository.class);
+        // the header is the caller's to write, and user_agent is VARCHAR(400): unclamped, Postgres
+        // refused the INSERT, the request answered 500 and NO failure was recorded — so a long
+        // enough User-Agent bought unlimited guesses at a password
+        Source longAgent = new Source(new IpAddress("203.0.113.11"), "A".repeat(1000));
+        LockoutSubject subject = new LockoutSubject(longAgent, AttemptedAccount.of(Email.of("long-ua@example.com")));
+        LocalDateTime at = LocalDateTime.now();
+
+        rejected.create(new RejectedAuthenticationDetails(subject, at));
+
+        assertThat(rejected.countFailuresOnAccount(subject, at.minusMinutes(15)).count())
+                .as("the attempt must be counted; forensic context is truncated, never dropped")
+                .isEqualTo(1);
+    }
+
+    @Test
     void a_block_is_upserted_found_and_removed() {
         AuthenticationBlockRepository blocks = context.getBean(AuthenticationBlockRepository.class);
         Source ip = Source.of(new IpAddress("203.0.113.11"));
