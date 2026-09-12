@@ -52,7 +52,7 @@ public class AuthenticationSteps {
     private static final Pattern INTEGER = Pattern.compile("\\d+");
 
     private final InMemoryUserRepository users = new InMemoryUserRepository();
-    private final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository();
+    private final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository(java.time.Clock.systemUTC());
     private final InMemoryRejectedAuthenticationRepository rejections = new InMemoryRejectedAuthenticationRepository();
     private final InMemoryAuthenticationBlockRepository blocks = new InMemoryAuthenticationBlockRepository();
     private final AdjustableClock clock = new AdjustableClock(Instant.parse("2026-06-15T10:00:00Z"), ZoneOffset.UTC);

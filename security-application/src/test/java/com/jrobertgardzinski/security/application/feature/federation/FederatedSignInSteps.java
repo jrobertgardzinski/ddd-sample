@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class FederatedSignInSteps {
 
     private final InMemoryUserRepository users = new InMemoryUserRepository();
-    private final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository();
+    private final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository(java.time.Clock.systemUTC());
     private final InMemoryAuthorizationDataRepository sessions = new InMemoryAuthorizationDataRepository(Clock.systemUTC());
     private final FakeHashAlgorithm hashAlgorithm = new FakeHashAlgorithm();
     private final Map<String, String> links = new HashMap<>();

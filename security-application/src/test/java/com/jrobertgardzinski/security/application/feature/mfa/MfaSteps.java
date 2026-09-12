@@ -60,7 +60,7 @@ public class MfaSteps {
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-05T10:00:00Z"), ZoneOffset.UTC);
     private final FakeHashAlgorithm hashAlgorithm = new FakeHashAlgorithm();
     private final InMemoryUserRepository users = new InMemoryUserRepository();
-    private final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository();
+    private final InMemoryEmailVerificationRepository verifications = new InMemoryEmailVerificationRepository(java.time.Clock.systemUTC());
     private final InMemoryAuthorizationDataRepository sessions = new InMemoryAuthorizationDataRepository(clock);
     private final InMemoryRejectedAuthenticationRepository rejections = new InMemoryRejectedAuthenticationRepository();
     private final InMemoryAuthenticationBlockRepository blocks = new InMemoryAuthenticationBlockRepository();
