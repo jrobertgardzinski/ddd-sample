@@ -15,6 +15,10 @@
              made on the other side of the estate the same day. Pinned to 1.21.4 like the portal's
              services: testcontainers reorganised in 2.x and several modules have no 2.x release. -->
         <testcontainers.version>1.21.4</testcontainers.version>
+        <!-- ONE pact version for the five artifacts: they were pinned separately and had already
+             drifted (provider 4.7.3 beside junit5 4.7.5), which is how a consumer and a provider
+             end up disagreeing about the format of the thing they exist to agree on. -->
+        <pact.version>4.7.5</pact.version>
     </properties>
 
     <modules>
@@ -123,14 +127,10 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- override JUnit pins from micronaut-test-bom (5.11.0) which is too old for cucumber 7.33+ -->
-<!--            <dependency>
-                <groupId>org.junit</groupId>
-                <artifactId>junit-bom</artifactId>
-                <version>5.14.3</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>-->
+            <!-- No JUnit override here. micronaut-test-bom's pin was once too old for cucumber,
+                 and the fix sat commented out for months, which says the opposite of what is true:
+                 the versions in force resolve on their own and the suites are green. If cucumber
+                 outgrows the BOM again, the import goes back in with the date and the symptom. -->
             <dependency>
                 <groupId>com.jrobertgardzinski</groupId>
                 <artifactId>security-domain</artifactId>

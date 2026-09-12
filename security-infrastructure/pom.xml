@@ -228,7 +228,7 @@
         <dependency>
             <groupId>au.com.dius.pact.provider</groupId>
             <artifactId>junit5</artifactId>
-            <version>4.7.5</version>
+            <version>${pact.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -236,7 +236,7 @@
                  dependency analyzer) -->
             <groupId>au.com.dius.pact</groupId>
             <artifactId>provider</artifactId>
-            <version>4.7.3</version>
+            <version>${pact.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -245,21 +245,21 @@
                  by the three participants' provider tests -->
             <groupId>au.com.dius.pact.consumer</groupId>
             <artifactId>junit5</artifactId>
-            <version>4.7.5</version>
+            <version>${pact.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <!-- MessagePactBuilder and the dsl live here (declared for the dependency analyzer) -->
             <groupId>au.com.dius.pact</groupId>
             <artifactId>consumer</artifactId>
-            <version>4.7.5</version>
+            <version>${pact.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <!-- @Pact, Message, PactSpecVersion live here (declared for the dependency analyzer) -->
             <groupId>au.com.dius.pact.core</groupId>
             <artifactId>model</artifactId>
-            <version>4.7.5</version>
+            <version>${pact.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -337,11 +337,6 @@
                 <configuration>
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>1.18.48</version>
-                        </path>
-                        <path>
                             <groupId>io.micronaut</groupId>
                             <artifactId>micronaut-inject-java</artifactId>
                         </path>
@@ -415,7 +410,6 @@
                                 <ignoredUnusedDeclaredDependency>com.jrobertgardzinski:infrastructure-micronaut-clock</ignoredUnusedDeclaredDependency>
                                 <!-- a custom order: its beans are discovered from the jar, the
                                      neutral service never references it — see security-custom -->
-                                <ignoredUnusedDeclaredDependency>com.jrobertgardzinski:custom-min-password-length</ignoredUnusedDeclaredDependency>
                                 <!-- runtime-only: JDBC driver + Flyway migrations, no compile-time reference -->
                                 <ignoredUnusedDeclaredDependency>org.postgresql:*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.flywaydb:*</ignoredUnusedDeclaredDependency>
@@ -432,7 +426,6 @@
                                 <ignoredNonTestScopedDependency>com.fasterxml.jackson.core:jackson-databind</ignoredNonTestScopedDependency>
                                 <!-- the custom order is packaged for RUNTIME (bean discovery) and
                                      only the tests name its classes; compile scope on purpose -->
-                                <ignoredNonTestScopedDependency>com.jrobertgardzinski:custom-min-password-length</ignoredNonTestScopedDependency>
                             </ignoredNonTestScopedDependencies>
                         </configuration>
                     </execution>

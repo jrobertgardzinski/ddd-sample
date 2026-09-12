@@ -8,9 +8,11 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-// all three features are shared from the top-level specs/ dir (build-helper puts them on the
+// the features below are shared from the top-level specs/ dir (build-helper puts them on the
 // classpath root) and selected explicitly, so the one Gherkin file per use case drives both this
-// runner and the HTTP-level runners.
+// runner and the HTTP-level runners. FIVE of the nineteen run here — this layer drives the use-case
+// objects directly, so a feature only joins when its glue exists at this level; the rest are driven
+// over HTTP (and most of them in the browser as well).
 @SelectClasspathResource("register.feature")
 @SelectClasspathResource("authenticate.feature")
 @SelectClasspathResource("refresh-session.feature")

@@ -20,7 +20,10 @@ emaila — 403 `EMAIL_NOT_VERIFIED`, rejestracja auto-wysyła link), RefreshSess
 (request+complete), Change password, Change email (z re-weryfikacją nowego adresu; potwierdzenie
 oznacza nowy adres jako zweryfikowany), Delete account (RODO), List active sessions,
 Revoke all sessions. Persystencja: Micronaut Data JDBC + Flyway + Testcontainers (in-memory,
-gdy brak datasource). Deployment: docker-compose (Postgres + serwis). Maile: od 2026-07-02 **zdarzenia przez Kafkę**
+gdy brak datasource). Deployment: `shared/docker-compose.identity.yml` w workspace-shared
+(Postgres 5433 + serwis + Kafka), włączany przez compose obu produktów; wersja „Postgres + serwis"
+z katalogu `docker-compose/` W TYM repo została SKASOWANA 2026-09-12 — nie miała Kafki, więc
+uruchamiała serwis, który nie potrafił wysłać maila, a jej `.env` z hasłami leżał w publicznym repo. Maile: od 2026-07-02 **zdarzenia przez Kafkę**
 — transactional outbox w Postgresie (`outbox_events`, V5; ta sama transakcja co zmiana stanu),
 poller publikuje na topik `mail-requests`, konsumuje `microservice-email` (at-least-once,
 dedup po id zdarzenia). Awaria mail-serwisu nie psuje rejestracji — zdarzenie czeka.
@@ -272,6 +275,17 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   Migracja `V27` przenormalizowuje istniejące wiersze i **ODMAWIA**, jeśli powstałyby kolizje —
   wtedy trzeba najpierw `docs/db8-case-collisions.sql` i decyzja człowieka, które konto zostaje
   (migracja nie może tego wybrać za kogoś). `AddressCaseHttpTest` pada na starej regule.
+- **LOW, paczka 6 — build/ops/kontrakty (OPS-13, OPS-14, OPS-17, CFG-9, TEST-10, DOM-10, DOM-11)
+  — ZROBIONE 2026-09-12.** Skasowane: `set-security-domain-version.sh` (ustawiał property, którego
+  nie ma, a per-modułowe wersjonowanie rozjechałoby reaktor — w estacie wszystko jest
+  1.0.0-SNAPSHOT) i katalog `docker-compose/` (sierota bez Kafki, z `.env` i hasłami w PUBLICZNYM
+  repo; prawdziwy stack to `shared/docker-compose.identity.yml`). Pom: wywalona whitelista po
+  rozpuszczonym module `custom-min-password-length`, procesor lomboka, którego nikt nie używa,
+  i zakomentowany import `junit-bom`; pakty mają JEDNĄ wersję (`${pact.version}` — `provider` był
+  4.7.3 obok 4.7.5). Sprostowane: `application.yml` twierdził, że KAŻDY klucz ma trzy szczeble
+  (brute-force/mfa/session/step-up mają dwa), komentarz `RunCucumberTest` mówił o „trzech
+  feature'ach" (jest pięć z dziewiętnastu), javadoc `FailuresCount` opisywał tylko sufit per adres,
+  a port `AuthenticationBlockRepository.create` nie mówił, że to upsert.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
