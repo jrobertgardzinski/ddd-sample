@@ -260,6 +260,33 @@ public class BeanFactory {
         return new SourceThrottle(maxPerWindow, java.time.Duration.ofMinutes(windowMinutes), clock);
     }
 
+    // sign-in has a per-account brute-force guard, and a CORRECT password clears it — so somebody
+    // who already holds the password can open MFA tickets without limit, and each ticket buys five
+    // guesses at the second factor (and, for the code factors, mails the victim another code). The
+    // per-source window is what caps that loop; it is deliberately generous, because an address is
+    // not a person, and it is the same window for /authenticate and /authenticate/factor.
+    @Singleton
+    @Named("authentication")
+    SourceThrottle authenticationThrottle(
+            @io.micronaut.context.annotation.Value("${security.authentication.max-per-window:30}") int maxPerWindow,
+            @io.micronaut.context.annotation.Value("${security.authentication.window-minutes:15}") int windowMinutes,
+            Clock clock) {
+        return new SourceThrottle(maxPerWindow, java.time.Duration.ofMinutes(windowMinutes), clock);
+    }
+
+    // changing a password verifies the CURRENT one with a full Argon2, reachable with nothing but a
+    // live (possibly stolen) access token: unthrottled it is a password oracle answering in ~130 ms,
+    // and a hit turns a time-boxed session theft into a takeover, because the change revokes every
+    // session — the owner's included.
+    @Singleton
+    @Named("change-password")
+    SourceThrottle changePasswordThrottle(
+            @io.micronaut.context.annotation.Value("${security.change-password.max-per-window:10}") int maxPerWindow,
+            @io.micronaut.context.annotation.Value("${security.change-password.window-minutes:15}") int windowMinutes,
+            Clock clock) {
+        return new SourceThrottle(maxPerWindow, java.time.Duration.ofMinutes(windowMinutes), clock);
+    }
+
     @Singleton
     com.jrobertgardzinski.security.system.roles.SetUserRoles setUserRoles(UserRepository userRepository) {
         return new com.jrobertgardzinski.security.system.roles.SetUserRoles(userRepository);

@@ -10,6 +10,13 @@ security:
   # from localhost across scenarios); it is exercised in isolation by RegisterThrottleHttpTest
   registration:
     max-per-window: 0
+  # same reason: every feature suite signs in over and over from localhost, and a chain-completing
+  # scenario spends two calls per sign-in. The windows are exercised in isolation by
+  # AuthThrottleHttpTest and ChangePasswordThrottleHttpTest, which boot with their own values.
+  authentication:
+    max-per-window: 0
+  change-password:
+    max-per-window: 0
 
 # no broker in tests: the outbox publisher is @Requires(notEnv=test); this silences kafka's health check
 kafka:

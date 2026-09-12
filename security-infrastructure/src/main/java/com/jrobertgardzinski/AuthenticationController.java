@@ -6,6 +6,8 @@ import com.jrobertgardzinski.security.domain.vo.AuthenticationRequest;
 import com.jrobertgardzinski.security.domain.vo.Source;
 import com.jrobertgardzinski.security.system.authentication.Authentication;
 import com.jrobertgardzinski.security.system.authentication.AuthenticationResult;
+import com.jrobertgardzinski.security.system.throttle.SourceThrottle;
+import jakarta.inject.Named;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -54,14 +56,17 @@ public class AuthenticationController {
     private final ClientIpResolver ipResolver;
     private final RefreshCookies refreshCookies;
     private final TransactionBoundary transactionBoundary;
+    private final SourceThrottle throttle;
     private final Clock clock;
 
     public AuthenticationController(Authentication authentication, ClientIpResolver ipResolver,
-                                    RefreshCookies refreshCookies, TransactionBoundary transactionBoundary, Clock clock) {
+                                    RefreshCookies refreshCookies, TransactionBoundary transactionBoundary,
+                                    @Named("authentication") SourceThrottle throttle, Clock clock) {
         this.authentication = authentication;
         this.ipResolver = ipResolver;
         this.refreshCookies = refreshCookies;
         this.transactionBoundary = transactionBoundary;
+        this.throttle = throttle;
         this.clock = clock;
     }
 
@@ -69,6 +74,14 @@ public class AuthenticationController {
     public HttpResponse<Map<String, Object>> authenticate(@Body Map<String, String> body, HttpRequest<?> request) {
         Source source = new Source(ipResolver.resolve(request),
                 request.getHeaders().findFirst("User-Agent").orElse(""));
+        // the per-account guard counts FAILURES and a correct password clears them, so it does not
+        // bound how many attempts one source may start — this does
+        SourceThrottle.Decision decision = throttle.check(source.ipAddress());
+        if (!decision.allowed()) {
+            return HttpResponse.<Map<String, Object>>status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
+                    .body(Map.of("error", "TOO_MANY_ATTEMPTS"));
+        }
         AuthenticationRequest authenticationRequest;
         try {
             authenticationRequest = new AuthenticationRequest(

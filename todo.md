@@ -71,6 +71,17 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   **UWAGA do PLAN-P12 K1 (portal):** `security.trusted-proxies` porównuje DOKŁADNE adresy — CIDR
   nie pasuje do niczego. K1 musi wymienić adresy podów ingressu, nie sieć podów. Zapisane też w
   javadocu klasy.
+- **AUTH-2 + ATK-4 — ZROBIONE 2026-09-12.** Dwa nowe okna na źródło w `BeanFactory`:
+  `@Named("authentication")` (domyślnie 30/15 min, WSPÓLNE dla `/authenticate` i
+  `/authenticate/factor` — kto ma hasło, otwierał bilety bez końca, każdy wart 5 strzałów w drugi
+  czynnik i jeden mail do ofiary) oraz `@Named("change-password")` (10/15 min — `/account/password`
+  był wyrocznią Argon2 dla skradzionego tokenu, a trafienie = przejęcie, bo zmiana kasuje sesje).
+  Oba 0 w profilu `test`, oba udokumentowane w `application.yml` razem z czterema starszymi i
+  `trusted-proxies` (połowa HTTP-18: dokumentacja; migracja kluczy na drabinkę nadal otwarta).
+  Testy: `AuthThrottleHttpTest`, `ChangePasswordThrottleHttpTest`. Docs zrównane: change-password
+  NIE jest pod step-upem (`docs/mfa-design.md`, `docs/opus-playbook.md`).
+  NIE robione (decyzja właściciela): `Source` w `PendingAuthentication` i liczenie złych proofów
+  przez `_UpdateBruteForceRecords` — to zmiana kształtu use-case'u.
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.

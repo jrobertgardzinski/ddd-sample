@@ -77,9 +77,10 @@ ekranu do największego):
    backdoor MUSI być ograniczony do env `test`).
 3. **reset-password.feature** — tryby `forgot` (podaj email) i `reset` (nowe hasło
    z tokenem z maila). Ten sam backdoor skrzynki, typ RESET.
-4. **change-password.feature** — ekran w koncie; UWAGA: akcja jest pod step-up
-   SECOND_FACTORS — flow e2e: sign-in → step-up (kod z `/test/mailbox/signin-code`)
-   → zmiana. Reużyj kroków step-up z mfa.steps.mjs.
+4. **change-password.feature** — ekran w koncie. UWAGA (aktualizacja 2026-09-12): akcja NIE jest
+   pod step-upem — wypadła z katalogu `StepUpAction`; broni jej wpisanie obecnego hasła
+   (sprawdzane inline) plus okno na źródło `security.change-password.max-per-window`.
+   Flow e2e: sign-in → zmiana.
 5. **change-email.feature** — ekran w koncie + potwierdzenie linkiem (backdoor jak
    verify). Pamiętaj o scenariuszu enumeracji (zajęty adres → odpowiedź identyczna).
 6. **list-sessions.feature + revoke-all-sessions.feature** — widok „Active sessions"

@@ -167,9 +167,14 @@ reset) is *the chain executor run again* against the live session, producing a s
 ```
 security.step-up.<action> = NONE | SECOND_FACTORS | FULL_CHAIN
    delete-account   → FULL_CHAIN     (re-pass everything incl. password/OAuth — defends a stolen session)
-   change-password  → SECOND_FACTORS (the old password is already required inline)
    enrol/remove factor, admin-reset → SECOND_FACTORS (or FULL_CHAIN for admin-reset)
 ```
+
+Change-password is NOT in the catalogue (it was taken out with the `StepUpAction` enum): the
+endpoint verifies the current password inline, which is the same proof the step-up would ask for
+first. That inline check is an Argon2 answering "was this guess right", so it carries a per-source
+window of its own instead (`security.change-password.max-per-window`) — see
+`ChangePasswordThrottleHttpTest`.
 
 `POST /account/step-up/start` (+ `/factor`) drives it; the endpoint for the sensitive action then
 requires a fresh `elevated` marker or answers `403 STEP_UP_REQUIRED` with what remains. Federated
@@ -243,7 +248,8 @@ Each phase is a green, self-contained slice (build + tests pass), à la the rest
   user's ask.
 - **D — recovery + admin reset.** `RecoveryCodeFactor`, admin factor reset (audited, step-up).
 - **E — step-up.** Session `elevated` marker + per-action policy; wire delete-account &
-  change-password & enrol/remove.
+  enrol/remove (change-password is guarded by its inline password check and a per-source window,
+  not by the step-up).
 - **F — OAuth composition.** Provider callback as link #1; `provider-satisfies`; federated floor.
 - **G — UI polish + specs.** React enrolment manager + multi-step sign-in; e2e over the new specs
   as the third entry point; compose smoke walks a password→TOTP sign-in and a role-floor gate.

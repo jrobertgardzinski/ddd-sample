@@ -93,6 +93,23 @@ security:
   # step.up.change.email: FULL_CHAIN
   # step.up.admin.roles: FULL_CHAIN
   # step.up.admin.settings: FULL_CHAIN
+  # The per-source windows, one instance per expensive endpoint so a burst against one cannot
+  # starve another (BeanFactory, @Named). These are deployment-level only — a property or the
+  # environment, never the live table — and 0 disables an instance (which is what the test profile
+  # does for registration, authentication and change-password). Seconds until the window frees up
+  # travel back in Retry-After.
+  #
+  # registration.max-per-window: 5      / registration.window-minutes: 15
+  # password-reset.max-per-window: 5    / password-reset.window-minutes: 15
+  # verification.max-per-window: 5      / verification.window-minutes: 15
+  # step-up.max-per-window: 10          / step-up.window-minutes: 15
+  # authentication.max-per-window: 30   / authentication.window-minutes: 15   # /authenticate AND
+  #                                       /authenticate/factor share this one window
+  # change-password.max-per-window: 10  / change-password.window-minutes: 15
+  #
+  # trusted-proxies: 10.42.0.7,10.42.0.8   # EXACT addresses (no CIDR): X-Forwarded-For is honoured
+  #                                          only when the peer is one of these, and the source is
+  #                                          then the rightmost element that is not one of them
   saga:
     # The saga-listener lamp's stall tolerance, wired to an environment variable ON PURPOSE rather
     # than left to the @Value default. OffboardingListenerHealth refuses to start on a value below
