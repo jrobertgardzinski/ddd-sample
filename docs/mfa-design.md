@@ -160,9 +160,18 @@ user's factors — itself a privileged, step-up-gated action, and a good audit-l
 
 ## Step-up — the same executor, reused
 
-Step-up for a sensitive action (delete account, change password, enrol/remove a factor, admin
-reset) is *the chain executor run again* against the live session, producing a short-lived,
-**one-shot `elevated` marker** on the session row. Policy per action, in config:
+Step-up for a sensitive action (delete account, enrol/remove a factor, generate recovery codes,
+change e-mail, admin reset, admin roles, admin settings) is *the chain executor run again* against
+the live session, producing a short-lived, **one-shot elevation**.
+
+> **As built (2026-09-12):** the elevation is NOT a column on the session row, as this design
+> sketched. It is a separate `SessionElevation` port keyed by (access token, action) with its own
+> TTL (`security.step-up.ttl-minutes`, default 5), held in memory and cleared the first time it is
+> consumed — so a restart means stepping up again, and an elevation bought for one action does not
+> open another. The paths are `POST /account/step-up` and `POST /account/step-up/factor`; there is
+> no `/start`.
+
+Policy per action, in config:
 
 ```
 security.step-up.<action> = NONE | SECOND_FACTORS | FULL_CHAIN
@@ -176,9 +185,11 @@ first. That inline check is an Argon2 answering "was this guess right", so it ca
 window of its own instead (`security.change-password.max-per-window`) — see
 `ChangePasswordThrottleHttpTest`.
 
-`POST /account/step-up/start` (+ `/factor`) drives it; the endpoint for the sensitive action then
-requires a fresh `elevated` marker or answers `403 STEP_UP_REQUIRED` with what remains. Federated
-users step up by re-authenticating at the provider (`prompt=login`) plus their tail.
+`POST /account/step-up` (+ `/factor`) drives it; the endpoint for the sensitive action then
+requires a fresh elevation for THAT action or answers `403 STEP_UP_REQUIRED` with what remains.
+Federated users step up by re-authenticating at the provider (`prompt=login`) plus their tail —
+designed, not built: the code asks for the password or the factors, and never sends anyone back to
+the provider.
 
 ## OAuth composition
 
@@ -203,7 +214,9 @@ The asymmetry is intentional — the "free" provider link is never one of your f
   In-memory adapter for the no-datasource test profile, as everywhere.
 - `V12 mfa_recovery_codes` only if recovery codes want their own table rather than rows in
   `enrolled_factors`.
-- The `sessions` row gains `enrolment_only` and a one-shot `elevated_until` (step-up).
+- ~~The `sessions` row gains `enrolment_only` and a one-shot `elevated_until` (step-up).~~ Not as
+  built: the elevation lives in its own in-memory store keyed by (access token, action) — see the
+  step-up section above.
 
 ## Endpoints (summary)
 
@@ -214,7 +227,8 @@ GET  /account/factors                    → have / offered / required / complia
 POST /account/factors/{type}/enroll/start
 POST /account/factors/{type}/enroll/confirm {proof}
 DELETE /account/factors/{type}           → 409 WOULD_BREAK_MFA_FLOOR if under floor
-POST /account/step-up/start / factor
+POST /account/step-up {action, password?}  → 200 ELEVATED | 202 FACTOR_REQUIRED {stepUpTicket, nextFactor, challengeData}
+POST /account/step-up/factor {stepUpTicket, proof}
 ```
 
 ## Phased implementation order

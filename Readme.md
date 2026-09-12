@@ -25,19 +25,25 @@ layer. Each one reads like a short story:
 - **[Refreshing a session](./specs/refresh-session.feature)**
   — a user keeps a session alive by refreshing it; an expired or missing session can't be refreshed.
 
-These three are just the highlights — **all 13 executable specs live in [`specs/`](./specs/)**,
+These three are just the highlights — **all 19 executable specs live in [`specs/`](./specs/)**,
 also covering password reset, email change & verification, session management (logout, list,
-revoke everywhere), refresh-token reuse detection and account deletion (GDPR).
+revoke everywhere), refresh-token reuse detection, multi-factor sign-in (codes, TOTP, passkeys),
+federated sign-in, roles, the password policy, runtime settings and account deletion (GDPR).
 
-**[For more detailed documentation, click here](./Documentation.md)**. It's a document generated from allure reports based on unit tests. It covers the lowest layers: **domain**, **config** and **system**
+**[An Allure snapshot of the test runs lives here](./Documentation.md)** — a photograph of one
+workspace-wide run (2026-07-02), kept for the shape of it rather than for the numbers. The living
+documentation is the specs above and the value objects they exercise.
 
 ---
 
 > **Project scope — what holds today.** The **Domain → Config → System** core is fully tested and
-> self-documenting, and the specs above already run at the **Application** layer. **Infrastructure**
-> is built too: an HTTP controller per use case, an authorization filter, in-memory adapters, and
-> mail notifiers wired to a separate email microservice. **UI** is designed-in but not built yet.
-> The diagram below is the full target shape; the executable specs are what's actually proven —
+> self-documenting. **Infrastructure** is built: an HTTP controller per use case, an authorization
+> filter, JDBC adapters over Flyway migrations (with in-memory ones that take over when no
+> datasource is configured), and mail notifiers that reach a separate email microservice through a
+> transactional outbox and Kafka. The **UI** is built too — a small React app that is also the
+> specs' third entry point, driven by the same feature files through Playwright. Every spec runs at
+> the HTTP layer, most also at the application layer, and eleven of them in a real browser. The
+> diagram below is the full target shape; the executable specs are what's actually proven —
 > nothing here is hand-waved.
 
 ---
@@ -80,7 +86,8 @@ Proven by executable specifications (**jqwik** + **Allure**); concepts explained
 
 ### Two payoffs of clean boundaries
 
-- **Microservice or monolith — your choice.** This module is five layers, Domain → Infrastructure.
+- **Microservice or monolith — your choice.** This module is Domain → Config → System →
+  Application → Infrastructure, with the UI on top.
   Making the boundaries explicit keeps the deployment shape — split into services or kept as one —
   an open decision.
 - **Reusable as a library.** A library spans Domain → System, and its System and Config layers can be
@@ -140,22 +147,30 @@ After installing, **open a new terminal** so the updated `PATH` is picked up.
 
 ## Clone & build the whole project
 
-This microservice depends on a few sibling modules that live in separate repositories
-(`test-starter`, `libs`, `config`, `email`, `password`). The commands below clone all of them
-into one workspace folder and build them in the correct order via the bundled **Maven Wrapper**
-(`./mvnw`), installing each into your local Maven repository (`~/.m2`) so the final build can
-resolve them. No system-wide Maven needed — the wrapper fetches the right version on first run.
+This microservice depends on sibling modules that live in separate repositories: `test-starter`,
+`libs` (which holds the `constraint` artifact), `config`, `email`, `password`, `adjustable-clock`,
+`infrastructure-micronaut-clock` and `offline-jwt`. The list used to name five of the eight, and a
+build on a clean `~/.m2` simply failed on the first missing one — it is the same list CI checks
+out, and the easiest way to keep it honest is `shared/estate.sh clone`, which clones the whole
+estate from `estate/*.repos`.
+
+The commands below clone them into one workspace folder and build them in order via the bundled
+**Maven Wrapper** (`./mvnw`), installing each into your local Maven repository (`~/.m2`) so the
+final build can resolve them. No system-wide Maven needed — the wrapper fetches the right version
+on first run.
 
 ### 🐧 Linux &nbsp;/&nbsp; 🍎 macOS &nbsp;(bash / zsh)
 
 ```bash
 mkdir security && cd security
 
-for repo in test-starter libs config email password microservice-security; do
+for repo in test-starter libs config email password adjustable-clock \
+            infrastructure-micronaut-clock offline-jwt microservice-security; do
   git clone "https://github.com/jrobertgardzinski/$repo.git"
 done
 
-for dir in test-starter libs config email password microservice-security; do
+for dir in test-starter libs config email password adjustable-clock \
+           infrastructure-micronaut-clock offline-jwt microservice-security; do
   ( cd "$dir" && ./mvnw clean install ) || break
 done
 ```
@@ -165,11 +180,13 @@ done
 ```powershell
 mkdir security; cd security
 
-foreach ($repo in 'test-starter','libs','config','email','password','microservice-security') {
+foreach ($repo in 'test-starter','libs','config','email','password','adjustable-clock',
+                  'infrastructure-micronaut-clock','offline-jwt','microservice-security') {
   git clone "https://github.com/jrobertgardzinski/$repo.git"
 }
 
-foreach ($dir in 'test-starter','libs','config','email','password','microservice-security') {
+foreach ($dir in 'test-starter','libs','config','email','password','adjustable-clock',
+                 'infrastructure-micronaut-clock','offline-jwt','microservice-security') {
   Push-Location $dir
   .\mvnw.cmd clean install
   if ($LASTEXITCODE -ne 0) { Pop-Location; break }

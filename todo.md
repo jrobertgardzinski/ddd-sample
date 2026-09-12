@@ -12,8 +12,9 @@ e2e na wirtualnym authenticatorze; Faza H w docs/mfa-design.md. 178 testów JVM 
 
 ## Stan (2026-07-02) — kontekst, nie backlog
 
-**13 feature'ów w `specs/`**, każdy napędzany czarną skrzynką przez HTTP (+ warstwa application
-dla części): Register, Authenticate (+brute-force; od 2026-07-02 wymaga zweryfikowanego
+**19 feature'ów w `specs/`** (2026-09-12; było 13, gdy ta sekcja powstawała), każdy napędzany
+czarną skrzynką przez HTTP (+ warstwa application dla części; `mfa`, `mfa-passkey` i
+`federated-sign-in` nie mają runnera HTTP — TEST-2 w raporcie): Register, Authenticate (+brute-force; od 2026-07-02 wymaga zweryfikowanego
 emaila — 403 `EMAIL_NOT_VERIFIED`, rejestracja auto-wysyła link), RefreshSession
 (+reuse-detection), Authorize, Logout, Verify email (request+confirm), Reset hasła
 (request+complete), Change password, Change email (z re-weryfikacją nowego adresu; potwierdzenie
@@ -151,43 +152,44 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   łącznie z tym, kto miałby liczbę cofnąć). CFG-4: dwie reguły międzypolowe `BruteForceConfig` i
   zakres `MaxFailuresPerSource` mają wreszcie testy. `ConfigAtBootTest` — 3 z 5 przypadków padają
   na starym kodzie (czwarty to nowy sufit, piąty pilnuje, że pusty config nadal wstaje).
-- Następne wg raportu:
+- **Przegląd dokumentacji (OPS-3..OPS-11, DB-16, TEST-4) — ZROBIONE 2026-09-12.**
+  `todo.md`: sekcja „Otwarte — pilne" opisywała pracę, która OD MIESIĄCA jest na main (f94c99d,
+  a8ef840, 163755f) — zamknięta ze sprostowaniem; 13 → 19 feature'ów; akapit o odpinaniu tożsamości
+  federacyjnych przy zmianie adresu (dziś PRZEPINANIE); „klucze bez endpointu admina" (dziś każdy
+  `liveOver` idzie przez `PUT /admin/settings/{key}`).
+  `Readme.md`: przepis build clonował 5 z 8 repo (czysty `~/.m2` = brak buildu); „13 specs",
+  „UI not built yet", „in-memory adapters" — wszystko z lipca.
+  `Documentation.md`: nagłówek mówi wprost, że to zdjęcie jednego runu z 2026-07-02, a nie żywa
+  dokumentacja. `docs/mfa-design.md`: elewacja NIE jest kolumną w wierszu sesji i nie ma
+  `/account/step-up/start`. `docs/opus-playbook.md`: use case'y są w `security-system`
+  (`security-application` nie ma `src/main`); S5 zamknięte. `security-ui/README.md`: tagi, 39
+  scenariuszy, vitest w CI. DB-16: trzy komentarze w persystencji (V10→V18, „counts by IP alone",
+  „snapshot once per TTL"). TEST-4: świadek w CI obejmuje wszystkie 4 weryfikacje paktów i 5 suit
+  na Testcontainers (`disabledWithoutDocker` = ciche zielone), `SilentlySkippedPactTest` zna
+  wszystkich czterech konsumentów.
+  NIE ruszone celowo: komentarze w V22/V25 (dryf checksumy Flyway — DB-4).
+- Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
+  timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
+  DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
+  DOM-2 (kontrakt `updateEmail`), DOM-9 (`UserRegistration` martwy), DOM-12 (nazwy),
+  DB-8 (`NormalizedEmail` tylko dla 4 domen), `Source` w `PendingAuthentication` (AUTH-2).
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.
 
-## Otwarte — pilne (2026-08-08)
+## ~~Otwarte — pilne (2026-08-08)~~ — ZAMKNIĘTE, sekcja była NIEAKTUALNA (sprostowane 2026-09-12)
 
-- **~~Cztery scenariusze przeglądarkowe MFA są czerwone~~ — COFNIĘTE 2026-08-08.** Sprostowanie:
-  to NIE był dług sprzed sierpnia. Browser e2e było 36/36 zielone jeszcze o 10:09 tego dnia;
-  cztery scenariusze położyła paczka `a2bf62c` (wygaszanie linków zmiany adresu + step-up na
-  kodach odzyskiwania), zacommitowana z drzewa roboczego bez sprawdzenia suity przeglądarkowej.
-  Revert przywrócił 36/36; praca czeka na gałęzi **`wip-email-change-expiry`**.
-  **Do dokończenia przed powrotem na main:** (1) UI musi dokończyć czynnikową połowę step-upu —
-  bilet `FACTOR_REQUIRED` przychodzi, a `/account/step-up/factor` nie jest wołane ani razu w całej
-  suicie (także przez scenariusze, które przechodzą, bo ich konta elewują się na samym haśle;
-  `StepUp` linia 73); (2) scenariusz zmiany adresu przestaje dostawać maila po dołożeniu okna
-  ważności. Ślad sieciowy niżej zostaje aktualny — dotyczy tamtej gałęzi.
-  Objaw był taki: `getByTestId('recovery-codes')`
-  nigdy się nie pojawia. Połowa przyczyny naprawiona (UI nie pytał o step-up przy generowaniu
-  kodów — przycisk był martwy także dla użytkownika, nie tylko w teście). Zostaje: dla konta
-  Z zapisanym czynnikiem serwer zwraca 202 FACTOR_REQUIRED, a pole na kod się nie renderuje.
-  **Ślad sieciowy z podsłuchu w przeglądarce (2026-08-08), od tego zacząć:**
-  ```
-  POST /account/recovery-codes -> 403 {"status":"STEP_UP_REQUIRED","action":"generate-recovery-codes"}
-  POST /account/step-up        -> 202 {"stepUpTicket":"...","nextFactor":"EMAIL_CODE","status":"FACTOR_REQUIRED"}
-  POST /account/step-up        -> 200 {"status":"ELEVATED"}      <-- DRUGI start, zamiast /step-up/factor
-  POST /account/recovery-codes -> 403 {"status":"STEP_UP_REQUIRED"}
-  ```
-  Czyli: bilet przychodzi, ale UI zamiast dokończyć łańcuch (`/account/step-up/factor`) startuje
-  step-up od nowa — i elewacja, którą wtedy dostaje, nie otwiera tego endpointu. `/step-up/factor`
-  nie jest wołane ANI RAZU w całym przebiegu suity, także przez scenariusze, które PRZECHODZĄ:
-  ich konta elewują się na samym haśle (`StepUp` linia 73 — hasło jest wymagane tylko dla
-  FULL_CHAIN albo gdy lista czynników jest pusta). Czynnikowa połowa step-upu w UI nie ma więc
-  żadnego pokrycia i to jest prawdziwa dziura, nie sam czerwony scenariusz.
+Ta sekcja przez miesiąc twierdziła, że wygaszanie linków zmiany adresu i czynnikowa połowa
+step-upu w UI „czekają na gałęzi `wip-email-change-expiry`". Git mówi co innego: `f94c99d`
+(przywrócenie paczki), `a8ef840` (UI dokańcza czynnikową połowę step-upu — trzy akcje, jedna
+droga) i `163755f` (wygaszanie linków wraca na main z dokończonym UI) SĄ na main. Gałąź robocza
+została w tyle i nic z niej nie zostało do przeniesienia.
 
-  Sprawdzone i WYKLUCZONE: limit step-upu (429 — podniesiony w compose, nie zmienia wyniku),
-  wersja Node (suita wymaga 22+, lokalnie zainstalowany przez nvm), strona serwera (ręcznie
-  curl-em: step-up z akcją `generate-recovery-codes` → ELEVATED → POST zwraca dziesięć kodów).
+Co z tamtej listy jest dziś prawdą: nic. Czynnikowa połowa step-upu w UI ma od 2026-09-12 także
+gałąź passkeya (UI-5) i sześć testów w `security-ui/src/App.tab.test.tsx`.
+
+Zostaje jedna rzecz warta pamięci, bo to pułapka harnessu, a nie dług: browser e2e **nie chodzi
+w CI** (potrzebuje całego stosu — `run-e2e.sh`), więc reguła, która żyje tylko w warstwie
+przeglądarkowej, nie jest bramką. Wiążący dowód = warstwa HTTP/JVM.
 
 ## Otwarte — use case'y / security
 
@@ -210,11 +212,12 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   w infra-smoke (PASS live). Mail „already registered" podpowiada logowanie społecznościowe /
   ustawienie hasła resetem; UI galerii ma przycisk „Sign in with Google". ZOSTAJE na później:
   realny Google (client-id/secret od usera — ZABLOKOWANE na usera, przepis w docs/oauth-providers.md).
-  ~~Odświeżanie linku federacyjnego przy change-email~~ — ZROBIONE (2026-07-07, playbook S2):
-  potwierdzenie zmiany emaila JAWNIE odpina wszystkie tożsamości federacyjne
-  (`FederatedIdentityRepository.unlinkAll`, in-memory + JDBC `deleteByUserEmail`);
-  bez auto-przepięcia — provider poręczył stary adres, re-link przy następnym federacyjnym
-  logowaniu ścieżką auto-link. Reguła w change-email.feature (HTTP glue), unit w
+  ~~Odświeżanie linku federacyjnego przy change-email~~ — ZROBIONE (2026-07-07, playbook S2),
+  ale UWAGA: decyzja została później ODWRÓCONA i ten akapit był nieaktualny do 2026-09-12.
+  Dziś potwierdzenie zmiany adresu PRZEPINA tożsamości federacyjne na nowy adres
+  (`FederatedIdentityRepository.relinkAll`), bo link jest kluczowany trwałym `subject` providera —
+  odpięcie osierociłoby tożsamość (provider dalej podaje swój stary adres, więc auto-link nigdy by
+  nie trafił w przeniesione konto). Prawo ruchu jest spisane w `AddressKeyedStoresTest`. Reguła w change-email.feature (HTTP glue), unit w
   ConfirmEmailChangeTest, sekcja w docs/oauth-providers.md.
   - ~~Uogólnienie na Facebook/GitHub/GitLab~~ — ZROBIONE (2026-07-06): `identity-source`
     per provider — `ID_TOKEN` (Google/GitLab, jak dotąd) albo `USERINFO` (Facebook/GitHub:
@@ -456,11 +459,12 @@ Zapis admina odświeża snapshot (`BeanFactory#minLengthRepository`, refresh czy
 przy replikach (k3s, odłożone) unieważnienie musi pójść zdarzeniem między instancjami, nie zegarem. Nielegalny wiersz: warn RAZ per odmowa (nie per pytanie),
 raport `rejected` niesie to, co wiersz trzymał (liczbę albo surowy tekst).
 
-- **Zaakceptowana konsekwencja**: klucze BEZ endpointu admina (special chars, uppercase,
-  lowercase, digit, brute-force, mfa, session) są w praktyce Restart — wiersz w bazie wchodzi
-  dopiero przy następnym starcie albo przy zapisie admina pod innym kluczem; bramka drabinki nadal
-  chroni przed wartością nielegalną. Powiedziane w `specs/password-policy.feature` (krok „written
-  at the console before the last start") i w `application.yml`.
+- **~~Zaakceptowana konsekwencja: klucze BEZ endpointu admina~~ — NIEAKTUALNE od 2026-09-06**
+  (sprostowane 2026-09-12). Każdy klucz zadeklarowany jako `liveOver` jest ustawialny przez
+  `PUT /admin/settings/{key}` — dotyczy to WSZYSTKICH pięciu reguł hasła. Restartem pozostają
+  klucze `boundOver` (brute-force, mfa, session, step-up): tam wiersz w bazie wchodzi dopiero przy
+  następnym starcie, a bramka drabinki chroni przed wartością nielegalną. Tak też mówi
+  `specs/password-policy.feature` (krok „written at the console before the last start").
 - **ZROBIONE 2026-09-06 (wieczór): generyczny zapis po kluczu.** `Configuration.liveOver` buduje
   katalog `LiveKey` (parser + bramka reguły, ta sama co przy odczycie); `SetSetting(key, text)` w
   `security-system/settings` (porty `SettingCatalog`, `SettingsRepository`) zastępuje

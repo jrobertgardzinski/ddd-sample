@@ -47,7 +47,11 @@ class SilentlySkippedPactTest {
 
     private static final List<Consumer> CONSUMERS = List.of(
             new Consumer("portal", "microservice-memes", "pacts-http", "MeIntrospectionPactProviderTest"),
-            new Consumer("portal", "microservice-offboarding", "pacts", "OffboardingFactsPactProviderTest"));
+            new Consumer("portal", "microservice-offboarding", "pacts", "OffboardingFactsPactProviderTest"),
+            // the other two carry the SAME @EnabledIf skip and had no witness at all: both live in
+            // this workspace, so "not cloned" is not an excuse either of them can honestly make
+            new Consumer("shared", "microservice-email", "pacts", "MailRequestsPactProviderTest"),
+            new Consumer("shared", "offline-jwt", "pacts", "JwksPactProviderTest"));
 
     @Test
     @DisplayName("every checked-out consumer's pacts are where its provider test looks for them")

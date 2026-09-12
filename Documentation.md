@@ -1,5 +1,14 @@
 # Collective Allure Test Report & Documentation
 
+> **What this file is, and what it is not** (2026-09-12). It is a SNAPSHOT of an Allure run across
+> the whole workspace, generated on the date below and not regenerated since — so the numbers below
+> are a photograph of that morning, not the state of this repository today, and they cover other
+> services as well as this one. The README used to promise it as "detailed documentation of the
+> domain, config and system layers"; the living version of that promise is the code and the tests
+> themselves: `specs/*.feature` for behaviour, the value objects in `security-domain` and
+> `security-config` for the rules, and `docs/` for the designs. Regenerate this file with
+> `shared/aggregate_allure.py` after a full run if you want a fresh photograph.
+
 Generated on: 2026-07-02 07:37:33
 
 ## 📊 Execution Summary

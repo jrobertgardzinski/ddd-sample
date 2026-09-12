@@ -9,7 +9,9 @@ wskazuje pliki.
 ## Zasady pracy w tym repo (obowiązują każde zadanie)
 
 - **Heksagon**: domena (`security-domain`) bez frameworka i bez adnotacji; use case'y
-  w `security-application`; stroiki/rekordy konfiguracyjne w `security-config`
+  w **`security-system`** (`security-application` NIE MA `src/main` — to warstwa testowa, która
+  napędza te use case'y Cucumberem; sprostowane 2026-09-12); stroiki/rekordy konfiguracyjne
+  w `security-config`
   (framework-free, defaulty+walidacja w konstruktorze — wzór: `OauthProviderSettings`,
   `ChallengeCodeConfig`); HTTP/JDBC/Kafka/beany tylko w `security-infrastructure`.
   Nowa reguła biznesowa NIGDY nie zaczyna się od kontrolera.
@@ -115,7 +117,7 @@ Dziś (świadomie odroczone): stały link „bezpiecznie odpada i re-linkuje si�
 następnym logowaniu". Domknij temat jawnie.
 
 **Stan zastany:** `FederatedIdentityRepository` (migracja V10), use case `FederatedSignIn`,
-use case zmiany emaila w security-application (szukaj po `ChangeEmail`).
+use case zmiany adresu w `security-system/.../account` (`RequestEmailChange`, `ConfirmEmailChange`).
 
 **Kroki:**
 1. Przeczytaj scenariusze `change-email.feature` i `federated-sign-in.feature`.
@@ -230,7 +232,7 @@ przepis JEST w `docs/oauth-providers.md` — dodaj wpis `security.oauth.provider
 w compose/prod env, przetestuj ręcznie start→callback na deployu, nic w kodzie.
 NIE zaczynaj bez credentiali. Przypomnij userowi przy okazji sesji.
 
-## S5. Porządki gałęzi remote-only (ZABLOKOWANE na decyzję usera)
+## ~~S5. Porządki gałęzi remote-only~~ — ZAMKNIĘTE
 
-`password:gemini-refactor`, `microservice-security:overnight/todo-cleanup`, omyłkowe
-gałęzie `origin`. Wymagana decyzja usera przed skasowaniem — zapytaj, nie kasuj sam.
+Gałęzie, o które chodziło, już nie istnieją (sprawdzone 2026-09-09 i ponownie 2026-09-12).
+Zasada zostaje: cudzych gałęzi nie kasujesz sam — pytasz.

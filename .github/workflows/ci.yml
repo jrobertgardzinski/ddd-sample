@@ -183,15 +183,19 @@ jobs:
           kill "$pid" 2>/dev/null || true
 
       # The point of the layout above. A verification that was SKIPPED reports green — that is the
-      # whole failure this workflow spent weeks in — so the run has to say out loud that these two
-      # executed interactions. SilentlySkippedPactTest asserts the same thing from inside the JVM;
-      # this step is the outside witness, and it is the artifact to point at when asking "did the
-      # provider verification actually run in CI".
-      - name: Prove the portal pact verifications actually ran
+      # whole failure this workflow spent weeks in — so the run has to say out loud that all FOUR
+      # provider verifications executed interactions. Two of them (Jwks, MailRequests) carry the
+      # same @EnabledIf skip and were witnessed by nothing until 2026-09-12; the Docker-gated
+      # suites are checked below, for the same reason.
+      # SilentlySkippedPactTest asserts the same thing from inside the JVM; this step is the
+      # outside witness, and it is the artifact to point at when asking "did the provider
+      # verification actually run in CI".
+      - name: Prove the pact verifications actually ran
         if: always()
         run: |
           reports=shared/microservice-security/security-infrastructure/target/surefire-reports
-          for test in MeIntrospectionPactProviderTest OffboardingFactsPactProviderTest; do
+          for test in MeIntrospectionPactProviderTest OffboardingFactsPactProviderTest \
+                      JwksPactProviderTest MailRequestsPactProviderTest; do
             file="$reports/TEST-com.jrobertgardzinski.$test.xml"
             if [ ! -f "$file" ]; then
               echo "::error::$test produced no surefire report — it never ran."
@@ -206,6 +210,34 @@ jobs:
               exit 1
             fi
             echo "$test: $cases interaction(s) verified, $skips skipped."
+          done
+
+      # The same blindness one layer down: the Testcontainers suites are the ONLY place several
+      # claims about MVCC, advisory locks and ON CONFLICT are settled, and @Testcontainers
+      # (disabledWithoutDocker = true) turns "no Docker on this runner" into a silent green. The
+      # runner has Docker, so a skip here means something broke, not that the environment is thin.
+      - name: Prove the database-backed suites actually ran
+        if: always()
+        run: |
+          reports=shared/microservice-security/security-infrastructure/target/surefire-reports
+          for test in security.infrastructure.persistence.JdbcAdaptersTest \
+                      security.infrastructure.persistence.SessionLineageRaceTest \
+                      security.infrastructure.persistence.BruteForceRaceTest \
+                      persistence.AccountDeletionSagaLatchTest \
+                      persistence.RetentionReapersTest; do
+            file="$reports/TEST-com.jrobertgardzinski.$test.xml"
+            if [ ! -f "$file" ]; then
+              echo "::error::$test produced no surefire report — it never ran."
+              ls -1 "$reports" || true
+              exit 1
+            fi
+            cases=$(grep -c '<testcase' "$file" || true)
+            skips=$(grep -c '<skipped' "$file" || true)
+            if [ "$cases" -eq 0 ] || [ "$cases" -eq "$skips" ]; then
+              echo "::error::$test executed nothing ($cases case(s), $skips skipped) — no Docker?"
+              exit 1
+            fi
+            echo "$test: $cases case(s) against a real database, $skips skipped."
           done
 
   # security-ui is NOT a Maven module (unlike memes-ui, which frontend-maven-plugin builds inside
