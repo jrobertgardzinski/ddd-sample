@@ -11,6 +11,15 @@ import java.util.Set;
 
 public interface UserRepository {
 
+    /**
+     * The account this address belongs to — matched by its NORMALIZED form, which is the same rule
+     * {@link #save} refuses duplicates by.
+     *
+     * <p>The two have to agree, and for a long time they did not: registration refused a second
+     * {@code alice@corp.com} once {@code Alice@corp.com} existed, while this lookup answered empty
+     * for it — so the person who capitalised their own name on the day they signed up was told
+     * "wrong e-mail or password" for ever after, and could not register again either.
+     */
     Optional<User> findBy(Email email);
 
     /** Replace a user's whole role set (USER is always kept); a no-op if the user is absent. */

@@ -35,7 +35,10 @@ final class JdbcUserRepository implements UserRepository {
 
     @Override
     public Optional<User> findBy(Email email) {
-        return repository.findByEmail(email.value()).map(JdbcUserRepository::toDomain);
+        // by the normalized form, because that is the identity the unique index enforces; the
+        // spelling somebody typed is not part of who they are
+        return repository.findByNormalizedEmail(NormalizedEmail.of(email).value())
+                .map(JdbcUserRepository::toDomain);
     }
 
     @Override

@@ -24,6 +24,8 @@ interface UserJdbcRepository extends CrudRepository<UserEntity, UUID> {
 
     boolean existsByNormalizedEmail(String normalizedEmail);
 
+    java.util.Optional<UserEntity> findByNormalizedEmail(String normalizedEmail);
+
     @Query("UPDATE users SET password_hash = :passwordHash WHERE email = :email")
     void updatePassword(String email, String passwordHash);
 

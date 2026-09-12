@@ -30,7 +30,8 @@ public final class InMemoryUserRepository implements UserRepository {
 
     @Override
     public Optional<User> findBy(Email email) {
-        return Optional.ofNullable(byEmail.get(email.value()));
+        // by the normalized form, like the JDBC twin: the index the database keeps is the identity
+        return Optional.ofNullable(byNormalizedEmail.get(NormalizedEmail.of(email).value()));
     }
 
     @Override

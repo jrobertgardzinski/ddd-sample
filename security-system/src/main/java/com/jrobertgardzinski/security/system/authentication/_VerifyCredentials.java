@@ -42,7 +42,11 @@ class _VerifyCredentials {
                 found.map(User::passwordHash).orElse(absentAccountHash), credentials.plaintextPassword());
         // an account locked by a running deletion saga behaves like a wrong password
         return found.isPresent() && passwordMatches && !userRepository.isPendingDeletion(email)
-                ? new AuthenticationEvent.Valid(email)
+                // the STORED spelling from here on, not the one that was typed: everything after
+                // this — the verified-address check, the factor lookup, the session and every
+                // lookup the token later drives — is keyed by an address, and an account that can
+                // be reached by two spellings must not be half-reached by one of them
+                ? new AuthenticationEvent.Valid(found.get().email())
                 : new AuthenticationEvent.Invalid(email);
     }
 }

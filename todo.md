@@ -262,6 +262,16 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   Reguła w `change-email.feature` + testy obu adapterów. PRZY OKAZJI: glue confirm-u zapamiętuje
   token W MOMENCIE WYSŁANIA — skrzynka pamięta tylko ostatni, a w tym scenariuszu adres dostaje
   własny link rejestracyjny.
+- **DB-8 — ZROBIONE 2026-09-12 (decyzja Roberta: dla wszystkich domen + raport kolizji).**
+  W bibliotece `email`: `LocalPart.normalize` sprowadza część lokalną do małych liter dla KAŻDEJ
+  domeny (reguły providerów — kropki gmaila, `+tagi`, sufiksy yahoo — bez zmian, bo to twierdzenia
+  providera o WŁASNEJ przestrzeni adresów). W security: `UserRepository.findBy` szuka po formie
+  ZNORMALIZOWANEJ (dotąd rejestracja odmawiała duplikatu, a logowanie tego samego adresu inną
+  wielkością liter mówiło „złe hasło"), a `_VerifyCredentials` zwraca ZAPISANĄ pisownię, więc
+  wszystko dalej (weryfikacja adresu, czynniki, sesja, token) trafia w to samo konto.
+  Migracja `V27` przenormalizowuje istniejące wiersze i **ODMAWIA**, jeśli powstałyby kolizje —
+  wtedy trzeba najpierw `docs/db8-case-collisions.sql` i decyzja człowieka, które konto zostaje
+  (migracja nie może tego wybrać za kogoś). `AddressCaseHttpTest` pada na starej regule.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
