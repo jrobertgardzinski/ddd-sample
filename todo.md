@@ -94,6 +94,17 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   'dependabot[bot]'` i `head_repository.full_name == github.repository`; krok dodatkowo pyta API
   (`--author app/dependabot`, `gh pr view --json author,isCrossRepository`) i odmawia, gdy PR nie
   jest Dependabota albo jest z forka.
+- **UI-1, UI-2, UI-3, UI-4, UI-5, UI-7 — ZROBIONE 2026-09-12.** Karta żyje dłużej niż sesja:
+  `clearAccountState()` czyści kody odzyskiwania (pokazywane raz, jawnie) i cały stan paneli —
+  wołane przy wylogowaniu I na wejściu w sesję; `signOut` czyści też adres i hasło z formularza,
+  `signIn` kasuje hasło ze stanu na obu gałęziach. 403 rozpoznawany po CIELE
+  (`STEP_UP_REQUIRED`), nie po samym statusie — MODERATOR pod progiem MFA nie kręci się już w
+  pętli elewacji. 401 na wywołaniu z tokenem = „sesja wygasła", a nie „złe hasło". Czynnikowa
+  połowa step-upu zna `nextFactor`: dla `WEBAUTHN` prosi authenticator (`assertPasskey`) zamiast
+  renderować pole na kod — konto tylko z passkeyem mogło dotąd nie zrobić NICZEGO za step-upem.
+  Wszystkie handlery lecą przez `run()`, dwa fetch-e z useEffect dostały `.catch`.
+  Testy: `security-ui/src/App.tab.test.tsx` (6 przypadków, wszystkie padają na starym kodzie);
+  vitest chodzi w CI (job `ui`). UWAGA: vitest wymaga Node 22 (lokalnie: nvm).
 - Następne wg raportu:
   throttle'y (AUTH-2, ATK-4) → DOM-1 → OPS-1 → UI-1/UI-2 → ACC-2 → obsługa błędów brzegowych →
   wyścigi → config na starcie → przegląd dokumentacji.

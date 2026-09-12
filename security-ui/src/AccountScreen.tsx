@@ -17,7 +17,8 @@ export function AccountScreen(props: {
     stepUpPassword: string; setStepUpPassword: (v: string) => void;
     stepUpTicket: string;
     stepUpCode: string; setStepUpCode: (v: string) => void;
-    prove: () => void; proveFactor: () => void;
+    stepUpFactor: string;
+    prove: () => void; proveFactor: () => void; provePasskey: () => void;
   };
   recovery: { codes: string[]; unused: number | null; generate: () => void };
   sessions: { list: Session[]; revokeAll: () => void };
@@ -76,6 +77,15 @@ export function AccountScreen(props: {
                      value={factors.stepUpPassword}
                      onChange={(e) => factors.setStepUpPassword(e.target.value)} />
               <button data-testid="enrol-stepup-submit" onClick={() => factors.prove()}>Continue</button>
+            </>
+          ) : factors.stepUpFactor === 'WEBAUTHN' ? (
+            // a passkey is signed, not typed: the authenticator is prompted as soon as the ticket
+            // arrives, and this is the way back if the prompt was dismissed. Rendering the code
+            // input here instead is what shut passkey-only accounts out of every guarded action.
+            <>
+              <p data-testid="enrol-stepup-passkey">Confirm with your passkey to continue.</p>
+              <button data-testid="enrol-stepup-passkey-retry"
+                      onClick={() => factors.provePasskey()}>Use passkey</button>
             </>
           ) : (
             <>

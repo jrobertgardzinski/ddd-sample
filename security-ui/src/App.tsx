@@ -58,6 +58,12 @@ export function App() {
   const [enrolStepUpPassword, setEnrolStepUpPassword] = useState('');
   const [enrolStepUpTicket, setEnrolStepUpTicket] = useState('');
   const [enrolStepUpCode, setEnrolStepUpCode] = useState('');
+  // which link of the chain the step-up is waiting on, and what it handed out to prove it with.
+  // A passkey is not typed: the panel used to render a code input whatever the factor was, so an
+  // account whose only factor is a passkey could not step up at all — no recovery codes, no e-mail
+  // change, no second factor, no deleting itself.
+  const [enrolStepUpFactor, setEnrolStepUpFactor] = useState('');
+  const [enrolStepUpChallenge, setEnrolStepUpChallenge] = useState('');
   const [enrollTarget, setEnrollTarget] = useState('');
   const [enrolCode, setEnrolCode] = useState('');
   // recovery codes: shown exactly once, right after generation; only the count is retrievable later
@@ -100,7 +106,7 @@ export function App() {
         setNotice(r.ok
           ? 'E-mail changed — sign in with your new address.'
           : 'This change link was already used or has expired.'),
-      );
+      ).catch(() => setNotice('Security service unreachable.'));
       return;
     }
     void fetch(`${SECURITY}/verify-email`, {
@@ -111,7 +117,7 @@ export function App() {
       setNotice(r.ok
         ? 'E-mail verified — sign in below.'
         : 'This verification link was already used or replaced by a newer one.'),
-    );
+    ).catch(() => setNotice('Security service unreachable.'));
   }, []);
 
   const reset = () => {
@@ -125,7 +131,49 @@ export function App() {
     reset();
   };
 
+  /**
+   * Everything on screen that belongs to the account signed in right now. A tab outlives a session:
+   * sign out, and the next person gets this component with its state intact unless it is cleared —
+   * which is how the previous user's RECOVERY CODES, shown in the clear exactly once, stayed on the
+   * account screen for whoever signed in next. Cleared when a session ends AND before another
+   * begins, because either end of the gap is enough to leak across it.
+   */
+  const clearAccountState = () => {
+    setRecoveryCodes([]);
+    setRecoveryUnused(null);
+    setFactors([]);
+    setOffered([]);
+    setSessions([]);
+    setEnrollingType(''); setEnrollDisplay(''); setEnrollTarget(''); setEnrolCode('');
+    setEnrolStepUpType(''); setEnrolStepUpPassword(''); setEnrolStepUpTicket('');
+    setEnrolStepUpCode(''); setEnrolStepUpFactor(''); setEnrolStepUpChallenge('');
+    setCurrentPassword(''); setNewPassword(''); setNewEmail('');
+    setDeleting(false); setDeletePassword(''); setDeleteTicket(''); setDeleteCode('');
+  };
+
+  /**
+   * A 401 on a call that carried an access token is not a wrong password or a wrong code: the token
+   * is an hour old and has run out. Saying "Wrong current password." to someone whose password was
+   * right is how this UI used to answer that, on every panel at once.
+   */
+  const sessionHasExpired = (response: Response) => {
+    if (response.status !== 401) return false;
+    signOut();
+    setNotice('Your session has expired — please sign in again.');
+    return true;
+  };
+
+  /**
+   * Every handler below is fired as a side effect from a click (`() => void fn()`), so a rejected
+   * promise has nobody to land on: the screen went quiet exactly where api.ts exists to stop it
+   * going quiet. One place to catch what the network throws.
+   */
+  const run = (work: Promise<unknown>) => {
+    void work.catch((failure) => setNotice(messageFor(failure, {})));
+  };
+
   const enterSession = async (accessToken: string) => {
+    clearAccountState();   // nothing from the previous occupant of this tab follows them in
     const meResponse = await request(`${SECURITY}/me`, { headers: { Authorization: `Bearer ${accessToken}` } });
     const meBody: { email: string; roles?: string[]; mfaCompliant?: boolean; requiredFactors?: number; haveFactors?: number } =
       await meResponse.json();
@@ -135,8 +183,8 @@ export function App() {
     setCompliant(meBody.mfaCompliant ?? true);
     setFloor({ required: meBody.requiredFactors ?? 1, have: meBody.haveFactors ?? 1 });
     setMode('me');
-    void loadFactors(accessToken);
-    void loadSessions(accessToken);
+    run(loadFactors(accessToken));
+    run(loadSessions(accessToken));
   };
 
   const loadSessions = async (accessToken: string) => {
@@ -175,10 +223,12 @@ export function App() {
         setNextFactor(body.nextFactor ?? '');
         setChallengeData(body.challengeData ?? '');
         setCode('');
+        setPassword('');   // it has done its work; it must not sit in state waiting for the next user
         setMode('mfa');
         return;
       }
       if (r.ok) {
+        setPassword('');
         await enterSession((await bodyOf<{ accessToken: string }>(r)).accessToken ?? '');
         return;
       }
@@ -301,16 +351,38 @@ export function App() {
       const body: { codes: string[] } = await r.json();
       setRecoveryCodes(body.codes ?? []);           // the one and only time they are visible
       setRecoveryUnused((body.codes ?? []).length);
-    } else if (r.status === 403) {
-      // STEP_UP_REQUIRED, exactly like starting an enrolment: an extra proof to collect, after
-      // which this very generation resumes on its own
-      setEnrolStepUpType(RECOVERY_STEP_UP);
-      setEnrolStepUpPassword('');
-      setEnrolStepUpTicket('');
-      setEnrolStepUpCode('');
-    } else {
-      setNotice(`Could not generate recovery codes (${r.status}).`);
+      return;
     }
+    if (sessionHasExpired(r)) return;
+    if (await isStepUpRequired(r)) {
+      // an extra proof to collect, exactly like starting an enrolment, after which this very
+      // generation resumes on its own
+      askForStepUp(RECOVERY_STEP_UP);
+      return;
+    }
+    setNotice(`Could not generate recovery codes (${r.status}).`);
+  };
+
+  /**
+   * Whether a refusal means "prove it is you again" — asked of the BODY, not of the status. Not
+   * every 403 is a step-up: a MODERATOR below the MFA floor is refused with a different status in
+   * the same 403, and treating that as a step-up sent them round the elevation loop forever,
+   * buying elevations that could not open the door.
+   */
+  const isStepUpRequired = async (response: Response) => {
+    if (response.status !== 403) return false;
+    const body = await bodyOf<{ status?: string; error?: string }>(response);
+    return body.status === 'STEP_UP_REQUIRED' || body.error === 'STEP_UP_REQUIRED';
+  };
+
+  /** Open the step-up panel for one door, with nothing left over from the last time it was open. */
+  const askForStepUp = (type: string) => {
+    setEnrolStepUpType(type);
+    setEnrolStepUpPassword('');
+    setEnrolStepUpTicket('');
+    setEnrolStepUpCode('');
+    setEnrolStepUpFactor('');
+    setEnrolStepUpChallenge('');
   };
 
   const startEnrol = async (type: string) => {
@@ -331,16 +403,16 @@ export function App() {
       setEnrollingType(type);
       setEnrollDisplay(setup.display ?? '');
       setEnrolCode('');
-    } else if (r.status === 403) {
-      // STEP_UP_REQUIRED. Not an error to report — an extra proof to collect, after which this very
-      // enrolment resumes on its own.
-      setEnrolStepUpType(type);
-      setEnrolStepUpPassword('');
-      setEnrolStepUpTicket('');
-      setEnrolStepUpCode('');
-    } else {
-      setNotice('Could not start enrolment.');
+      return;
     }
+    if (sessionHasExpired(r)) return;
+    if (await isStepUpRequired(r)) {
+      // Not an error to report — an extra proof to collect, after which this very enrolment
+      // resumes on its own.
+      askForStepUp(type);
+      return;
+    }
+    setNotice(`Could not start enrolment (${r.status}).`);
   };
 
   /**
@@ -371,12 +443,14 @@ export function App() {
       // for 'enrol-factor' would buy an elevation the recovery-codes endpoint does not accept
       body: JSON.stringify({ action: stepUpActionOf(type), password: enrolStepUpPassword }),
     });
-    const body: { status?: string; stepUpTicket?: string } = await r.json().catch(() => ({}));
+    const body = await bodyOf<{ status?: string; stepUpTicket?: string; nextFactor?: string; challengeData?: string }>(r);
     if (r.status === 200 && body.status === 'ELEVATED') {
       setEnrolStepUpType('');
       await resumeAfterStepUp(type);
     } else if (r.status === 202 && body.status === 'FACTOR_REQUIRED') {
       setEnrolStepUpTicket(body.stepUpTicket ?? '');
+      setEnrolStepUpFactor(body.nextFactor ?? '');
+      setEnrolStepUpChallenge(body.challengeData ?? '');
     } else if (r.status === 401 || r.status === 403) {
       setNotice('Wrong password.');
     } else {
@@ -385,26 +459,49 @@ export function App() {
   };
 
   /** The factor half: the chain the account already carries, one link at a time. */
-  const proveFactorForEnrol = async () => {
+  const proveFactorForEnrol = async (proof: string = enrolStepUpCode) => {
     const type = enrolStepUpType;
     // Authorization is NOT optional here: AuthorizationFilter guards /account/** and answers 401
     // before the controller ever sees the ticket (the defect P18 poz. 8 fixed on the deletion path).
     const r = await request(`${SECURITY}/account/step-up/factor`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ stepUpTicket: enrolStepUpTicket, proof: enrolStepUpCode }),
+      body: JSON.stringify({ stepUpTicket: enrolStepUpTicket, proof }),
     });
-    const body: { status?: string; stepUpTicket?: string } = await r.json().catch(() => ({}));
+    const body = await bodyOf<{ status?: string; stepUpTicket?: string; nextFactor?: string; challengeData?: string }>(r);
     if (r.status === 200) {
       setEnrolStepUpType('');
       await resumeAfterStepUp(type);
     } else if (r.status === 202 && body.status === 'FACTOR_REQUIRED') {
       setEnrolStepUpTicket(body.stepUpTicket ?? enrolStepUpTicket);
+      setEnrolStepUpFactor(body.nextFactor ?? '');
+      setEnrolStepUpChallenge(body.challengeData ?? '');
       setEnrolStepUpCode('');
+    } else if (sessionHasExpired(r)) {
+      return;
     } else {
       setNotice('Wrong code.');
     }
   };
+
+  /** A passkey link of the step-up chain: signed, not typed — the same gesture the sign-in uses. */
+  const provePasskeyForEnrol = async () => {
+    try {
+      const assertion = await assertPasskey(enrolStepUpChallenge);
+      if (assertion) await proveFactorForEnrol(assertion);
+    } catch {
+      setNotice('Passkey confirmation was cancelled or failed.');
+    }
+  };
+
+  // the step-up reached a passkey: prompt the authenticator straight away, exactly as the sign-in
+  // chain does — there is nothing for the user to type here
+  useEffect(() => {
+    if (enrolStepUpType && enrolStepUpFactor === 'WEBAUTHN' && enrolStepUpChallenge) {
+      void provePasskeyForEnrol();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrolStepUpType, enrolStepUpFactor, enrolStepUpChallenge]);
 
   const confirmPasskeyEnrol = async (display: string) => {
     try {
@@ -417,7 +514,7 @@ export function App() {
       });
       if (r.ok) {
         setNotice('passkey enrolled — you will use it next sign-in.');
-        void loadFactors(token);
+        run(loadFactors(token));
       } else {
         setNotice('Passkey enrolment not completed.');
       }
@@ -435,8 +532,8 @@ export function App() {
     if (r.ok) {
       setNotice(`${factorLabel(enrollingType)} enrolled — you will use it next sign-in.`);
       setEnrollingType(''); setEnrollDisplay(''); setEnrollTarget('');
-      void loadFactors(token);
-    } else {
+      run(loadFactors(token));
+    } else if (!sessionHasExpired(r)) {
       setNotice('Wrong code — enrolment not completed.');
     }
   };
@@ -485,12 +582,15 @@ export function App() {
       setCurrentPassword('');
       setNewPassword('');
       setNotice('Password changed.');
-    } else {
-      const body: { status?: string } = await r.json().catch(() => ({}));
-      setNotice(body.status === 'WEAK_PASSWORD'
-        ? 'That password is too weak — pick a stronger one.'
-        : 'Wrong current password.');
+      return;
     }
+    if (sessionHasExpired(r)) return;
+    const body = await bodyOf<{ status?: string }>(r);
+    setNotice(body.status === 'WEAK_PASSWORD'
+      ? 'That password is too weak — pick a stronger one.'
+      : body.status === 'TOO_MANY_ATTEMPTS'
+        ? 'Too many attempts — try again in a while.'
+        : 'Wrong current password.');
   };
 
   const requestEmailChange = async () => {
@@ -500,12 +600,10 @@ export function App() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ newEmail }),
     });
-    if (r.status === 403) {
-      // STEP_UP_REQUIRED: an extra proof to collect, after which this very request resumes
-      setEnrolStepUpType(CHANGE_EMAIL_STEP_UP);
-      setEnrolStepUpPassword('');
-      setEnrolStepUpTicket('');
-      setEnrolStepUpCode('');
+    if (sessionHasExpired(r)) return;
+    if (await isStepUpRequired(r)) {
+      // an extra proof to collect, after which this very request resumes
+      askForStepUp(CHANGE_EMAIL_STEP_UP);
       return;
     }
     // 202 whatever the address's fate — the truth goes by mail (anti-enumeration)
@@ -593,7 +691,12 @@ export function App() {
     setToken('');
     setMe('');
     setRoles([]);
-    setFactors([]);
+    clearAccountState();
+    // the door itself: the address and the password typed into it belong to whoever just left.
+    // They survived sign-out, so the next person at this tab found the form filled in — a masked
+    // password one submit away from being posted again.
+    setEmail('');
+    setPassword('');
     switchTo('signin');
   };
 
@@ -606,30 +709,32 @@ export function App() {
             have: factors, offered,
             enrollingType, enrollDisplay, enrollTarget, enrolCode,
             setEnrollTarget, setEnrolCode,
-            startEnrol: (type) => void startEnrol(type),
-            confirmEnrol: () => void confirmEnrol(),
+            startEnrol: (type) => run(startEnrol(type)),
+            confirmEnrol: () => run(confirmEnrol()),
             stepUpType: enrolStepUpType,
             stepUpPassword: enrolStepUpPassword, setStepUpPassword: setEnrolStepUpPassword,
             stepUpTicket: enrolStepUpTicket,
             stepUpCode: enrolStepUpCode, setStepUpCode: setEnrolStepUpCode,
-            prove: () => void proveForEnrol(),
-            proveFactor: () => void proveFactorForEnrol(),
+            stepUpFactor: enrolStepUpFactor,
+            prove: () => run(proveForEnrol()),
+            proveFactor: () => run(proveFactorForEnrol()),
+            provePasskey: () => run(provePasskeyForEnrol()),
           }}
           recovery={{
             codes: recoveryCodes, unused: recoveryUnused,
-            generate: () => void generateRecoveryCodes(),
+            generate: () => run(generateRecoveryCodes()),
           }}
-          sessions={{ list: sessions, revokeAll: () => void revokeAllSessions() }}
-          emailChange={{ newEmail, setNewEmail, request: () => void requestEmailChange() }}
+          sessions={{ list: sessions, revokeAll: () => run(revokeAllSessions()) }}
+          emailChange={{ newEmail, setNewEmail, request: () => run(requestEmailChange()) }}
           passwordChange={{
             currentPassword, newPassword, setCurrentPassword, setNewPassword,
-            change: () => void changePassword(),
+            change: () => run(changePassword()),
           }}
           deletion={{
             deleting, password: deletePassword, ticket: deleteTicket, code: deleteCode,
             setDeleting, setPassword: setDeletePassword, setCode: setDeleteCode,
-            start: () => void startDelete(),
-            submitCode: () => void submitDeleteCode(),
+            start: () => run(startDelete()),
+            submitCode: () => run(submitDeleteCode()),
           }}
           onSignOut={signOut}
         />
@@ -640,19 +745,19 @@ export function App() {
           nextFactor={nextFactor}
           code={code}
           setCode={setCode}
-          submitFactor={(proof) => void submitFactor(proof)}
-          submitPasskey={() => void submitPasskey()}
+          submitFactor={(proof) => run(submitFactor(proof))}
+          submitPasskey={() => run(submitPasskey())}
         />
       )}
 
       {mode === 'forgot' && (
         <ForgotScreen email={email} setEmail={setEmail}
-                      requestReset={() => void requestReset()} switchTo={switchTo} />
+                      requestReset={() => run(requestReset())} switchTo={switchTo} />
       )}
 
       {mode === 'reset' && (
         <ResetScreen password={password} setPassword={setPassword}
-                     completeReset={() => void completeReset()} />
+                     completeReset={() => run(completeReset())} />
       )}
 
       {mode === 'inbox' && <InboxScreen email={email} switchTo={switchTo} />}
@@ -660,7 +765,7 @@ export function App() {
       {(mode === 'signin' || mode === 'signup') && (
         <SignInUpScreen mode={mode} email={email} password={password}
                         setEmail={setEmail} setPassword={setPassword} switchTo={switchTo}
-                        signIn={() => void signIn()} signUp={() => void signUp()} />
+                        signIn={() => run(signIn())} signUp={() => run(signUp())} />
       )}
 
       {notice && <p data-testid="notice" className="notice">{notice}</p>}
