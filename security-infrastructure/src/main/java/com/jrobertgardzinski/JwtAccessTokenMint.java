@@ -58,7 +58,7 @@ class JwtAccessTokenMint implements AccessTokenMint {
     private final KeyPair keyPair;
     private final String keyId;
     private final List<PublicKey> previousPublicKeys;
-    private final UserRepository users;
+    private final com.jrobertgardzinski.security.system.roles.RequireRole roles;
     private final com.jrobertgardzinski.security.system.mfa.MfaCompliance compliance;
     private final Clock clock;
     private final JsonMapper json;
@@ -66,12 +66,13 @@ class JwtAccessTokenMint implements AccessTokenMint {
     JwtAccessTokenMint(@Value("${security.jwt.private-key:}") String privateKeyBase64,
                        @Value("${security.jwt.public-key:}") String publicKeyBase64,
                        @Value("${security.jwt.previous-public-keys:}") String previousPublicKeysBase64,
-                       UserRepository users, com.jrobertgardzinski.security.system.mfa.MfaCompliance compliance,
+                       com.jrobertgardzinski.security.system.roles.RequireRole roles,
+                       com.jrobertgardzinski.security.system.mfa.MfaCompliance compliance,
                        Clock clock, JsonMapper json) {
         this.keyPair = load(privateKeyBase64, publicKeyBase64);
         this.keyId = keyIdOf(keyPair.getPublic());
         this.previousPublicKeys = loadPublicKeys(previousPublicKeysBase64);
-        this.users = users;
+        this.roles = roles;
         this.compliance = compliance;
         this.clock = clock;
         this.json = json;
@@ -79,9 +80,10 @@ class JwtAccessTokenMint implements AccessTokenMint {
 
     @Override
     public AccessToken mint(Email email, AuthorizationTokenExpiration expiration) {
-        java.util.Set<Role> roleSet = users.findBy(email)
-                .map(user -> user.roles())
-                .orElse(java.util.Set.of(Role.USER));
+        // the roles IN FORCE, which include the ADMIN a bootstrap administrator holds by
+        // configuration rather than by a row — the claim other services gate on must say the same
+        // thing /admin/** does
+        java.util.Set<Role> roleSet = this.roles.rolesInForce(email);
         List<String> roles = roleSet.stream().map(Role::name).sorted().toList();
         Map<String, Object> header = Map.of("alg", "EdDSA", "typ", "JWT", "kid", keyId);
         Map<String, Object> claims = new LinkedHashMap<>();

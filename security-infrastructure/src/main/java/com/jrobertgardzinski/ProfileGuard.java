@@ -39,8 +39,14 @@ final class ProfileGuard {
             throw new IllegalStateException("no deployment profile declared (found: " + names
                     + ") - start with MICRONAUT_ENVIRONMENTS=dev or MICRONAUT_ENVIRONMENTS=prod;"
                     + " a start nobody decided must not happen");
-        if (declared.contains("dev") && declared.contains("prod"))
-            throw new IllegalStateException("both 'dev' and 'prod' are declared (" + names
-                    + ") - an ambiguous start is worse than a refused one");
+        if (declared.size() > 1)
+            // EXACTLY one of the trio, not merely "not dev+prod". The pair that mattered and was
+            // not refused is prod+test: the `test` profile exists to be deployed on its own (the
+            // browser e2e runs against it), and it brings the anonymous /test/clock and
+            // /test/mailbox backdoors with it — under `prod,test` they were live in production,
+            // handing anyone the mailbox a verification link lands in.
+            throw new IllegalStateException("more than one deployment profile is declared (" + declared
+                    + " in " + names + ") - exactly one of dev/test/prod decides what this service"
+                    + " is; an ambiguous start is worse than a refused one");
     }
 }

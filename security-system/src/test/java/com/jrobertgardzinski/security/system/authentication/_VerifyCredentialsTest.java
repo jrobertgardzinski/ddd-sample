@@ -72,7 +72,7 @@ class _VerifyCredentialsTest {
     }
 
     @Example
-    @Label("Invalid when no user exists for the email")
+    @Label("Invalid when no user exists — and the password is still hashed, so the clock says nothing")
     void invalid_when_user_not_found() {
         Mockito.when(userRepository.findBy(GIVEN.email)).thenReturn(Optional.empty());
 
@@ -80,7 +80,12 @@ class _VerifyCredentialsTest {
 
         assertAll(
                 () -> assertEquals(new AuthenticationEvent.Invalid(GIVEN.email), event),
-                () -> Mockito.verifyNoInteractions(hashAlgorithmPort)
+                // this assertion used to be verifyNoInteractions, which PINNED the defect: skipping
+                // the hash for an unknown address answers in a millisecond where a known one costs
+                // the full Argon2, and that difference enumerates accounts on an endpoint that
+                // refuses to enumerate them in words
+                () -> Mockito.verify(hashAlgorithmPort)
+                        .verify(Mockito.any(), Mockito.eq(GIVEN.password))
         );
     }
 }

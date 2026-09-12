@@ -26,18 +26,23 @@ import java.util.Map;
 @Controller("/me")
 final class MeController {
 
-    private final UserRepository users;
+    private final com.jrobertgardzinski.security.system.roles.RequireRole roles;
     private final com.jrobertgardzinski.security.system.mfa.MfaCompliance compliance;
 
-    MeController(UserRepository users, com.jrobertgardzinski.security.system.mfa.MfaCompliance compliance) {
-        this.users = users;
+    MeController(com.jrobertgardzinski.security.system.roles.RequireRole roles,
+                 com.jrobertgardzinski.security.system.mfa.MfaCompliance compliance) {
+        this.roles = roles;
         this.compliance = compliance;
     }
 
     @Get(produces = MediaType.APPLICATION_JSON)
     HttpResponse<Map<String, Object>> me(HttpRequest<?> request) {
         Email email = Caller.of(request);
-        java.util.Set<Role> roleSet = users.findBy(email).map(user -> user.roles()).orElse(java.util.Set.of(Role.USER));
+        // rolesInForce, not the persisted grants: a BOOTSTRAP ADMIN holds ADMIN by configuration and
+        // has no row saying so. Reading the row alone told such an administrator they were a plain
+        // USER — here and in the JWT — while /admin/** let them in, so every consumer that gates on
+        // this answer disagreed with the service that issued it.
+        java.util.Set<Role> roleSet = this.roles.rolesInForce(email);
         List<String> roles = roleSet.stream().map(Role::name).sorted().toList();
         // the MFA role floor, so consumers and the UI can nudge an under-protected privileged account
         return HttpResponse.ok(Map.of(

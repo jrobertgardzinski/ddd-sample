@@ -97,6 +97,22 @@ class JwtAccessTokenHttpTest {
     }
 
     @Test
+    @DisplayName("a bootstrap ADMIN is an ADMIN in the token and in /me, not only at the admin gate")
+    void the_bootstrap_admin_holds_its_role_everywhere() throws Exception {
+        // admin@example.com is declared in application-test.yml's security.bootstrap-admins: it
+        // holds ADMIN by configuration and has no row saying so
+        String token = registerVerifyAuthenticate("admin@example.com").accessToken;
+
+        assertTrue(((List<?>) decodeJson(token.split("\\.")[1]).get("roles")).contains("ADMIN"),
+                "the claim other services gate on must say what /admin/** says");
+        assertTrue(((List<?>) me(token).getBody(Map.class).orElseThrow().get("roles")).contains("ADMIN"),
+                "and so must the answer the UI reads");
+        // the gate itself has always let them in — that is what made the disagreement invisible
+        assertEquals(HttpStatus.OK, exchange(HttpRequest.GET("/admin/settings")
+                .header("Authorization", "Bearer " + token)).getStatus());
+    }
+
+    @Test
     @DisplayName("rotation overlap: a retired public key stays in the JWK set beside the new one")
     void rotation_keeps_the_retired_key_in_the_jwks() throws Exception {
         // the key pair retired by the rotation — only its PUBLIC half survives, in config

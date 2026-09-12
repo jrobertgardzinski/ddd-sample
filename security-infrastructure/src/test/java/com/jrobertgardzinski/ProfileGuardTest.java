@@ -25,7 +25,19 @@ class ProfileGuardTest {
     void an_ambiguous_start_is_refused() {
         assertThatThrownBy(() -> ProfileGuard.requireDeclaredProfile("dev,prod"))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("both 'dev' and 'prod'");
+                .hasMessageContaining("more than one deployment profile");
+    }
+
+    @Test
+    void prod_with_test_is_ambiguous_too_and_that_one_opens_the_backdoors() {
+        // `test` is a deployable profile of its own (run-e2e.sh uses it) and it carries the
+        // anonymous /test/clock and /test/mailbox endpoints; declared alongside prod, they were
+        // live in production and nothing refused the start
+        assertThatThrownBy(() -> ProfileGuard.requireDeclaredProfile("prod,test"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("more than one deployment profile");
+        assertThatThrownBy(() -> ProfileGuard.requireDeclaredProfile("dev,test"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

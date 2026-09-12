@@ -168,6 +168,15 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   na Testcontainers (`disabledWithoutDocker` = ciche zielone), `SilentlySkippedPactTest` zna
   wszystkich czterech konsumentów.
   NIE ruszone celowo: komentarze w V22/V25 (dryf checksumy Flyway — DB-4).
+- **HTTP-3 + ACC-7 + AUTH-4 — ZROBIONE 2026-09-12.** `ProfileGuard` wymaga DOKŁADNIE jednego
+  profilu z trójki: para `prod,test` przechodziła, a `test` niesie anonimowe `/test/clock`
+  i `/test/mailbox` — czyli skrzynkę z linkami weryfikacyjnymi na produkcji. `/me` i claim `roles`
+  w JWT idą przez `RequireRole.rolesInForce`: bootstrap-admin miał `roles=[USER]` wszędzie poza
+  bramką `/admin/**`, więc każdy konsument bramkujący po tokenie nie zgadzał się z serwisem, który
+  ten token wystawił (przypadek w `JwtAccessTokenHttpTest`, pada na starym kodzie). `_VerifyCredentials`
+  liczy Argon2 także dla NIEZNANEGO adresu (hash policzony raz przy budowie kroku): dotąd nieznany
+  adres wracał w milisekundę, a znany kosztował pełny hash — enumeracja kont z zegara na endpoincie,
+  który słowami odmawia enumeracji. Stary test PINOWAŁ tę asymetrię (`verifyNoInteractions`).
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:
