@@ -23,11 +23,11 @@ public class GenerateRecoveryCodes {
     private static final int GROUP = 5;
 
     private final RecoveryCodeRepository repository;
-    private final CodeHasher hasher;
+    private final RecoveryCodeHasher hasher;
     private final RecoveryCodeConfig config;
     private final SecureRandom random = new SecureRandom();
 
-    public GenerateRecoveryCodes(RecoveryCodeRepository repository, CodeHasher hasher,
+    public GenerateRecoveryCodes(RecoveryCodeRepository repository, RecoveryCodeHasher hasher,
                                  RecoveryCodeConfig config) {
         this.repository = repository;
         this.hasher = hasher;

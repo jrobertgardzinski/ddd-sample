@@ -26,17 +26,17 @@ public class MfaChain {
     private final FactorRegistry registry;
     private final ChallengeCodeConfig config;
     private final RecoveryCodeRepository recoveryCodes;
-    private final CodeHasher codeHasher;
+    private final RecoveryCodeHasher recoveryCodeHasher;
     private final Clock clock;
     private final int ticketTtlMinutes;
 
     public MfaChain(FactorRegistry registry, ChallengeCodeConfig config,
-                    RecoveryCodeRepository recoveryCodes, CodeHasher codeHasher,
+                    RecoveryCodeRepository recoveryCodes, RecoveryCodeHasher recoveryCodeHasher,
                     Clock clock, int ticketTtlMinutes) {
         this.registry = registry;
         this.config = config;
         this.recoveryCodes = recoveryCodes;
-        this.codeHasher = codeHasher;
+        this.recoveryCodeHasher = recoveryCodeHasher;
         this.clock = clock;
         this.ticketTtlMinutes = ticketTtlMinutes;
     }
@@ -69,6 +69,6 @@ public class MfaChain {
         }
         // not the factor's proof — maybe a recovery code standing in for this link (spent if so)
         return proof != null && !proof.isBlank() && recoveryCodes.consume(pending.email(),
-                codeHasher.hash(GenerateRecoveryCodes.normalise(proof)));
+                recoveryCodeHasher.hash(GenerateRecoveryCodes.normalise(proof)));
     }
 }

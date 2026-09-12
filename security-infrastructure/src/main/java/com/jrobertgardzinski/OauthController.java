@@ -5,6 +5,7 @@ import com.jrobertgardzinski.security.domain.vo.ProviderIdentity;
 import com.jrobertgardzinski.security.system.federation.FederatedSignIn;
 import com.jrobertgardzinski.security.system.federation.FederatedSignInResult;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -12,6 +13,7 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.cookie.Cookie;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -41,6 +43,19 @@ final class OauthController {
 
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OauthController.class);
 
+    /**
+     * Binds a dance to the browser that started it.
+     *
+     * <p>{@code state} is a server-side key, and until this cookie existed it was the ONLY thing
+     * the callback checked — so a callback URL was a bearer token for somebody else's sign-in.
+     * An attacker could start a dance, keep the link, and get a victim to open it: the victim's
+     * browser then received a session belonging to the ATTACKER's provider identity, which is
+     * session fixation — anything the victim did next, they did in the attacker's account. Sent
+     * SameSite=Lax on purpose: the callback arrives as a top-level navigation from the provider,
+     * which Strict would not carry.
+     */
+    private static final String STATE_COOKIE = "oauth_state";
+
     private final Map<String, OauthProviderSettings> providers;
     private final OauthFlowStore flows;
     private final OidcClient oidc;
@@ -48,12 +63,15 @@ final class OauthController {
     private final RefreshCookies refreshCookies;
     private final TransactionBoundary transactionBoundary;
     private final List<String> allowedReturnPrefixes;
+    private final boolean secureCookies;
 
     OauthController(List<OauthProviderSettings> providers, OauthFlowStore flows, OidcClient oidc,
                     FederatedSignIn federatedSignIn, RefreshCookies refreshCookies,
                     TransactionBoundary transactionBoundary,
                     @Value("${security.oauth.allowed-return-prefixes:http://localhost:8083/}")
-                    List<String> allowedReturnPrefixes) {
+                    List<String> allowedReturnPrefixes,
+                    @Value("${security.cookie.secure:true}") boolean secureCookies) {
+        this.secureCookies = secureCookies;
         this.providers = providers.stream()
                 .collect(java.util.stream.Collectors.toMap(OauthProviderSettings::name, p -> p));
         this.flows = flows;
@@ -108,19 +126,30 @@ final class OauthController {
                 "nonce", nonce,
                 "code_challenge", s256(codeVerifier),
                 "code_challenge_method", "S256"));
-        return HttpResponse.status(HttpStatus.FOUND).header("Location", location);
+        return HttpResponse.status(HttpStatus.FOUND).header("Location", location)
+                .cookie(stateCookie(state));
     }
 
     @Get(value = "/callback", produces = MediaType.APPLICATION_JSON)
-    HttpResponse<?> callback(@Nullable @QueryValue String state, @Nullable @QueryValue String code,
-                             @Nullable @QueryValue String error) {
-        OauthFlowStore.PendingFlow flow = state == null ? null : flows.consume(state).orElse(null);
+    HttpResponse<?> callback(HttpRequest<?> request, @Nullable @QueryValue String state,
+                             @Nullable @QueryValue String code, @Nullable @QueryValue String error) {
+        // the browser that started the dance is the only one allowed to finish it
+        String bound = request.getCookies().findCookie(STATE_COOKIE).map(Cookie::getValue).orElse(null);
+        if (state == null || bound == null || !MessageDigest.isEqual(
+                bound.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
+            // no flow is consumed: a callback handed to somebody else must not spend the attacker's
+            // state either, and there is no return URL here that can be trusted
+            return HttpResponse.badRequest(Map.of("error", "STATE_NOT_BOUND_TO_THIS_BROWSER"))
+                    .cookie(clearedStateCookie());
+        }
+        OauthFlowStore.PendingFlow flow = flows.consume(state).orElse(null);
         if (flow == null) {
             // no flow, no return URL to trust — a bare refusal is all this callback can say
             return HttpResponse.badRequest(Map.of("error", "UNKNOWN_OR_EXPIRED_STATE"));
         }
         if (error != null || code == null) {
-            return backTo(flow.returnUrl(), "#oauthError=" + encode(error != null ? error : "missing_code"));
+            return backTo(flow.returnUrl(), "#oauthError=" + encode(error != null ? error : "missing_code"))
+                    .cookie(clearedStateCookie());
         }
         ProviderIdentity identity;
         try {
@@ -133,13 +162,14 @@ final class OauthController {
             // the browser sat on a page that was supposed to redirect. The user's situation is the
             // same in every one of those cases: the sign-in did not happen.
             LOG.warn("federated sign-in through {} failed: {}", flow.provider(), refused.toString());
-            return backTo(flow.returnUrl(), "#oauthError=SIGN_IN_FAILED");
+            return backTo(flow.returnUrl(), "#oauthError=SIGN_IN_FAILED").cookie(clearedStateCookie());
         }
         FederatedSignInResult result = transactionBoundary.execute(() -> federatedSignIn.execute(identity));
         return switch (result) {
             case FederatedSignInResult.SignedIn signedIn -> backTo(flow.returnUrl(),
                     "#accessToken=" + encode(signedIn.session().plainAccessToken()))
-                    .cookie(refreshCookies.issue(signedIn.session().plainRefreshToken()));
+                    .cookie(refreshCookies.issue(signedIn.session().plainRefreshToken()))
+                    .cookie(clearedStateCookie());
             // the account has enrolled factors: hand the ticket back so the UI can finish the chain
             // through /authenticate/factor, exactly like a password sign-in
             case FederatedSignInResult.MfaRequired mfa -> backTo(flow.returnUrl(),
@@ -152,6 +182,21 @@ final class OauthController {
 
     private static io.micronaut.http.MutableHttpResponse<?> backTo(String returnUrl, String fragment) {
         return HttpResponse.status(HttpStatus.FOUND).header("Location", returnUrl + fragment);
+    }
+
+    /** Lives as long as a flow may (the store's own TTL is ten minutes) and no longer. */
+    private Cookie stateCookie(String state) {
+        return Cookie.of(STATE_COOKIE, state)
+                .httpOnly(true)
+                .secure(secureCookies)
+                .sameSite(io.micronaut.http.cookie.SameSite.Lax)
+                .path("/oauth")
+                .maxAge(java.time.Duration.ofMinutes(10));
+    }
+
+    private static Cookie clearedStateCookie() {
+        return Cookie.of(STATE_COOKIE, "").httpOnly(true).sameSite(io.micronaut.http.cookie.SameSite.Lax)
+                .path("/oauth").maxAge(0);
     }
 
     private static String s256(String verifier) {

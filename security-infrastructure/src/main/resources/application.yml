@@ -113,6 +113,12 @@ security:
   #   end with "/", because "http://app.example" as a raw string prefix also matches
   #   http://app.example.evil.net/ and http://app.example@evil.net/.
   #
+  # mfa.recovery.pepper: <a long random string>   # the key the RECOVERY CODE hashes are taken
+  #   under (HMAC-SHA256). Keyed rather than salted because a code is spent by looking its hash up,
+  #   so the digest must be stable and the secret must live OUTSIDE the database. REQUIRED under a
+  #   declared prod profile — the boot refuses without it, like the datasource password. Changing it
+  #   retires every recovery code already issued.
+  #
   # trusted-proxies: 10.42.0.7,10.42.0.8   # EXACT addresses (no CIDR): X-Forwarded-For is honoured
   #                                          only when the peer is one of these, and the source is
   #                                          then the rightmost element that is not one of them

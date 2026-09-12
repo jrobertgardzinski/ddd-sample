@@ -186,6 +186,18 @@ DB-8, `Source` w `PendingAuthentication`) są decyzją właściciela — tylko w
   (`security.mfa.enrolment.ttl-minutes`, domyślnie 15). `EnrolmentSweeperTest` na starym wyrażeniu
   rzuca dokładnie tym NPE; prawo `StoresWithADeadlineEvictThemTest` samo złapało nowy store i
   kazało go sklasyfikować (grepuje istnienie sweepera — dlatego NPE w środku przeszedł niezauważony).
+- **ATK-6 + WIRE-6 — ZROBIONE 2026-09-12.** `state` w OAuth był kluczem po stronie serwera i NICZYM
+  więcej, więc link callbacku działał jak bilet na okaziciela: atakujący zaczynał taniec, podsuwał
+  link ofierze, a przeglądarka ofiary dostawała sesję TOŻSAMOŚCI ATAKUJĄCEGO (session fixation).
+  `/oauth/{provider}/start` ustawia teraz krótkie ciasteczko `oauth_state` (HttpOnly, SameSite=Lax,
+  ścieżka `/oauth`, 10 min), a callback wymaga zgodności — bez tego 400 i ŻADEN flow nie jest
+  konsumowany. Testy niosą ciasteczko jak przeglądarka; nowy przypadek „callback to nie bilet".
+  WIRE-6: kody odzyskiwania miały nieosolony SHA-256 (2^49 kandydatów = godziny na jednym GPU, a
+  każdy kod zastępuje CAŁY łańcuch). Nowy port `RecoveryCodeHasher` + `PepperedRecoveryCodeHasher`
+  (HMAC-SHA256 pod pieprzem `security.mfa.recovery.pepper`) — kluczowany, nie solony, bo kod wydaje
+  się przez WYSZUKANIE hasha. Pod profilem `prod` brak pieprzu wywala boot po nazwie klucza.
+  **UWAGA MIGRACYJNA: kody wydane wcześniej (stary SHA-256) przestają pasować — użytkownicy muszą
+  wygenerować nowe.** To samo przy każdej zmianie pieprzu.
 - Otwarte z raportu: 27 MEDIUM/101 LOW poza powyższymi paczkami (m.in. ATK-6 CSRF OAuth, AUTH-4
   timing, MFA-2 replay TOTP, MFA-3 sweeper, WIRE-6 kody odzyskiwania na SHA-256, HTTP-3 prod+test,
   DB-5 strefy czasowe, OPS-13/14/17) + pozycje kształtu domeny do DECYZJI WŁAŚCICIELA:

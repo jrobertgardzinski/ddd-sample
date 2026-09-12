@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -142,7 +143,7 @@ class OauthFlowHttpTest {
                 "iss", issuer(), "aud", "test-client", "sub", "prov-sub-1",
                 "email", "dancer@example.com", "email_verified", true,
                 "exp", Instant.now().getEpochSecond() + 300, "nonce", authorize.get("nonce"))));
-        HttpResponse<?> back = exchange("/oauth/callback?state=" + authorize.get("state") + "&code=c-1");
+        HttpResponse<?> back = callback("/oauth/callback?state=" + authorize.get("state") + "&code=c-1");
 
         assertEquals(HttpStatus.FOUND, back.getStatus());
         String location = back.getHeaders().get("Location");
@@ -156,7 +157,7 @@ class OauthFlowHttpTest {
         assertEquals(HttpStatus.OK, me.getStatus());
         assertEquals("dancer@example.com", me.getBody(Map.class).orElseThrow().get("email"));
 
-        HttpResponse<?> replayed = exchange("/oauth/callback?state=" + authorize.get("state") + "&code=c-1");
+        HttpResponse<?> replayed = callback("/oauth/callback?state=" + authorize.get("state") + "&code=c-1");
         assertEquals(HttpStatus.BAD_REQUEST, replayed.getStatus(), "a state is single-use");
     }
 
@@ -168,7 +169,7 @@ class OauthFlowHttpTest {
                 "iss", issuer(), "aud", List.of("test-client", "account"), "azp", "test-client",
                 "sub", "kc-sub-1", "email", "keycloaker@example.com", "email_verified", true,
                 "exp", Instant.now().getEpochSecond() + 300, "nonce", authorize.get("nonce"))));
-        HttpResponse<?> back = exchange("/oauth/callback?state=" + authorize.get("state") + "&code=c-kc");
+        HttpResponse<?> back = callback("/oauth/callback?state=" + authorize.get("state") + "&code=c-kc");
 
         assertEquals(HttpStatus.FOUND, back.getStatus());
         assertTrue(back.getHeaders().get("Location").startsWith(RETURN_URL + "#accessToken="),
@@ -183,7 +184,7 @@ class OauthFlowHttpTest {
                 "iss", issuer(), "aud", List.of("test-client", "account"), "azp", "someone-else",
                 "sub", "kc-sub-2", "email", "mitm@example.com", "email_verified", true,
                 "exp", Instant.now().getEpochSecond() + 300, "nonce", authorize.get("nonce"))));
-        HttpResponse<?> back = exchange("/oauth/callback?state=" + authorize.get("state") + "&code=c-kx");
+        HttpResponse<?> back = callback("/oauth/callback?state=" + authorize.get("state") + "&code=c-kx");
 
         assertEquals(HttpStatus.FOUND, back.getStatus());
         assertTrue(back.getHeaders().get("Location").endsWith("#oauthError=SIGN_IN_FAILED"));
@@ -197,7 +198,7 @@ class OauthFlowHttpTest {
                 "iss", issuer(), "aud", "test-client", "sub", "prov-sub-2",
                 "email", "replayed@example.com", "email_verified", true,
                 "exp", Instant.now().getEpochSecond() + 300, "nonce", "NOT-THE-NONCE")));
-        HttpResponse<?> replayAttempt = exchange("/oauth/callback?state=" + first.get("state") + "&code=c-2");
+        HttpResponse<?> replayAttempt = callback("/oauth/callback?state=" + first.get("state") + "&code=c-2");
         assertEquals(HttpStatus.FOUND, replayAttempt.getStatus());
         assertTrue(replayAttempt.getHeaders().get("Location").endsWith("#oauthError=SIGN_IN_FAILED"));
 
@@ -206,9 +207,29 @@ class OauthFlowHttpTest {
                 "iss", issuer(), "aud", "test-client", "sub", "prov-sub-3",
                 "email", "shady@example.com", "email_verified", false,
                 "exp", Instant.now().getEpochSecond() + 300, "nonce", second.get("nonce"))));
-        HttpResponse<?> unvouched = exchange("/oauth/callback?state=" + second.get("state") + "&code=c-3");
+        HttpResponse<?> unvouched = callback("/oauth/callback?state=" + second.get("state") + "&code=c-3");
         assertEquals(HttpStatus.FOUND, unvouched.getStatus());
         assertTrue(unvouched.getHeaders().get("Location").endsWith("#oauthError=EMAIL_NOT_VOUCHED"));
+    }
+
+    @Test
+    @DisplayName("a callback handed to somebody else is refused: the dance belongs to the browser that started it")
+    void a_callback_link_is_not_a_bearer_token() {
+        Map<String, String> authorize = startFlow();   // the attacker starts a dance of their own
+        String attackersLink = "/oauth/callback?state=" + authorize.get("state") + "&code=c-1";
+        nextIdToken.set(idToken(Map.of("iss", issuer(), "aud", "test-client", "sub", "attacker-1",
+                "email", "attacker@example.com", "email_verified", true, "nonce", authorize.get("nonce"),
+                "exp", Instant.now().plusSeconds(300).getEpochSecond())));
+
+        // the victim opens it in THEIR browser, which never started this dance and has no cookie
+        stateCookie = null;
+        HttpResponse<?> refused = callback(attackersLink);
+
+        assertEquals(HttpStatus.BAD_REQUEST, refused.getStatus(),
+                "otherwise the victim's browser receives a session for the ATTACKER's identity —"
+                        + " session fixation: everything they do next, they do in that account");
+        assertNull(refused.getCookies().findCookie("refresh_token").map(c -> c.getValue()).orElse(null),
+                "and no session may be issued by a refused callback");
     }
 
     @Test
@@ -245,7 +266,7 @@ class OauthFlowHttpTest {
         nextEmails.set("[{\"email\":\"old@example.com\",\"primary\":false,\"verified\":true},"
                 + "{\"email\":\"octo@example.com\",\"primary\":true,\"verified\":true},"
                 + "{\"email\":\"spam@example.com\",\"primary\":false,\"verified\":false}]");
-        HttpResponse<?> back = exchange("/oauth/callback?state=" + authorize.get("state") + "&code=c-9");
+        HttpResponse<?> back = callback("/oauth/callback?state=" + authorize.get("state") + "&code=c-9");
 
         assertEquals(HttpStatus.FOUND, back.getStatus());
         String location = back.getHeaders().get("Location");
@@ -265,7 +286,7 @@ class OauthFlowHttpTest {
         // Facebook shape: subject + email, verification never stated
         Map<String, String> vouched = startFlow("faces");
         nextUserinfo.set("{\"id\":\"fb-7\",\"email\":\"faced@example.com\"}");
-        HttpResponse<?> in = exchange("/oauth/callback?state=" + vouched.get("state") + "&code=c-10");
+        HttpResponse<?> in = callback("/oauth/callback?state=" + vouched.get("state") + "&code=c-10");
         assertEquals(HttpStatus.FOUND, in.getStatus());
         assertTrue(in.getHeaders().get("Location").startsWith(RETURN_URL + "#accessToken="),
                 "assume-email-verified lets the configured deployment accept it");
@@ -273,7 +294,7 @@ class OauthFlowHttpTest {
         // the same assertion through a provider nobody vouched for stays outside
         Map<String, String> unvouched = startFlow("strict");
         nextUserinfo.set("{\"id\":\"fb-8\",\"email\":\"stranger@example.com\"}");
-        HttpResponse<?> out = exchange("/oauth/callback?state=" + unvouched.get("state") + "&code=c-11");
+        HttpResponse<?> out = callback("/oauth/callback?state=" + unvouched.get("state") + "&code=c-11");
         assertEquals(HttpStatus.FOUND, out.getStatus());
         assertTrue(out.getHeaders().get("Location").endsWith("#oauthError=EMAIL_NOT_VOUCHED"),
                 "no verified flag and no vouch means no session, got: " + out.getHeaders().get("Location"));
@@ -309,15 +330,30 @@ class OauthFlowHttpTest {
         return startFlow("fake");
     }
 
+    /** The cookie /start sets to bind the dance to THIS browser; the callback needs it back. */
+    private String stateCookie;
+
     private Map<String, String> startFlow(String provider) {
         HttpResponse<?> redirect = exchange("/oauth/" + provider + "/start?return=" + RETURN_URL);
         assertEquals(HttpStatus.FOUND, redirect.getStatus());
+        stateCookie = redirect.getCookies().findCookie("oauth_state")
+                .map(io.micronaut.http.cookie.Cookie::getValue).orElse(null);
+        assertNotNull(stateCookie, "/start must bind the flow to the browser that started it");
         String location = redirect.getHeaders().get("Location");
         assertTrue(location.startsWith(issuer() + "/authorize?"), "unexpected authorize URL: " + location);
         return URI.create(location).getQuery().lines()
                 .flatMap(q -> java.util.Arrays.stream(q.split("&")))
                 .map(pair -> pair.split("=", 2))
                 .collect(Collectors.toMap(kv -> kv[0], kv -> java.net.URLDecoder.decode(kv[1], StandardCharsets.UTF_8)));
+    }
+
+    /** A callback as the browser makes it: the query the provider sent, plus the binding cookie. */
+    private HttpResponse<?> callback(String uri) {
+        io.micronaut.http.MutableHttpRequest<?> request = HttpRequest.GET(uri);
+        if (stateCookie != null) {
+            request = request.cookie(io.micronaut.http.cookie.Cookie.of("oauth_state", stateCookie));
+        }
+        return exchange(request, String.class);
     }
 
     private String issuer() {

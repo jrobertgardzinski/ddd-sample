@@ -450,11 +450,12 @@ public class BeanFactory {
             com.jrobertgardzinski.security.system.mfa.FactorRegistry factorRegistry,
             com.jrobertgardzinski.security.config.mfa.ChallengeCodeConfig challengeCodeConfig,
             com.jrobertgardzinski.security.domain.repository.RecoveryCodeRepository recoveryCodeRepository,
-            com.jrobertgardzinski.security.system.mfa.CodeHasher codeHasher,
+            com.jrobertgardzinski.security.system.mfa.RecoveryCodeHasher recoveryCodeHasher,
             Clock clock,
             @io.micronaut.context.annotation.Value("${security.mfa.ticket-ttl-minutes:10}") int ticketTtlMinutes) {
         return new com.jrobertgardzinski.security.system.mfa.MfaChain(
-                factorRegistry, challengeCodeConfig, recoveryCodeRepository, codeHasher, clock, ticketTtlMinutes);
+                factorRegistry, challengeCodeConfig, recoveryCodeRepository, recoveryCodeHasher, clock,
+                ticketTtlMinutes);
     }
 
     @Context
@@ -467,10 +468,10 @@ public class BeanFactory {
     @Singleton
     com.jrobertgardzinski.security.system.mfa.GenerateRecoveryCodes generateRecoveryCodes(
             com.jrobertgardzinski.security.domain.repository.RecoveryCodeRepository recoveryCodeRepository,
-            com.jrobertgardzinski.security.system.mfa.CodeHasher codeHasher,
+            com.jrobertgardzinski.security.system.mfa.RecoveryCodeHasher recoveryCodeHasher,
             com.jrobertgardzinski.security.config.mfa.RecoveryCodeConfig recoveryCodeConfig) {
         return new com.jrobertgardzinski.security.system.mfa.GenerateRecoveryCodes(
-                recoveryCodeRepository, codeHasher, recoveryCodeConfig);
+                recoveryCodeRepository, recoveryCodeHasher, recoveryCodeConfig);
     }
 
     /** Start and continue: assembled together so a sign-in begun by one is completed by the other. */
